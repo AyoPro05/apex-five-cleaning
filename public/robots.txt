@@ -1,0 +1,28 @@
+# robots.txt for Apex Five Cleaning
+# Last updated: 2026-01-26
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Disallow admin and private areas (when applicable)
+Disallow: /admin/
+Disallow: /private/
+Disallow: /api/
+Disallow: /.env
+
+# Sitemap location
+Sitemap: https://apexfivecleaning.co.uk/sitemap.xml
+
+# Crawl delay (be respectful to servers)
+Crawl-delay: 1
+
+# Request rate (requests per second)
+Request-rate: 1/1s
