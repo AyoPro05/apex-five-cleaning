@@ -7,8 +7,10 @@ const Home = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-teal-600 to-teal-800 min-h-screen flex items-center pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
+      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden" style={{ backgroundImage: 'url(/images/heroes/Hero_Home.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-600/90 to-teal-800/80"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white">
               <span className="inline-block bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
@@ -71,16 +73,7 @@ const Home = () => {
               </div>
             </div>
             
-            {/* Hero Image */}
-            <div className="hidden lg:block">
-              <div className="relative">
-                <div className="bg-white/10 backdrop-blur rounded-3xl p-8">
-                  <img
-                    src="/images/heroes/Hero_Home.png"
-                    alt="Professional residential cleaning service"
-                    className="rounded-2xl shadow-2xl w-full"
-                  />
-                </div>
+            {/* Hero Image - Now Full Background */}
                 <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-xl">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">

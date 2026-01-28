@@ -206,7 +206,7 @@ const BlogPost = () => {
       {/* Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>
 
-      <section className="pt-32 pb-20 bg-white">
+      <section className="pt-20 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <button
@@ -217,21 +217,26 @@ const BlogPost = () => {
             Back to Blog
           </button>
 
-          {/* Hero Image */}
-          <div className="mb-8 rounded-2xl overflow-hidden h-96">
+          {/* Hero Image - Full Width Background */}
+          <div className="relative mb-12 rounded-2xl overflow-hidden min-h-80 -mx-4 px-4">
             <img
               src={post.image}
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover absolute inset-0 rounded-2xl"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent rounded-2xl"></div>
+            <div className="relative z-10 h-80 flex flex-col justify-end pb-8">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <span className="inline-block bg-amber-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold mb-4">
+                  {post.category}
+                </span>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">{post.title}</h1>
+              </div>
+            </div>
           </div>
 
           {/* Article Header */}
-          <div className="mb-8">
-            <span className="inline-block bg-teal-100 text-teal-700 px-4 py-1 rounded-full text-sm font-semibold mb-4">
-              {post.category}
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">{post.title}</h1>
+          <div className="mb-12">
 
             {/* Meta Information */}
             <div className="flex flex-wrap gap-6 text-gray-600 border-b border-gray-200 pb-6">

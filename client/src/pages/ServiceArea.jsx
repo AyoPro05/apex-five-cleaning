@@ -242,28 +242,29 @@ const ServiceArea = () => {
       {/* Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(localSchema)}</script>
 
-      <section className="pt-32 pb-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative min-h-96 py-20 mb-20 overflow-hidden" style={{ backgroundImage: `url(${area.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/85 to-teal-900/80"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Hero Section */}
-          <div className="grid md:grid-cols-2 gap-12 mb-16">
-            <div>
-              <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Service Area</span>
-              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-4">
+          <div className="text-white">
+              <span className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Service Area</span>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white mt-2 mb-4">
                 Cleaning Services in {area.name}
               </h1>
-              <p className="text-xl text-gray-600 mb-6">{area.localInfo}</p>
+              <p className="text-xl text-gray-100 mb-6">{area.localInfo}</p>
               
               {/* Key Info */}
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-teal-50 rounded-lg p-4">
-                  <Clock className="w-5 h-5 text-teal-600 mb-2" />
-                  <p className="text-sm text-gray-600">Response Time</p>
-                  <p className="font-bold text-teal-600">{area.responseTime}</p>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 border border-white/20">
+                  <Clock className="w-5 h-5 text-amber-300 mb-2" />
+                  <p className="text-sm text-gray-100">Response Time</p>
+                  <p className="font-bold text-amber-300">{area.responseTime}</p>
                 </div>
-                <div className="bg-teal-50 rounded-lg p-4">
-                  <MapPin className="w-5 h-5 text-teal-600 mb-2" />
-                  <p className="text-sm text-gray-600">Service Region</p>
-                  <p className="font-bold text-teal-600">{area.region}</p>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 border border-white/20">
+                  <MapPin className="w-5 h-5 text-amber-300 mb-2" />
+                  <p className="text-sm text-gray-100">Service Region</p>
+                  <p className="font-bold text-amber-300">{area.region}</p>
                 </div>
               </div>
 
@@ -271,7 +272,7 @@ const ServiceArea = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <a
                   href="tel:+441622621133"
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-lg font-bold transition text-center"
+                  className="bg-white text-teal-700 px-8 py-3 rounded-lg font-bold transition text-center hover:bg-gray-50"
                 >
                   Call Now
                 </a>
@@ -283,22 +284,9 @@ const ServiceArea = () => {
                 </button>
               </div>
             </div>
-
-            {/* Hero Image */}
-            <div>
-              <img
-                src={area.image}
-                alt={`${area.name} cleaning services`}
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=1200&h=600&fit=crop'
-                }}
-                className="w-full h-96 object-cover rounded-2xl shadow-lg"
-                loading="lazy"
-              />
-            </div>
           </div>
-
-          {/* Coverage Area */}
+        </div>
+      </section>
           <div className="bg-gray-50 rounded-2xl p-8 mb-16">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Coverage Area</h2>
             <p className="text-lg text-gray-600">{area.coverage}</p>
