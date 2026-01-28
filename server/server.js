@@ -10,6 +10,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+import paymentRoutes from './src/routes/payments.js';
+import webhookRoutes from './src/routes/webhooks.js';
 
 const app = express();
 
@@ -23,6 +25,9 @@ app.use(cors({
   credentials: true,
   optionsSuccessStatus: 200
 }));
+
+// Webhook route (MUST be before JSON parser to get raw body)
+app.use('/api/webhooks', webhookRoutes);
 
 // Body parser
 app.use(express.json());
@@ -44,7 +49,7 @@ const connectDB = async () => {
 };
 
 // ============================================
-// ROUTES (To be implemented)
+// ROUTES
 // ============================================
 
 // Health check endpoint
@@ -52,14 +57,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend server is running ✅' });
 });
 
+// Payment Routes
+app.use('/api/payments', paymentRoutes);
+
 // Auth Routes (coming soon)
 // app.use('/api/auth', require('./routes/authRoutes'));
 
 // Booking Routes (coming soon)
 // app.use('/api/bookings', require('./routes/bookingRoutes'));
-
-// Payment Routes (coming soon)
-// app.use('/api/payments', require('./routes/paymentRoutes'));
 
 // User Routes (coming soon)
 // app.use('/api/users', require('./routes/userRoutes'));
