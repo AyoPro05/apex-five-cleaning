@@ -126,7 +126,7 @@ const ServiceArea = () => {
       region: 'Swale, Kent',
       coverage: 'Sittingbourne, Faversham, Whitstable',
       responseTime: '24-48 hours',
-      servicesCcovered: ['Residential Cleaning', 'End of Tenancy', 'Airbnb Turnover'],
+      servicesCovered: ['Residential Cleaning', 'End of Tenancy', 'Airbnb Turnover'],
       localInfo: 'Professional cleaning services across Swale including Sittingbourne and Faversham.',
       highlights: [
         'Family home specialists',
@@ -153,13 +153,29 @@ const ServiceArea = () => {
       image: 'https://images.unsplash.com/photo-1507995881394-2c58d5d0d81c?w=1200&h=600&fit=crop',
       coordinates: { lat: 51.3789, lng: 0.9147 }
     },
+    'minster-on-sea': {
+      name: 'Minster-on-Sea',
+      region: 'Swale, Kent',
+      coverage: 'Minster-on-Sea, Sittingbourne, Isle of Sheppey',
+      responseTime: '24-48 hours',
+      servicesCovered: ['Residential Cleaning', 'End of Tenancy', 'Airbnb Turnover'],
+      localInfo: 'Specialist coastal and rural cleaning services for Minster-on-Sea and surrounding areas.',
+      highlights: [
+        'Coastal property specialists',
+        'Rural and village expertise',
+        'Fast response times',
+        'Customer-focused service'
+      ],
+      image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=600&fit=crop',
+      coordinates: { lat: 51.4176, lng: 0.8447 }
+    },
     // London - Croydon & Surrounding
     'croydon': {
       name: 'Croydon',
       region: 'Greater London, Surrey',
       coverage: 'Croydon, Coulsdon, Sanderstead, Purley',
       responseTime: '24 hours',
-      servicesCcovered: ['Residential Cleaning', 'End of Tenancy', 'Airbnb Turnover'],
+      servicesCovered: ['Residential Cleaning', 'End of Tenancy', 'Airbnb Turnover'],
       localInfo: 'Premium cleaning services for South London and Greater London areas.',
       highlights: [
         'London property specialists',
@@ -273,7 +289,11 @@ const ServiceArea = () => {
               <img
                 src={area.image}
                 alt={`${area.name} cleaning services`}
+                onError={(e) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=1200&h=600&fit=crop'
+                }}
                 className="w-full h-96 object-cover rounded-2xl shadow-lg"
+                loading="lazy"
               />
             </div>
           </div>

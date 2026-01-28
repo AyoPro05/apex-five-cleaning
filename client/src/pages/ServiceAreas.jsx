@@ -23,6 +23,7 @@ const ServiceAreas = () => {
       areas: [
         { name: 'Sheerness-on-Sea', slug: 'sheerness', coverage: 'Sheerness-on-Sea, Queenborough, Minster-on-Sea' },
         { name: 'Sittingbourne', slug: 'sittingbourne', coverage: 'Sittingbourne, Faversham, Whitstable' },
+        { name: 'Minster-on-Sea', slug: 'minster-on-sea', coverage: 'Minster-on-Sea, Isle of Sheppey' },
         { name: 'Axminster', slug: 'axminster', coverage: 'Axminster, Minster-on-Sea' }
       ]
     },
