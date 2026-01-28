@@ -18,7 +18,16 @@ import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Initialize Stripe with fallback for development
+const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_default';
+let stripe;
+try {
+  stripe = new Stripe(stripeKey);
+} catch (error) {
+  console.warn('Stripe initialization warning:', error.message);
+  stripe = null;
+}
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // ============================================

@@ -1,7 +1,9 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import authRouter from '../routes/authRoutes.js';
 import emailVerificationRouter from './routes/emailVerification.js';
@@ -9,8 +11,6 @@ import quotesRouter from './routes/quotes.js';
 import adminRouter from './routes/admin.js';
 import bookingsRouter from './routes/bookings.js';
 import paymentsRouter from './routes/payments.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,7 +23,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '10kb' })); // Limit payload size
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
-Stripe webhook route (must be before general json parser for raw body)
+// Stripe webhook route (must be before general json parser for raw body)
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   // This will be handled by paymentsRouter
   paymentsRouter(req, res);
@@ -48,8 +48,7 @@ const connectDB = async () => {
     console.error('✗ MongoDB connection failed:', error.message);
     process.exit(1);
   }
-};payments', paymentsRouter);
-app.use('/api/
+};
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -57,6 +56,7 @@ app.use('/api/auth', emailVerificationRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/quotes', quotesRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
