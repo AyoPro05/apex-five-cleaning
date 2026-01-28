@@ -1,9 +1,11 @@
 import { MapPin, Clock, Phone, Star } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 
 const ServiceArea = () => {
   const { areaSlug } = useParams()
   const navigate = useNavigate()
+  const [heroImage, setHeroImage] = useState('')
 
   // Service areas data with local information
   const serviceAreas = {
@@ -242,7 +244,17 @@ const ServiceArea = () => {
       {/* Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(localSchema)}</script>
 
-      <section className="relative min-h-96 py-20 mb-20 overflow-hidden" style={{ backgroundImage: `url(${area.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <section className="relative min-h-96 py-20 mb-20 overflow-hidden" style={{ backgroundImage: `url('${heroImage || area.image || '/images/heroes/Hero_Services.png'}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+        {/* Preload image with fallback */}
+        {!heroImage && area.image && (
+          <img
+            src={area.image}
+            alt=""
+            style={{ display: 'none' }}
+            onLoad={() => setHeroImage(area.image)}
+            onError={() => setHeroImage('/images/heroes/Hero_Services.png')}
+          />
+        )}
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-gray-900/85 to-teal-900/80"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

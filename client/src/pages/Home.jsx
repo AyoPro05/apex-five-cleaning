@@ -7,7 +7,7 @@ const Home = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden" style={{ backgroundImage: 'url(/images/heroes/Hero_Home.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden" style={{ backgroundImage: 'url(/images/heroes/Hero_Services.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-teal-600/90 to-teal-800/80"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
