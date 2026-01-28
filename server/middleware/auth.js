@@ -3,12 +3,12 @@
  * Protects routes and verifies JWT tokens
  */
 
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 /**
  * Verify JWT token and attach user to request
  */
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
     // Get token from header
     const token = req.headers.authorization?.split(' ')[1];
@@ -41,7 +41,7 @@ const authMiddleware = (req, res, next) => {
 /**
  * Verify user is admin
  */
-const adminMiddleware = (req, res, next) => {
+export const adminMiddleware = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -59,7 +59,7 @@ const adminMiddleware = (req, res, next) => {
 /**
  * Verify user owns the resource
  */
-const ownershipMiddleware = (paramName = 'userId') => {
+export const ownershipMiddleware = (paramName = 'userId') => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -87,7 +87,7 @@ const ownershipMiddleware = (paramName = 'userId') => {
 /**
  * Error handling middleware
  */
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, next) => {
   console.error('❌ Error:', err);
 
   // JWT errors
@@ -117,14 +117,8 @@ const errorHandler = (err, req, res, next) => {
 
   // Server error
   return res.status(500).json({
+    success: false,
     error: 'Server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
-};
-
-module.exports = {
-  authMiddleware,
-  adminMiddleware,
-  ownershipMiddleware,
-  errorHandler
 };

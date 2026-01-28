@@ -76,7 +76,7 @@ const Home = () => {
               <div className="relative">
                 <div className="bg-white/10 backdrop-blur rounded-3xl p-8">
                   <img
-                    src="/images/Hero_Home.png"
+                    src="/images/heroes/Hero_Home.png"
                     alt="Professional residential cleaning service"
                     className="rounded-2xl shadow-2xl w-full"
                   />

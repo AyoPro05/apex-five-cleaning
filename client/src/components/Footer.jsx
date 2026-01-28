@@ -19,15 +19,20 @@ const Footer = () => {
               We bring clarity, trust, and exceptional service to every clean.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-teal-500 transition">
+              <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="Facebook">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-teal-500 transition">
+              <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="Instagram">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-teal-500 transition">
+              <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="X (Twitter)">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.306 21.75H-.233l7.73-8.835L0 2.25h6.676l4.959 6.56 5.848-6.56zM17.45 19.038h1.828L5.455 3.75H3.54z"/>
+                </svg>
+              </a>
+              <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="TikTok">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.1 1.72 2.89 2.89 0 0 1 5.1-1.72V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 9 20.1a6.34 6.34 0 0 0 5.29-2.61 6.27 6.27 0 0 0 1.19-3.63v-6.16a7.28 7.28 0 0 0 4.81 1.65c.18 0 .37 0 .56-.01v-3.4a4.9 4.9 0 0 1-.56.03z"/>
                 </svg>
               </a>
             </div>

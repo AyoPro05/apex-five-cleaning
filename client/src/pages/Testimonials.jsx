@@ -10,7 +10,7 @@ const Testimonials = () => {
       name: 'Sarah Mitchell',
       role: 'Homeowner, Canterbury',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'Apex Five Cleaning transformed my home. They\'re professional, punctual, and use eco-friendly products. Highly recommended!',
       service: 'Residential Cleaning'
     },
@@ -19,7 +19,7 @@ const Testimonials = () => {
       name: 'James Richardson',
       role: 'Property Manager, Maidstone',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'We use Apex Five for all our end-of-tenancy cleans. They consistently return properties to move-in condition. Outstanding service.',
       service: 'End of Tenancy Cleaning'
     },
@@ -28,7 +28,7 @@ const Testimonials = () => {
       name: 'Emma Thompson',
       role: 'Airbnb Host, Dover',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'Quick, reliable, and thorough. They understand what Airbnb guests expect. My booking rate has improved since using them.',
       service: 'Airbnb Turnover Cleaning'
     },
@@ -37,7 +37,7 @@ const Testimonials = () => {
       name: 'Robert Chen',
       role: 'Office Manager, Tunbridge Wells',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'Professional, reliable, and flexible with scheduling. They\'ve been maintaining our office perfectly for two years now.',
       service: 'Residential Cleaning'
     },
@@ -46,7 +46,7 @@ const Testimonials = () => {
       name: 'Lisa Anderson',
       role: 'Landlord, Sevenoaks',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'Impressive attention to detail and eco-conscious approach. My tenants love the clean properties. Best decision ever.',
       service: 'End of Tenancy Cleaning'
     },
@@ -55,7 +55,7 @@ const Testimonials = () => {
       name: 'Michael Hughes',
       role: 'Property Owner, Ashford',
       rating: 5,
-      image: '/images/Testimonial_Customer_Avatar_Default.png',
+      image: '/images/testimonials/Testimonial_Customer_Avatar_Default.png',
       text: 'Consistently excellent work. They treat your home like their own. Trustworthy, professional, and fair pricing.',
       service: 'Residential Cleaning'
     }

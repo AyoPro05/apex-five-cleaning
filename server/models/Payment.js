@@ -3,7 +3,7 @@
  * Stores payment transaction information
  */
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
   // References
@@ -151,4 +151,4 @@ paymentSchema.methods.processRefund = function(amount, reason) {
   return this.save();
 };
 
-module.exports = mongoose.model('Payment', paymentSchema);
+export default mongoose.model('Payment', paymentSchema);

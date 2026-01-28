@@ -3,7 +3,7 @@
  * Stores booking information for services
  */
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
   // Reference
@@ -178,4 +178,4 @@ bookingSchema.methods.getStatusLabel = function() {
   return labels[this.status] || this.status;
 };
 
-module.exports = mongoose.model('Booking', bookingSchema);
+export default mongoose.model('Booking', bookingSchema);

@@ -3,8 +3,8 @@
  * Stores member and admin user information
  */
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
   // Basic Info
@@ -63,6 +63,13 @@ const userSchema = new mongoose.Schema({
   // Password Reset
   passwordResetToken: String,
   passwordResetExpiry: Date,
+
+  // Stripe Integration
+  stripeCustomerId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
 
   // Payment Methods (references to saved cards)
   defaultPaymentMethod: {
@@ -180,4 +187,4 @@ userSchema.methods.resetLoginAttempts = function() {
   });
 };
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

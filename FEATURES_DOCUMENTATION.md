@@ -49,10 +49,50 @@ This document outlines all the features added to enhance the quote system with v
 
 #### Email Service Features
 - SendGrid API integration for reliable delivery
+- SMTP support (Gmail, Outlook, AWS SES, custom servers)
+- Switch providers via `EMAIL_PROVIDER` environment variable
 - HTML and plain text fallbacks
 - Customizable from address and admin email
 - Error handling with retry logic
 - Email status tracking in database
+- TLS/SSL encryption support
+
+#### SMTP Configuration Options
+
+**For SMTP (Gmail, Outlook, AWS SES, etc):**
+```env
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM_NAME=Apex Cleaning
+SMTP_FROM_EMAIL=noreply@apexcleaning.com
+```
+
+**For SendGrid:**
+```env
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY=your-sendgrid-key
+SENDGRID_FROM_EMAIL=noreply@apexcleaning.com
+```
+
+#### Common SMTP Providers
+
+| Provider | Host | Port | Encryption |
+|----------|------|------|-----------|
+| Gmail | smtp.gmail.com | 587 | TLS |
+| Outlook | smtp.office365.com | 587 | TLS |
+| AWS SES | email-smtp.region.amazonaws.com | 587 | TLS |
+| Yahoo Mail | smtp.mail.yahoo.com | 587 | TLS |
+| SendGrid | smtp.sendgrid.net | 587 | TLS |
+
+#### Gmail App Password Setup
+1. Enable 2-Step Verification on Gmail account
+2. Go to: https://myaccount.google.com/apppasswords
+3. Select Mail → Windows Computer
+4. Copy generated 16-character password
+5. Use in SMTP_PASS field (no spaces)
 
 ### 4. **Admin Dashboard & Management System**
 

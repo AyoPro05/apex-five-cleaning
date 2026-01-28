@@ -306,3 +306,365 @@ export const sendAdminNotificationEmail = async (quoteData) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * EMAIL VERIFICATION TEMPLATES & FUNCTIONS
+ * Apex Five Cleaning - Email verification with company branding
+ */
+
+export const getVerificationEmailTemplate = (firstName, verificationLink, expiryHours = 24) => {
+  return {
+    subject: '🔐 Verify Your Email - Apex Five Cleaning',
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+            .header p { margin: 10px 0 0 0; font-size: 14px; opacity: 0.9; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+            .greeting { font-size: 16px; margin-bottom: 20px; }
+            .verification-box { background: #f0f7ff; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .btn { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; text-align: center; }
+            .btn:hover { background: #764ba2; opacity: 0.9; }
+            .info-section { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; }
+            .info-section h3 { margin-top: 0; color: #333; }
+            .info-section ul { margin: 10px 0; padding-left: 20px; }
+            .info-section li { margin: 5px 0; }
+            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
+            .security-badge { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 4px; }
+            .security-badge p { margin: 5px 0; font-size: 13px; color: #2e7d32; }
+            .expiry-notice { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 15px 0; border-radius: 4px; }
+            .expiry-notice p { margin: 5px 0; font-size: 13px; color: #e65100; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✨ Apex Five Cleaning</h1>
+              <p>Professional Cleaning Services - Kent, UK</p>
+            </div>
+            
+            <div class="content">
+              <div class="greeting">
+                <p>Hello <strong>${firstName}</strong>,</p>
+                <p>Thank you for registering with Apex Five Cleaning! We're excited to help you with all your cleaning needs.</p>
+              </div>
+
+              <div class="verification-box">
+                <p><strong>To get started, please verify your email address:</strong></p>
+                <a href="${verificationLink}" class="btn">✓ Verify Email Address</a>
+              </div>
+
+              <div class="expiry-notice">
+                <p>⏰ <strong>Important:</strong> This link will expire in <strong>${expiryHours} hours</strong> for security reasons.</p>
+              </div>
+
+              <div class="info-section">
+                <h3>What happens after verification?</h3>
+                <ul>
+                  <li>✅ Your account will be fully activated</li>
+                  <li>📊 Access your member dashboard</li>
+                  <li>🧹 Book your first cleaning service</li>
+                  <li>📧 Receive booking confirmations and reminders</li>
+                  <li>🎯 Manage your cleaning preferences</li>
+                </ul>
+              </div>
+
+              <div class="security-badge">
+                <p>🔒 <strong>Security Notice:</strong></p>
+                <p>Apex Five Cleaning will never ask for your password via email. If you didn't create this account or believe this is an error, please contact our support team immediately.</p>
+              </div>
+
+              <div class="info-section">
+                <h3>Need Help?</h3>
+                <p>If you're having trouble verifying your email:</p>
+                <ul>
+                  <li>📧 support@apexfivecleaning.co.uk</li>
+                  <li>☎️ 01227 XXXXXX</li>
+                  <li>🌐 www.apexfivecleaning.co.uk</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p><strong>Apex Five Cleaning Ltd</strong></p>
+              <p>Professional Cleaning Services | Canterbury, Kent, UK</p>
+              <p style="margin: 10px 0 0 0;">© 2026 Apex Five Cleaning. All rights reserved.</p>
+              <p style="margin: 5px 0; color: #ccc; font-size: 11px;">This email was sent because you registered at apexfivecleaning.co.uk</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Verify Your Email - Apex Five Cleaning\n\nHello ${firstName},\n\nThank you for registering! Please verify your email by visiting:\n\n${verificationLink}\n\nThis link expires in ${expiryHours} hours.\n\nIf you didn't create this account, please ignore this email.\n\nApex Five Cleaning Ltd\nProfessional Cleaning Services | Kent, UK`
+  };
+};
+
+export const getVerificationSuccessTemplate = (firstName) => {
+  return {
+    subject: '✅ Email Verified - Welcome to Apex Five Cleaning!',
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+            .header { background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+            .success-icon { font-size: 48px; margin: 10px 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+            .action-box { background: #f0f7ff; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .action-box h3 { margin-top: 0; color: #333; }
+            .action-box ul { margin: 10px 0; padding-left: 20px; }
+            .action-box li { margin: 8px 0; }
+            .btn { display: inline-block; background: #2196f3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
+            .btn:hover { background: #0b7dda; }
+            .next-steps { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; }
+            .next-steps h3 { margin-top: 0; }
+            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="success-icon">✅</div>
+              <h1>Email Verified!</h1>
+            </div>
+            
+            <div class="content">
+              <p style="font-size: 16px; margin-bottom: 20px;">Hello <strong>${firstName}</strong>,</p>
+              <p>Congratulations! Your email has been successfully verified. Your Apex Five Cleaning account is now fully activated and ready to use.</p>
+
+              <div class="action-box">
+                <h3>You can now:</h3>
+                <ul>
+                  <li>✓ Access your member dashboard</li>
+                  <li>✓ Book cleaning services</li>
+                  <li>✓ Manage your profile and preferences</li>
+                  <li>✓ Receive booking updates and reminders</li>
+                  <li>✓ View service history and ratings</li>
+                  <li>✓ Manage payment methods</li>
+                </ul>
+                <a href="${process.env.CLIENT_URL}/dashboard" class="btn">Go to Your Dashboard</a>
+              </div>
+
+              <div class="next-steps">
+                <h3>Next Steps:</h3>
+                <p>Ready to book your first cleaning? Here's what to expect:</p>
+                <ol>
+                  <li>Browse our cleaning services (Residential, End of Tenancy, Airbnb)</li>
+                  <li>Select your preferred date and time</li>
+                  <li>Choose your service area from our coverage zones</li>
+                  <li>Add any special requirements or notes</li>
+                  <li>Complete payment securely</li>
+                  <li>Receive confirmation and updates</li>
+                </ol>
+              </div>
+
+              <p style="margin-top: 30px; font-size: 14px;">Thank you for choosing Apex Five Cleaning. We look forward to serving you with professional and reliable cleaning services!</p>
+            </div>
+
+            <div class="footer">
+              <p><strong>Apex Five Cleaning Ltd</strong></p>
+              <p>Professional Cleaning Services | Canterbury, Kent, UK</p>
+              <p style="margin: 10px 0 0 0;">© 2026 All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Email Verified - Welcome to Apex Five Cleaning!\n\nHello ${firstName},\n\nYour email has been successfully verified!\n\nYou can now access your dashboard at:\n${process.env.CLIENT_URL}/dashboard\n\nThank you for choosing Apex Five Cleaning.\n\nApex Five Cleaning Ltd\nProfessional Cleaning Services | Kent, UK`
+  };
+};
+
+export const getResendVerificationTemplate = (firstName, verificationLink, expiryHours = 24) => {
+  return {
+    subject: '📧 New Verification Link - Apex Five Cleaning',
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+            .header { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+            .verification-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .btn { display: inline-block; background: #ff9800; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
+            .btn:hover { background: #f57c00; }
+            .info-section { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; }
+            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📧 New Verification Link</h1>
+            </div>
+            
+            <div class="content">
+              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>We've generated a new email verification link for you:</p>
+              
+              <div class="verification-box">
+                <a href="${verificationLink}" class="btn">✓ Verify Email</a>
+                <p style="margin-top: 15px; font-size: 13px; color: #ff6f00;">This link expires in <strong>${expiryHours} hours</strong>.</p>
+              </div>
+
+              <div class="info-section">
+                <p>If you're still having trouble, please try:</p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  <li>Checking your spam/junk folder</li>
+                  <li>Copying the link into your browser manually</li>
+                  <li>Contacting our support team</li>
+                </ul>
+              </div>
+
+              <p style="margin-top: 30px; font-size: 14px;">Need immediate assistance? Contact us at support@apexfivecleaning.co.uk</p>
+            </div>
+
+            <div class="footer">
+              <p><strong>Apex Five Cleaning Ltd</strong></p>
+              <p>© 2026 All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `New Verification Link - Apex Five Cleaning\n\nHello ${firstName},\n\nVerify your email using this link:\n${verificationLink}\n\nLink expires in ${expiryHours} hours.\n\nApex Five Cleaning Ltd`
+  };
+};
+
+/**
+ * Send verification email
+ */
+export const sendVerificationEmail = async (toEmail, firstName, verificationToken) => {
+  const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+  const template = getVerificationEmailTemplate(firstName, verificationLink, 24);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      const msg = {
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      };
+      
+      await sgMail.send(msg);
+      console.log(`✓ Verification email sent to ${toEmail} via SendGrid`);
+      return { success: true };
+    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      });
+      console.log(`✓ Verification email sent to ${toEmail} via SMTP`);
+      return { success: true };
+    } else {
+      console.warn('⚠️ No email provider configured. Verification email not sent.');
+      return { success: false, error: 'No email provider configured' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending verification email:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send verification success email
+ */
+export const sendVerificationSuccessEmail = async (toEmail, firstName) => {
+  const template = getVerificationSuccessTemplate(firstName);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      const msg = {
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      };
+      
+      await sgMail.send(msg);
+      console.log(`✓ Verification success email sent to ${toEmail} via SendGrid`);
+      return { success: true };
+    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      });
+      console.log(`✓ Verification success email sent to ${toEmail} via SMTP`);
+      return { success: true };
+    } else {
+      console.warn('⚠️ No email provider configured. Success email not sent.');
+      return { success: false, error: 'No email provider configured' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending verification success email:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send resend verification email
+ */
+export const sendResendVerificationEmail = async (toEmail, firstName, verificationToken) => {
+  const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+  const template = getResendVerificationTemplate(firstName, verificationLink, 24);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      const msg = {
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      };
+      
+      await sgMail.send(msg);
+      console.log(`✓ Resend verification email sent to ${toEmail} via SendGrid`);
+      return { success: true };
+    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      });
+      console.log(`✓ Resend verification email sent to ${toEmail} via SMTP`);
+      return { success: true };
+    } else {
+      console.warn('⚠️ No email provider configured. Resend email not sent.');
+      return { success: false, error: 'No email provider configured' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending resend verification email:', error.message);
+    return { success: false, error: error.message };
+  }
+}

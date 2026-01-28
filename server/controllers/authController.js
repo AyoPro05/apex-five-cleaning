@@ -3,8 +3,10 @@
  * Handles user registration, login, and token management
  */
 
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import { sendVerificationEmail } from '../src/utils/emailService.js';
+import crypto from 'crypto';
 
 /**
  * Generate JWT token
@@ -32,7 +34,7 @@ const generateRefreshToken = (userId, role) => {
  * USER REGISTRATION
  * POST /api/auth/register
  */
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, password, passwordConfirm } = req.body;
 
@@ -75,8 +77,24 @@ exports.register = async (req, res) => {
       phone: phone.replace(/\D/g, ''),
       password,
       role: 'member',
-      isVerified: false // Email verification would happen here
+      isVerified: false
     });
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    user.verificationToken = hashedToken;
+    user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await user.save();
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, user.firstName, verificationToken);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError.message);
+      // Don't fail registration if email fails, but log it
+    }
 
     // Generate tokens
     const token = generateToken(user._id, user.role);
@@ -85,14 +103,20 @@ exports.register = async (req, res) => {
     // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
+    delete userResponse.verificationToken;
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'User registered successfully. Please check your email to verify your account.',
       user: userResponse,
       tokens: {
         accessToken: token,
         refreshToken: refreshToken,
         expiresIn: process.env.JWT_EXPIRE || '1h'
+      },
+      verificationStatus: {
+        isVerified: false,
+        expiresIn: '24 hours',
+        message: 'A verification email has been sent to your email address.'
       }
     });
   } catch (error) {
@@ -108,7 +132,7 @@ exports.register = async (req, res) => {
  * USER LOGIN
  * POST /api/auth/login
  */
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
@@ -193,7 +217,7 @@ exports.login = async (req, res) => {
  * REFRESH TOKEN
  * POST /api/auth/refresh-token
  */
-exports.refreshToken = async (req, res) => {
+export const refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
@@ -238,7 +262,7 @@ exports.refreshToken = async (req, res) => {
  * LOGOUT
  * POST /api/auth/logout
  */
-exports.logout = (req, res) => {
+export const logout = (req, res) => {
   // In a real app, you would:
   // 1. Add token to a blacklist
   // 2. Clear any server-side sessions
@@ -250,5 +274,3 @@ exports.logout = (req, res) => {
     info: 'Token has been invalidated. Please delete it from client.'
   });
 };
-
-module.exports = exports;
