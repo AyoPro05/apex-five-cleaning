@@ -31,6 +31,20 @@ router.post('/login', authController.login);
 router.post('/refresh-token', authController.refreshToken);
 
 /**
+ * @route   GET /api/auth/me
+ * @desc    Get current user
+ * @access  Private
+ */
+router.get('/me', authMiddleware, authController.getMe);
+
+/**
+ * @route   PATCH /api/auth/me
+ * @desc    Update current user profile
+ * @access  Private
+ */
+router.patch('/me', authMiddleware, authController.updateMe);
+
+/**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  * @access  Private

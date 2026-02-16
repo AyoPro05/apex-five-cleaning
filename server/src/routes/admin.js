@@ -1,6 +1,7 @@
 import express from 'express';
 import Quote from '../models/Quote.js';
 import { createObjectCsvStringifier } from 'csv-writer';
+import { sendQuoteApprovedEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -119,6 +120,14 @@ router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
       });
     }
     
+    const existingQuote = await Quote.findById(req.params.id);
+    if (!existingQuote) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quote not found'
+      });
+    }
+    
     const updateData = {};
     if (status) updateData.status = status;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
@@ -129,11 +138,17 @@ router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
       { new: true }
     );
     
-    if (!quote) {
-      return res.status(404).json({
-        success: false,
-        error: 'Quote not found'
-      });
+    // When status changes to "converted", send "create your account" email
+    if (status === 'converted' && existingQuote.status !== 'converted') {
+      try {
+        await sendQuoteApprovedEmail(
+          quote.email,
+          quote.firstName,
+          quote._id.toString()
+        );
+      } catch (emailErr) {
+        console.warn('Quote approved email failed:', emailErr.message);
+      }
     }
     
     return res.json({
@@ -177,7 +192,14 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
       });
     }
     
-    // Prepare data for CSV
+    const additionalServiceLabels = {
+      'interior-fridge-freezer': 'Fridge, Freezer & Oven',
+      'interior-window-blind': 'Window & Blind',
+      'deep-tile-grout': 'Tile & Grout',
+      'cabinet-cupboard-organization': 'Cabinet Organization',
+      'sanitizing-high-touch': 'Sanitizing'
+    };
+
     const csvData = quotes.map(quote => ({
       'Quote ID': quote._id.toString(),
       'Created Date': new Date(quote.createdAt).toLocaleString('en-GB'),
@@ -189,13 +211,14 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
       'Bedrooms': quote.bedrooms,
       'Bathrooms': quote.bathrooms,
       'Service Type': quote.serviceType,
+      'Additional Services': (quote.additionalServices || []).map(id => additionalServiceLabels[id] || id).join('; '),
       'Address': quote.address,
       'Status': quote.status,
       'CAPTCHA Score': (quote.captchaScore * 100).toFixed(0) + '%',
+      'Images': (quote.images || []).length,
       'Admin Notes': quote.adminNotes || ''
     }));
-    
-    // Create CSV string
+
     const csvStringifier = createObjectCsvStringifier({
       header: [
         { id: 'Quote ID', title: 'Quote ID' },
@@ -208,9 +231,11 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
         { id: 'Bedrooms', title: 'Bedrooms' },
         { id: 'Bathrooms', title: 'Bathrooms' },
         { id: 'Service Type', title: 'Service Type' },
+        { id: 'Additional Services', title: 'Additional Services' },
         { id: 'Address', title: 'Address' },
         { id: 'Status', title: 'Status' },
         { id: 'CAPTCHA Score', title: 'CAPTCHA Score' },
+        { id: 'Images', title: 'Images' },
         { id: 'Admin Notes', title: 'Admin Notes' }
       ]
     });

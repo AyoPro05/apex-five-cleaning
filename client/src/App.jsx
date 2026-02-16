@@ -1,20 +1,22 @@
-import { Routes, Route } from 'react-router-dom'
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
-import ChatWidget from './components/ChatWidget'
-import Home from './pages/Home'
-import Services from './pages/Services'
-import ServiceDetail from './pages/ServiceDetail'
-import ServiceAreas from './pages/ServiceAreas'
-import ServiceArea from './pages/ServiceArea'
-import About from './pages/About'
-import Contact from './pages/Contact'
-import Quote from './pages/Quote'
-import Testimonials from './pages/Testimonials'
-import FAQ from './pages/FAQ'
-import Blog from './pages/Blog'
-import BlogPost from './pages/BlogPost'
-import AdminDashboard from './pages/AdminDashboard'
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ChatWidget from "./components/ChatWidget";
+import Home from "./pages/Home";
+import Services from "./pages/Services";
+import ServiceDetail from "./pages/ServiceDetail";
+import ServiceAreas from "./pages/ServiceAreas";
+import ServiceArea from "./pages/ServiceArea";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Quote from "./pages/Quote";
+import Testimonials from "./pages/Testimonials";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import AdminDashboard from "./pages/AdminDashboard";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -34,13 +36,22 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/request-a-quote" element={<Quote />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <CustomerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/quotes" element={<AdminDashboard />} />
         </Routes>
       </main>
       <Footer />
       <ChatWidget />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

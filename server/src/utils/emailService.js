@@ -37,70 +37,109 @@ const getSenderName = () => {
   return process.env.SMTP_FROM_NAME || 'Apex Five Cleaning';
 };
 
-export const getClientConfirmationTemplate = (firstName, quoteId) => {
+// ─── BRAND CONFIG (used across all email templates) ─────────────────────────
+const getBrandConfig = () => {
+  const baseUrl = (process.env.CLIENT_URL || 'https://apexfivecleaning.co.uk').replace(/\/$/, '');
   return {
-    subject: 'Quote Request Received - Apex Five Cleaning',
+    logoUrl: process.env.COMPANY_LOGO_URL || `${baseUrl}/apex-five-logo.png`,
+    companyName: process.env.COMPANY_NAME || 'Apex Five Cleaning',
+    legalName: process.env.COMPANY_LEGAL_NAME || 'Apex Five Capital Ltd',
+    tagline: process.env.COMPANY_TAGLINE || 'Professional Eco-Friendly Cleaning Services in Kent',
+    website: process.env.COMPANY_WEBSITE || 'https://apexfivecleaning.co.uk',
+    websiteDisplay: process.env.COMPANY_WEBSITE_DISPLAY || 'apexfivecleaning.co.uk',
+    email: process.env.COMPANY_EMAIL || process.env.NOTIFY_EMAIL || 'hello@apexfivecleaning.co.uk',
+    phone: process.env.COMPANY_PHONE || '+44 1622 621133',
+    address: process.env.COMPANY_ADDRESS || 'Canterbury, Kent, UK',
+    brandColor: '#14b8a6',
+    brandColorDark: '#0d9488'
+  };
+};
+
+const getEmailHeader = (brand, title, subtitle = '') => {
+  return `
+    <div class="email-header">
+      <a href="${brand.website}" target="_blank" rel="noopener">
+        <img src="${brand.logoUrl}" alt="${brand.companyName} Logo" class="email-logo" width="160" height="auto" style="max-height: 56px; display: block; margin: 0 auto;" />
+      </a>
+      <h1 class="email-header-title">${title}</h1>
+      ${subtitle ? `<p class="email-header-subtitle">${subtitle}</p>` : ''}
+    </div>
+  `;
+};
+
+const getEmailFooter = (brand, extraNote = '') => {
+  return `
+    <div class="email-footer">
+      <div class="email-footer-brand">${brand.companyName}</div>
+      <p class="email-footer-tagline">${brand.tagline}</p>
+      <p class="email-footer-contact">
+        <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 
+        <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a> &nbsp;|&nbsp;
+        <a href="${brand.website}">${brand.websiteDisplay}</a>
+      </p>
+      <p class="email-footer-address">${brand.address}</p>
+      ${extraNote ? `<p class="email-footer-note">${extraNote}</p>` : ''}
+      <p class="email-footer-copy">© ${new Date().getFullYear()} ${brand.legalName}. All rights reserved.</p>
+    </div>
+  `;
+};
+
+const getEmailBaseStyles = () => `
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+  .email-header { background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: white; padding: 28px 24px; text-align: center; border-radius: 8px 8px 0 0; }
+  .email-logo { max-height: 56px; width: auto; }
+  .email-header-title { margin: 16px 0 0 0; font-size: 22px; font-weight: 600; }
+  .email-header-subtitle { margin: 6px 0 0 0; font-size: 14px; opacity: 0.95; }
+  .email-content { background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+  .email-footer { background: #f3f4f6; padding: 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+  .email-footer-brand { font-weight: 700; font-size: 14px; color: #14b8a6; margin-bottom: 4px; }
+  .email-footer-tagline { margin: 4px 0; font-size: 12px; color: #6b7280; }
+  .email-footer-contact { margin: 12px 0 4px 0; }
+  .email-footer-contact a { color: #14b8a6; text-decoration: none; }
+  .email-footer-address { margin: 4px 0; color: #9ca3af; font-size: 11px; }
+  .email-footer-note { margin: 12px 0 0 0; color: #9ca3af; font-size: 11px; }
+  .email-footer-copy { margin: 16px 0 0 0; color: #9ca3af; font-size: 11px; }
+  .cta-button { display: inline-block; background: #14b8a6; color: white !important; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; margin: 16px 0; }
+  .cta-button:hover { background: #0d9488; }
+`;
+
+export const getClientConfirmationTemplate = (firstName, quoteId) => {
+  const brand = getBrandConfig();
+  return {
+    subject: `Quote Request Received - ${brand.companyName}`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #14b8a6; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; }
-            .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-            .section { margin-bottom: 20px; }
-            .label { font-weight: 600; color: #14b8a6; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-            .value { margin-top: 5px; color: #555; }
-            .divider { border-top: 1px solid #e5e7eb; margin: 20px 0; }
-            .cta-button { display: inline-block; background-color: #14b8a6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 15px; }
-            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; }
-            .quote-id { background-color: white; padding: 10px; border-radius: 4px; font-family: monospace; }
-          </style>
-        </head>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote Received</title><style>${getEmailBaseStyles()}
+          .label { font-weight: 600; color: #14b8a6; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .quote-id { background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px; border: 1px solid #e5e7eb; }
+          .divider { border-top: 1px solid #e5e7eb; margin: 20px 0; }
+        </style></head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>✓ Quote Request Received</h1>
-            </div>
-            
-            <div class="content">
+          <div class="email-container">
+            ${getEmailHeader(brand, '✓ Quote Request Received', 'We\'ve got your details and will be in touch soon')}
+            <div class="email-content">
               <p>Hi ${firstName},</p>
-              
-              <p>Thank you for requesting a quote from Apex Five Cleaning! We've received your quote request and our team will review it shortly.</p>
-              
-              <div class="section">
+              <p>Thank you for requesting a quote from <strong>${brand.companyName}</strong>! We've received your quote request and our team will review it shortly.</p>
+              <div style="margin: 20px 0;">
                 <div class="label">Your Quote Reference</div>
                 <div class="quote-id">${quoteId}</div>
               </div>
-              
               <p><strong>What happens next:</strong></p>
               <ul>
                 <li>Our team will review your requirements within 24 hours</li>
                 <li>We'll calculate a personalized quote based on your property and service needs</li>
                 <li>You'll receive an email with the quote and next steps</li>
               </ul>
-              
               <div class="divider"></div>
-              
-              <p>If you have any urgent questions, feel free to contact us directly:</p>
-              <p>
-                <strong>Phone:</strong> +44 1234 567890<br>
-                <strong>Email:</strong> hello@apexfivecleaning.co.uk<br>
-                <strong>Hours:</strong> Monday-Friday, 8am-6pm
-              </p>
-              
+              <p>If you have any urgent questions, feel free to contact us:</p>
+              <p>📞 <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a><br><small>Monday–Friday, 8am–6pm</small></p>
               <div style="text-align: center;">
-                <a href="https://apexfivecleaning.co.uk" class="cta-button">View Our Services</a>
+                <a href="${brand.website}" class="cta-button">View Our Services</a>
               </div>
             </div>
-            
-            <div class="footer">
-              <p>Apex Five Cleaning | Professional Eco-Friendly Cleaning Services<br>
-              © 2024 Apex Five Cleaning. All rights reserved.</p>
-            </div>
+            ${getEmailFooter(brand)}
           </div>
         </body>
       </html>
@@ -121,112 +160,55 @@ export const getAdminNotificationTemplate = (quoteData) => {
     'flat': 'Flat/Apartment',
     'bungalow': 'Bungalow'
   };
-
+  const brand = getBrandConfig();
+  const adminUrl = `${brand.website.replace(/\/?$/, '')}/admin/quotes/${quoteData._id}`;
   return {
     subject: `New Quote Request - ${quoteData.firstName} ${quoteData.lastName}`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 700px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #1e293b; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-            .header h1 { margin: 0; font-size: 20px; }
-            .content { background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            table td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-            table td:first-child { font-weight: 600; width: 30%; background-color: white; }
-            .section-title { font-weight: 700; color: #1e293b; margin-top: 20px; margin-bottom: 10px; background-color: #e0f2fe; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #0284c7; }
-            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
-            .cta-button { display: inline-block; background-color: #0284c7; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin-top: 15px; }
-          </style>
-        </head>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .email-header { background: #1e293b; }
+          .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; background: white; border-radius: 6px; overflow: hidden; }
+          .admin-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; }
+          .admin-table td:first-child { font-weight: 600; width: 32%; background: #f8fafc; color: #475569; }
+          .section-title { font-weight: 700; color: #1e293b; margin-top: 20px; margin-bottom: 8px; background: #e0f2fe; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #14b8a6; }
+          .cta-button { background: #14b8a6 !important; }
+        </style></head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>📋 New Quote Request Received</h1>
-            </div>
-            
-            <div class="content">
+          <div class="email-container">
+            ${getEmailHeader(brand, '📋 New Quote Request Received', 'Review and respond from your admin dashboard')}
+            <div class="email-content">
               <p><strong>A new quote request has been submitted. Details below:</strong></p>
-              
               <div class="section-title">Customer Information</div>
-              <table>
-                <tr>
-                  <td>Name</td>
-                  <td>${quoteData.firstName} ${quoteData.lastName}</td>
-                </tr>
-                <tr>
-                  <td>Email</td>
-                  <td><a href="mailto:${quoteData.email}">${quoteData.email}</a></td>
-                </tr>
-                <tr>
-                  <td>Phone</td>
-                  <td><a href="tel:${quoteData.phone}">${quoteData.phone}</a></td>
-                </tr>
-                <tr>
-                  <td>Address</td>
-                  <td>${quoteData.address}</td>
-                </tr>
+              <table class="admin-table">
+                <tr><td>Name</td><td>${quoteData.firstName} ${quoteData.lastName}</td></tr>
+                <tr><td>Email</td><td><a href="mailto:${quoteData.email}">${quoteData.email}</a></td></tr>
+                <tr><td>Phone</td><td><a href="tel:${quoteData.phone}">${quoteData.phone}</a></td></tr>
+                <tr><td>Address</td><td>${quoteData.address}</td></tr>
               </table>
-              
               <div class="section-title">Property Details</div>
-              <table>
-                <tr>
-                  <td>Property Type</td>
-                  <td>${propertyMap[quoteData.propertyType] || quoteData.propertyType}</td>
-                </tr>
-                <tr>
-                  <td>Bedrooms</td>
-                  <td>${quoteData.bedrooms}</td>
-                </tr>
-                <tr>
-                  <td>Bathrooms</td>
-                  <td>${quoteData.bathrooms}</td>
-                </tr>
+              <table class="admin-table">
+                <tr><td>Property Type</td><td>${propertyMap[quoteData.propertyType] || quoteData.propertyType}</td></tr>
+                <tr><td>Bedrooms</td><td>${quoteData.bedrooms}</td></tr>
+                <tr><td>Bathrooms</td><td>${quoteData.bathrooms}</td></tr>
               </table>
-              
               <div class="section-title">Service Requirements</div>
-              <table>
-                <tr>
-                  <td>Service Type</td>
-                  <td>${serviceMap[quoteData.serviceType] || quoteData.serviceType}</td>
-                </tr>
-                ${quoteData.additionalNotes ? `
-                <tr>
-                  <td>Additional Notes</td>
-                  <td>${quoteData.additionalNotes}</td>
-                </tr>
-                ` : ''}
+              <table class="admin-table">
+                <tr><td>Service Type</td><td>${serviceMap[quoteData.serviceType] || quoteData.serviceType}</td></tr>
+                ${quoteData.additionalNotes ? `<tr><td>Additional Notes</td><td>${quoteData.additionalNotes}</td></tr>` : ''}
               </table>
-              
               <div class="section-title">Security</div>
-              <table>
-                <tr>
-                  <td>CAPTCHA Score</td>
-                  <td>${(quoteData.captchaScore * 100).toFixed(0)}%</td>
-                </tr>
-                <tr>
-                  <td>CAPTCHA Verified</td>
-                  <td>${quoteData.captchaVerified ? '✓ Yes' : '✗ No'}</td>
-                </tr>
-                <tr>
-                  <td>IP Address</td>
-                  <td><code>${quoteData.ipAddress}</code></td>
-                </tr>
+              <table class="admin-table">
+                <tr><td>CAPTCHA Score</td><td>${(quoteData.captchaScore * 100).toFixed(0)}%</td></tr>
+                <tr><td>CAPTCHA Verified</td><td>${quoteData.captchaVerified ? '✓ Yes' : '✗ No'}</td></tr>
+                <tr><td>IP Address</td><td><code>${quoteData.ipAddress}</code></td></tr>
               </table>
-              
-              <div style="text-align: center; margin-top: 30px;">
-                <a href="https://apexfivecleaning.co.uk/admin/quotes/${quoteData._id}" class="cta-button">View in Admin Dashboard</a>
+              <div style="text-align: center; margin-top: 24px;">
+                <a href="${adminUrl}" class="cta-button">View in Admin Dashboard</a>
               </div>
             </div>
-            
-            <div class="footer">
-              <p>⏰ Submitted on ${new Date(quoteData.createdAt).toLocaleString('en-GB')}<br>
-              Apex Five Cleaning Admin System</p>
-            </div>
+            ${getEmailFooter(brand, `⏰ Submitted on ${new Date(quoteData.createdAt).toLocaleString('en-GB')}`)}
           </div>
         </body>
       </html>
@@ -270,6 +252,90 @@ export const sendClientConfirmationEmail = async (toEmail, firstName, quoteId) =
   }
 };
 
+/**
+ * QUOTE APPROVED - CREATE ACCOUNT INVITE
+ * Sent when admin sets quote status to "converted"
+ */
+export const getQuoteApprovedTemplate = (firstName, quoteId) => {
+  const brand = getBrandConfig();
+  const clientUrl = (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
+  const signupUrl = `${clientUrl}/?signup=1`;
+
+  return {
+    subject: `✓ Your Quote Was Approved – Create Your Account | ${brand.companyName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .quote-ref { background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px; margin: 12px 0; border: 1px solid #e5e7eb; }
+        </style></head>
+        <body>
+          <div class="email-container">
+            ${getEmailHeader(brand, '✓ Your Quote Was Approved', 'Create your account to manage your booking')}
+            <div class="email-content">
+              <p>Hi ${firstName},</p>
+              <p>Great news! Your quote request has been approved by our team. We're ready to help you with your cleaning needs.</p>
+              <p><strong>Create your free account</strong> to:</p>
+              <ul>
+                <li>View and manage your quote</li>
+                <li>Book and reschedule cleaning services</li>
+                <li>Track payments and history</li>
+                <li>Request new quotes if things change</li>
+              </ul>
+              <div class="quote-ref">Quote ref: ${quoteId}</div>
+              <div style="text-align: center;">
+                <a href="${signupUrl}" class="cta-button">Create My Account</a>
+              </div>
+              <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">
+                Questions? Contact us:<br/>
+                📧 <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 📞 <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a>
+              </p>
+            </div>
+            ${getEmailFooter(brand)}
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Hi ${firstName},\n\nYour quote was approved! Create your account to manage your booking: ${signupUrl}\n\nQuote ref: ${quoteId}\n\nContact: ${brand.email} | ${brand.phone}\n\n${brand.companyName}`
+  };
+};
+
+export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
+  const template = getQuoteApprovedTemplate(firstName, quoteId);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      await sgMail.send({
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      });
+      console.log(`✓ Quote approved email sent to ${toEmail}`);
+      return { success: true };
+    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      });
+      console.log(`✓ Quote approved email sent to ${toEmail}`);
+      return { success: true };
+    } else {
+      console.warn('⚠️ No email provider configured. Quote approved email not sent.');
+      return { success: false, error: 'No email provider configured' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending quote approved email:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
 export const sendAdminNotificationEmail = async (quoteData) => {
   const template = getAdminNotificationTemplate(quoteData);
   const senderEmail = getSenderEmail();
@@ -309,139 +375,81 @@ export const sendAdminNotificationEmail = async (quoteData) => {
 
 /**
  * EMAIL VERIFICATION TEMPLATES & FUNCTIONS
- * Apex Five Cleaning - Email verification with company branding
  */
 
 export const getVerificationEmailTemplate = (firstName, verificationLink, expiryHours = 24) => {
+  const brand = getBrandConfig();
   return {
-    subject: '🔐 Verify Your Email - Apex Five Cleaning',
+    subject: `🔐 Verify Your Email - ${brand.companyName}`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-            .header p { margin: 10px 0 0 0; font-size: 14px; opacity: 0.9; }
-            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
-            .greeting { font-size: 16px; margin-bottom: 20px; }
-            .verification-box { background: #f0f7ff; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px; }
-            .btn { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; text-align: center; }
-            .btn:hover { background: #764ba2; opacity: 0.9; }
-            .info-section { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; }
-            .info-section h3 { margin-top: 0; color: #333; }
-            .info-section ul { margin: 10px 0; padding-left: 20px; }
-            .info-section li { margin: 5px 0; }
-            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
-            .security-badge { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 4px; }
-            .security-badge p { margin: 5px 0; font-size: 13px; color: #2e7d32; }
-            .expiry-notice { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 15px 0; border-radius: 4px; }
-            .expiry-notice p { margin: 5px 0; font-size: 13px; color: #e65100; }
-          </style>
-        </head>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .verification-box { background: #ecfdf5; border-left: 4px solid #14b8a6; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .expiry-notice { background: #fff7ed; border-left: 4px solid #f59e0b; padding: 12px; margin: 15px 0; border-radius: 4px; font-size: 13px; color: #b45309; }
+          .info-section { background: white; padding: 16px; margin: 12px 0; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 13px; }
+          .info-section h3 { margin: 0 0 8px 0; font-size: 14px; color: #374151; }
+          .security-badge { background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0; border-radius: 4px; font-size: 13px; color: #047857; }
+        </style></head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>✨ Apex Five Cleaning</h1>
-              <p>Professional Cleaning Services - Kent, UK</p>
-            </div>
-            
-            <div class="content">
-              <div class="greeting">
-                <p>Hello <strong>${firstName}</strong>,</p>
-                <p>Thank you for registering with Apex Five Cleaning! We're excited to help you with all your cleaning needs.</p>
-              </div>
-
+          <div class="email-container">
+            ${getEmailHeader(brand, 'Verify Your Email', `Welcome to ${brand.companyName}`)}
+            <div class="email-content">
+              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Thank you for registering with <strong>${brand.companyName}</strong>! We're excited to help you with all your cleaning needs.</p>
               <div class="verification-box">
-                <p><strong>To get started, please verify your email address:</strong></p>
-                <a href="${verificationLink}" class="btn">✓ Verify Email Address</a>
+                <p style="margin: 0 0 12px 0;"><strong>To get started, please verify your email address:</strong></p>
+                <a href="${verificationLink}" class="cta-button">✓ Verify Email Address</a>
               </div>
-
               <div class="expiry-notice">
-                <p>⏰ <strong>Important:</strong> This link will expire in <strong>${expiryHours} hours</strong> for security reasons.</p>
+                <p style="margin: 0;">⏰ <strong>Important:</strong> This link expires in <strong>${expiryHours} hours</strong> for security.</p>
               </div>
-
               <div class="info-section">
                 <h3>What happens after verification?</h3>
-                <ul>
+                <ul style="margin: 0; padding-left: 20px;">
                   <li>✅ Your account will be fully activated</li>
                   <li>📊 Access your member dashboard</li>
                   <li>🧹 Book your first cleaning service</li>
                   <li>📧 Receive booking confirmations and reminders</li>
-                  <li>🎯 Manage your cleaning preferences</li>
                 </ul>
               </div>
-
               <div class="security-badge">
-                <p>🔒 <strong>Security Notice:</strong></p>
-                <p>Apex Five Cleaning will never ask for your password via email. If you didn't create this account or believe this is an error, please contact our support team immediately.</p>
+                <p style="margin: 0;">🔒 <strong>Security:</strong> We will never ask for your password via email.</p>
               </div>
-
-              <div class="info-section">
-                <h3>Need Help?</h3>
-                <p>If you're having trouble verifying your email:</p>
-                <ul>
-                  <li>📧 support@apexfivecleaning.co.uk</li>
-                  <li>☎️ 01227 XXXXXX</li>
-                  <li>🌐 www.apexfivecleaning.co.uk</li>
-                </ul>
-              </div>
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a> or <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a>.</p>
             </div>
-
-            <div class="footer">
-              <p><strong>Apex Five Cleaning Ltd</strong></p>
-              <p>Professional Cleaning Services | Canterbury, Kent, UK</p>
-              <p style="margin: 10px 0 0 0;">© 2026 Apex Five Cleaning. All rights reserved.</p>
-              <p style="margin: 5px 0; color: #ccc; font-size: 11px;">This email was sent because you registered at apexfivecleaning.co.uk</p>
-            </div>
+            ${getEmailFooter(brand, `Sent because you registered at ${brand.websiteDisplay}`)}
           </div>
         </body>
       </html>
     `,
-    text: `Verify Your Email - Apex Five Cleaning\n\nHello ${firstName},\n\nThank you for registering! Please verify your email by visiting:\n\n${verificationLink}\n\nThis link expires in ${expiryHours} hours.\n\nIf you didn't create this account, please ignore this email.\n\nApex Five Cleaning Ltd\nProfessional Cleaning Services | Kent, UK`
+    text: `Verify Your Email - ${brand.companyName}\n\nHello ${firstName},\n\nThank you for registering! Verify your email:\n${verificationLink}\n\nLink expires in ${expiryHours} hours.\n\nIf you didn't create this account, please ignore this email.\n\n${brand.companyName}\n${brand.tagline}`
   };
 };
 
 export const getVerificationSuccessTemplate = (firstName) => {
+  const brand = getBrandConfig();
+  const dashboardUrl = `${(process.env.CLIENT_URL || brand.website).replace(/\/$/, '')}/dashboard`;
   return {
-    subject: '✅ Email Verified - Welcome to Apex Five Cleaning!',
+    subject: `✅ Email Verified - Welcome to ${brand.companyName}!`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
-            .header { background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-            .success-icon { font-size: 48px; margin: 10px 0; }
-            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
-            .action-box { background: #f0f7ff; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 4px; }
-            .action-box h3 { margin-top: 0; color: #333; }
-            .action-box ul { margin: 10px 0; padding-left: 20px; }
-            .action-box li { margin: 8px 0; }
-            .btn { display: inline-block; background: #2196f3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
-            .btn:hover { background: #0b7dda; }
-            .next-steps { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; }
-            .next-steps h3 { margin-top: 0; }
-            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
-          </style>
-        </head>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .success-icon { font-size: 42px; margin: 0; line-height: 1; }
+          .action-box { background: #ecfdf5; border-left: 4px solid #14b8a6; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .action-box h3 { margin: 0 0 12px 0; font-size: 15px; }
+          .action-box ul { margin: 8px 0 16px 0; padding-left: 20px; }
+          .next-steps { background: white; padding: 16px; margin: 16px 0; border-radius: 6px; border: 1px solid #e5e7eb; }
+          .next-steps h3 { margin: 0 0 8px 0; font-size: 14px; }
+          .next-steps ol { margin: 8px 0 0 0; padding-left: 20px; }
+        </style></head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="success-icon">✅</div>
-              <h1>Email Verified!</h1>
-            </div>
-            
-            <div class="content">
-              <p style="font-size: 16px; margin-bottom: 20px;">Hello <strong>${firstName}</strong>,</p>
-              <p>Congratulations! Your email has been successfully verified. Your Apex Five Cleaning account is now fully activated and ready to use.</p>
-
+          <div class="email-container">
+            ${getEmailHeader(brand, '✅ Email Verified!', 'Your account is now active')}
+            <div class="email-content">
+              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Congratulations! Your email has been verified. Your <strong>${brand.companyName}</strong> account is now fully activated.</p>
               <div class="action-box">
                 <h3>You can now:</h3>
                 <ul>
@@ -449,98 +457,61 @@ export const getVerificationSuccessTemplate = (firstName) => {
                   <li>✓ Book cleaning services</li>
                   <li>✓ Manage your profile and preferences</li>
                   <li>✓ Receive booking updates and reminders</li>
-                  <li>✓ View service history and ratings</li>
-                  <li>✓ Manage payment methods</li>
                 </ul>
-                <a href="${process.env.CLIENT_URL}/dashboard" class="btn">Go to Your Dashboard</a>
+                <a href="${dashboardUrl}" class="cta-button">Go to Your Dashboard</a>
               </div>
-
               <div class="next-steps">
-                <h3>Next Steps:</h3>
-                <p>Ready to book your first cleaning? Here's what to expect:</p>
-                <ol>
-                  <li>Browse our cleaning services (Residential, End of Tenancy, Airbnb)</li>
-                  <li>Select your preferred date and time</li>
-                  <li>Choose your service area from our coverage zones</li>
-                  <li>Add any special requirements or notes</li>
-                  <li>Complete payment securely</li>
-                  <li>Receive confirmation and updates</li>
-                </ol>
+                <h3>Next steps:</h3>
+                <p style="margin: 0;">Browse our services (Residential, End of Tenancy, Airbnb), choose your date and area, add any notes, and complete payment securely.</p>
               </div>
-
-              <p style="margin-top: 30px; font-size: 14px;">Thank you for choosing Apex Five Cleaning. We look forward to serving you with professional and reliable cleaning services!</p>
+              <p style="margin-top: 20px;">Thank you for choosing ${brand.companyName}. We look forward to serving you!</p>
             </div>
-
-            <div class="footer">
-              <p><strong>Apex Five Cleaning Ltd</strong></p>
-              <p>Professional Cleaning Services | Canterbury, Kent, UK</p>
-              <p style="margin: 10px 0 0 0;">© 2026 All rights reserved.</p>
-            </div>
+            ${getEmailFooter(brand)}
           </div>
         </body>
       </html>
     `,
-    text: `Email Verified - Welcome to Apex Five Cleaning!\n\nHello ${firstName},\n\nYour email has been successfully verified!\n\nYou can now access your dashboard at:\n${process.env.CLIENT_URL}/dashboard\n\nThank you for choosing Apex Five Cleaning.\n\nApex Five Cleaning Ltd\nProfessional Cleaning Services | Kent, UK`
+    text: `Email Verified - Welcome to ${brand.companyName}!\n\nHello ${firstName},\n\nYour email has been successfully verified!\n\nAccess your dashboard: ${dashboardUrl}\n\nThank you for choosing ${brand.companyName}.\n\n${brand.tagline}`
   };
 };
 
 export const getResendVerificationTemplate = (firstName, verificationLink, expiryHours = 24) => {
+  const brand = getBrandConfig();
   return {
-    subject: '📧 New Verification Link - Apex Five Cleaning',
+    subject: `📧 New Verification Link - ${brand.companyName}`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
-            .header { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
-            .verification-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 20px; margin: 20px 0; border-radius: 4px; }
-            .btn { display: inline-block; background: #ff9800; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
-            .btn:hover { background: #f57c00; }
-            .info-section { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; }
-            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; margin-top: 30px; }
-          </style>
-        </head>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .verification-box { background: #fff7ed; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .verification-box .expiry { font-size: 13px; color: #b45309; margin-top: 12px; }
+          .info-section { background: white; padding: 16px; margin: 12px 0; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 13px; }
+        </style></head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>📧 New Verification Link</h1>
-            </div>
-            
-            <div class="content">
+          <div class="email-container">
+            ${getEmailHeader(brand, '📧 New Verification Link', 'Use this link to verify your email')}
+            <div class="email-content">
               <p>Hello <strong>${firstName}</strong>,</p>
               <p>We've generated a new email verification link for you:</p>
-              
               <div class="verification-box">
-                <a href="${verificationLink}" class="btn">✓ Verify Email</a>
-                <p style="margin-top: 15px; font-size: 13px; color: #ff6f00;">This link expires in <strong>${expiryHours} hours</strong>.</p>
+                <a href="${verificationLink}" class="cta-button">✓ Verify Email</a>
+                <p class="expiry" style="margin: 12px 0 0 0;">⏰ This link expires in <strong>${expiryHours} hours</strong>.</p>
               </div>
-
               <div class="info-section">
-                <p>If you're still having trouble, please try:</p>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                  <li>Checking your spam/junk folder</li>
-                  <li>Copying the link into your browser manually</li>
-                  <li>Contacting our support team</li>
+                <p style="margin: 0 0 8px 0;">Having trouble?</p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>Check your spam/junk folder</li>
+                  <li>Copy the link into your browser manually</li>
+                  <li>Contact us at <a href="mailto:${brand.email}">${brand.email}</a></li>
                 </ul>
               </div>
-
-              <p style="margin-top: 30px; font-size: 14px;">Need immediate assistance? Contact us at support@apexfivecleaning.co.uk</p>
             </div>
-
-            <div class="footer">
-              <p><strong>Apex Five Cleaning Ltd</strong></p>
-              <p>© 2026 All rights reserved.</p>
-            </div>
+            ${getEmailFooter(brand)}
           </div>
         </body>
       </html>
     `,
-    text: `New Verification Link - Apex Five Cleaning\n\nHello ${firstName},\n\nVerify your email using this link:\n${verificationLink}\n\nLink expires in ${expiryHours} hours.\n\nApex Five Cleaning Ltd`
+    text: `New Verification Link - ${brand.companyName}\n\nHello ${firstName},\n\nVerify your email: ${verificationLink}\n\nLink expires in ${expiryHours} hours.\n\n${brand.companyName}\n${brand.tagline}`
   };
 };
 

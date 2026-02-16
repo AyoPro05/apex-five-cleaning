@@ -20,3 +20,4 @@ out/
 .vercel/
 server/.env
 server/node_modules/
+uploads/

@@ -89,6 +89,24 @@ const userSchema = new mongoose.Schema({
     promotional: { type: Boolean, default: false }
   },
 
+  // Referral Program (5 pts per referral, 20 pts = 10% discount)
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    uppercase: true
+  },
+  referralPoints: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  referredAt: Date,
+
   // Metadata
   createdAt: {
     type: Date,
@@ -118,15 +136,19 @@ userSchema.index({ createdAt: -1 });
 // ============================================
 
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+  if (this.isModified('password')) {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      return next(error);
+    }
   }
+  if (this.isNew && !this.referralCode) {
+    const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
+    this.referralCode = 'APEX' + rand;
+  }
+  next();
 });
 
 // ============================================

@@ -1,114 +1,120 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const quoteSchema = new mongoose.Schema(
   {
     // Property Details
     propertyType: {
       type: String,
-      enum: ['house', 'flat', 'bungalow'],
-      required: true
+      enum: ["house", "flat", "bungalow"],
+      required: true,
     },
     bedrooms: {
       type: Number,
       required: true,
       min: 1,
-      max: 20
+      max: 20,
     },
     bathrooms: {
       type: Number,
       required: true,
       min: 1,
-      max: 20
+      max: 20,
     },
-    
+
     // Service Details
     serviceType: {
       type: String,
-      enum: ['residential', 'end-of-tenancy', 'airbnb', 'commercial'],
-      required: true
+      enum: ["residential", "end-of-tenancy", "airbnb", "commercial"],
+      required: true,
     },
-    
+
     // Contact Information
     firstName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     lastName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     email: {
       type: String,
       required: true,
       lowercase: true,
-      trim: true
+      trim: true,
     },
     phone: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     address: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
-    
+
     // Additional Information
     additionalNotes: {
       type: String,
-      trim: true
+      trim: true,
     },
-    
+
+    // Additional services (customer can select multiple)
+    additionalServices: [{ type: String, trim: true }],
+
+    // Property images (max 5) - URLs or paths from upload
+    images: [{ url: String, filename: String }],
+
     // CAPTCHA Verification
     captchaScore: {
       type: Number,
-      default: 0
+      default: 0,
     },
     captchaVerified: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    
+
     // Status Tracking
     status: {
       type: String,
-      enum: ['new', 'contacted', 'converted', 'rejected'],
-      default: 'new'
+      enum: ["new", "contacted", "converted", "rejected"],
+      default: "new",
     },
-    
+
     // Admin Notes
     adminNotes: {
       type: String,
-      trim: true
+      trim: true,
     },
-    
+
     // Email Status
     confirmationEmailSent: {
       type: Boolean,
-      default: false
+      default: false,
     },
     adminEmailSent: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    
+
     // IP Address for spam tracking
     ipAddress: {
-      type: String
-    }
+      type: String,
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 // Index for better query performance
-quoteSchema.index({ email: 1, createdAt: -1 });
-quoteSchema.index({ status: 1, createdAt: -1 });
+quoteSchema.index({ createdAt: -1 });
+quoteSchema.index({ status: 1 });
 
-const Quote = mongoose.model('Quote', quoteSchema);
+const Quote = mongoose.model("Quote", quoteSchema);
 
 export default Quote;

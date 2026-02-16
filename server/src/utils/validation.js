@@ -109,7 +109,22 @@ const quoteValidationSchema = Joi.object({
     .messages({
       'string.max': 'Additional notes must not exceed 500 characters'
     }),
-    
+
+  additionalServices: Joi.array()
+    .items(Joi.string().valid(
+      'interior-fridge-freezer',
+      'interior-window-blind',
+      'deep-tile-grout',
+      'cabinet-cupboard-organization',
+      'sanitizing-high-touch'
+    ))
+    .max(10)
+    .optional()
+    .default([])
+    .messages({
+      'array.max': 'Too many additional services selected'
+    }),
+
   captchaToken: Joi.string()
     .required()
     .messages({

@@ -1,204 +1,228 @@
-import { useState, useEffect } from 'react'
-import { Download, Eye, EyeOff, Search, Filter, ChevronLeft, ChevronRight, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from "lucide-react";
 
 const AdminDashboard = () => {
-  const [quotes, setQuotes] = useState([])
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken') || '')
-  const [showTokenInput, setShowTokenInput] = useState(!adminToken)
-  const [selectedQuote, setSelectedQuote] = useState(null)
-  const [showDetails, setShowDetails] = useState(false)
-  
+  const [quotes, setQuotes] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [adminToken, setAdminToken] = useState(
+    localStorage.getItem("adminToken") || "",
+  );
+  const [showTokenInput, setShowTokenInput] = useState(!adminToken);
+  const [selectedQuote, setSelectedQuote] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
   // Filters
   const [filters, setFilters] = useState({
-    status: 'new',
-    search: '',
+    status: "new",
+    search: "",
     page: 1,
-    limit: 20
-  })
-  
+    limit: 20,
+  });
+
   // Update note for selected quote
-  const [adminNote, setAdminNote] = useState('')
-  const [updatingStatus, setUpdatingStatus] = useState('')
+  const [adminNote, setAdminNote] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState("");
 
   // Fetch quotes
   const fetchQuotes = async () => {
     if (!adminToken) {
-      setError('Admin token required')
-      return
+      setError("Admin token required");
+      return;
     }
 
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
 
     try {
       const params = new URLSearchParams({
-        status: filters.status === 'all' ? 'all' : filters.status,
+        status: filters.status === "all" ? "all" : filters.status,
         page: filters.page,
         limit: filters.limit,
-        search: filters.search
-      })
+        search: filters.search,
+      });
 
       const response = await fetch(`/api/admin/quotes?${params}`, {
         headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      })
+          Authorization: `Bearer ${adminToken}`,
+        },
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch quotes')
+        throw new Error("Failed to fetch quotes");
       }
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
-        setQuotes(data.data)
+        setQuotes(data.data);
       } else {
-        setError(data.error)
+        setError(data.error);
       }
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Fetch statistics
   const fetchStats = async () => {
-    if (!adminToken) return
+    if (!adminToken) return;
 
     try {
-      const response = await fetch('/api/admin/stats', {
+      const response = await fetch("/api/admin/stats", {
         headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      })
+          Authorization: `Bearer ${adminToken}`,
+        },
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.success) {
-          setStats(data.stats)
+          setStats(data.stats);
         }
       }
     } catch (err) {
-      console.error('Error fetching stats:', err)
+      console.error("Error fetching stats:", err);
     }
-  }
+  };
 
   // Update quote
   const updateQuote = async (quoteId, status, notes) => {
-    setUpdatingStatus('loading')
+    setUpdatingStatus("loading");
     try {
       const response = await fetch(`/api/admin/quotes/${quoteId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${adminToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${adminToken}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           status,
-          adminNotes: notes
-        })
-      })
+          adminNotes: notes,
+        }),
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.success) {
-          setUpdatingStatus('success')
+          setUpdatingStatus("success");
           setTimeout(() => {
-            setUpdatingStatus('')
-            setShowDetails(false)
-            fetchQuotes()
-          }, 1500)
+            setUpdatingStatus("");
+            setShowDetails(false);
+            fetchQuotes();
+          }, 1500);
         }
       }
     } catch (err) {
-      setUpdatingStatus('error')
-      setError(err.message)
+      setUpdatingStatus("error");
+      setError(err.message);
     }
-  }
+  };
 
   // Export to CSV
   const exportToCSV = async () => {
-    if (!adminToken) return
+    if (!adminToken) return;
 
     try {
       const params = new URLSearchParams({
-        status: filters.status === 'all' ? 'all' : filters.status
-      })
+        status: filters.status === "all" ? "all" : filters.status,
+      });
 
       const response = await fetch(`/api/admin/export/csv?${params}`, {
         headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      })
+          Authorization: `Bearer ${adminToken}`,
+        },
+      });
 
       if (!response.ok) {
-        throw new Error('Export failed')
+        throw new Error("Export failed");
       }
 
       // Create blob and download
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `quotes_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quotes_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err) {
-      setError('Failed to export CSV')
+      setError("Failed to export CSV");
     }
-  }
+  };
 
   // Initial load
   useEffect(() => {
     if (adminToken) {
-      fetchQuotes()
-      fetchStats()
+      fetchQuotes();
+      fetchStats();
     }
-  }, [adminToken])
+  }, [adminToken]);
 
   // Refetch when filters change
   useEffect(() => {
     if (adminToken && !showTokenInput) {
-      fetchQuotes()
+      fetchQuotes();
     }
-  }, [filters, adminToken])
+  }, [filters, adminToken]);
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'new':
-        return <Clock className="w-4 h-4 text-yellow-600" />
-      case 'contacted':
-        return <AlertCircle className="w-4 h-4 text-blue-600" />
-      case 'converted':
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-600" />
+      case "new":
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case "contacted":
+        return <AlertCircle className="w-4 h-4 text-blue-600" />;
+      case "converted":
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case "rejected":
+        return <XCircle className="w-4 h-4 text-red-600" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      'new': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'New' },
-      'contacted': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Contacted' },
-      'converted': { bg: 'bg-green-100', text: 'text-green-800', label: 'Converted' },
-      'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' }
-    }
-    const config = statusMap[status] || statusMap['new']
-    return `${config.bg} ${config.text}`
-  }
+      new: { bg: "bg-yellow-100", text: "text-yellow-800", label: "New" },
+      contacted: {
+        bg: "bg-blue-100",
+        text: "text-blue-800",
+        label: "Contacted",
+      },
+      converted: {
+        bg: "bg-green-100",
+        text: "text-green-800",
+        label: "Converted",
+      },
+      rejected: { bg: "bg-red-100", text: "text-red-800", label: "Rejected" },
+    };
+    const config = statusMap[status] || statusMap["new"];
+    return `${config.bg} ${config.text}`;
+  };
 
   if (showTokenInput) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Access</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">
+            Admin Access
+          </h1>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -215,8 +239,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => {
                 if (adminToken) {
-                  localStorage.setItem('adminToken', adminToken)
-                  setShowTokenInput(false)
+                  localStorage.setItem("adminToken", adminToken);
+                  setShowTokenInput(false);
                 }
               }}
               className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold transition"
@@ -226,7 +250,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -235,8 +259,12 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Quote Management</h1>
-            <p className="text-gray-600 mt-1">Manage and export customer quotes</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Quote Management
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Manage and export customer quotes
+            </p>
           </div>
           <div className="space-y-2">
             <button
@@ -248,9 +276,9 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                localStorage.removeItem('adminToken')
-                setAdminToken('')
-                setShowTokenInput(true)
+                localStorage.removeItem("adminToken");
+                setAdminToken("");
+                setShowTokenInput(true);
               }}
               className="block text-sm text-gray-600 hover:text-gray-900"
             >
@@ -270,24 +298,38 @@ const AdminDashboard = () => {
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <div className="bg-white rounded-lg p-6 shadow">
-              <div className="text-gray-600 text-sm font-medium">Total Quotes</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">{stats.totalQuotes}</div>
+              <div className="text-gray-600 text-sm font-medium">
+                Total Quotes
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mt-2">
+                {stats.totalQuotes}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-6 shadow">
               <div className="text-yellow-600 text-sm font-medium">New</div>
-              <div className="text-3xl font-bold text-yellow-600 mt-2">{stats.newQuotes}</div>
+              <div className="text-3xl font-bold text-yellow-600 mt-2">
+                {stats.newQuotes}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-6 shadow">
               <div className="text-blue-600 text-sm font-medium">Contacted</div>
-              <div className="text-3xl font-bold text-blue-600 mt-2">{stats.contactedQuotes}</div>
+              <div className="text-3xl font-bold text-blue-600 mt-2">
+                {stats.contactedQuotes}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-6 shadow">
-              <div className="text-green-600 text-sm font-medium">Converted</div>
-              <div className="text-3xl font-bold text-green-600 mt-2">{stats.convertedQuotes}</div>
+              <div className="text-green-600 text-sm font-medium">
+                Converted
+              </div>
+              <div className="text-3xl font-bold text-green-600 mt-2">
+                {stats.convertedQuotes}
+              </div>
             </div>
             <div className="bg-white rounded-lg p-6 shadow">
               <div className="text-red-600 text-sm font-medium">Rejected</div>
-              <div className="text-3xl font-bold text-red-600 mt-2">{stats.rejectedQuotes}</div>
+              <div className="text-3xl font-bold text-red-600 mt-2">
+                {stats.rejectedQuotes}
+              </div>
             </div>
           </div>
         )}
@@ -296,10 +338,14 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
               <select
                 value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e.target.value, page: 1 })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
               >
                 <option value="new">New</option>
@@ -310,20 +356,32 @@ const AdminDashboard = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search
+              </label>
               <input
                 type="text"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value, page: 1 })
+                }
                 placeholder="Name, email, phone..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Per Page</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Per Page
+              </label>
               <select
                 value={filters.limit}
-                onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value), page: 1 })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    limit: parseInt(e.target.value),
+                    page: 1,
+                  })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
               >
                 <option value="10">10</option>
@@ -351,35 +409,56 @@ const AdminDashboard = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Service</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                    <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Action</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Service
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {quotes.map((quote) => (
                     <tr key={quote._id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 text-sm text-gray-900">{quote.firstName} {quote.lastName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{quote.email}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">{quote.serviceType.replace('-', ' ')}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {quote.firstName} {quote.lastName}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {quote.email}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">
+                        {quote.serviceType.replace("-", " ")}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(quote.status)}`}>
+                        <span
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(quote.status)}`}
+                        >
                           {getStatusIcon(quote.status)}
-                          {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
+                          {quote.status.charAt(0).toUpperCase() +
+                            quote.status.slice(1)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(quote.createdAt).toLocaleDateString('en-GB')}
+                        {new Date(quote.createdAt).toLocaleDateString("en-GB")}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => {
-                            setSelectedQuote(quote)
-                            setAdminNote(quote.adminNotes || '')
-                            setShowDetails(true)
+                            setSelectedQuote(quote);
+                            setAdminNote(quote.adminNotes || "");
+                            setShowDetails(true);
                           }}
                           className="text-teal-600 hover:text-teal-700 font-semibold"
                         >
@@ -398,19 +477,29 @@ const AdminDashboard = () => {
         {!loading && quotes.length > 0 && (
           <div className="mt-6 flex justify-between items-center">
             <p className="text-sm text-gray-600">
-              Page {filters.page} of {Math.ceil(stats?.totalQuotes / filters.limit) || 1}
+              Page {filters.page} of{" "}
+              {Math.ceil(stats?.totalQuotes / filters.limit) || 1}
             </p>
             <div className="space-x-2">
               <button
-                onClick={() => setFilters({ ...filters, page: Math.max(1, filters.page - 1) })}
+                onClick={() =>
+                  setFilters({
+                    ...filters,
+                    page: Math.max(1, filters.page - 1),
+                  })
+                }
                 disabled={filters.page === 1}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 <ChevronLeft className="w-4 h-4 inline" />
               </button>
               <button
-                onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-                disabled={filters.page >= Math.ceil(stats?.totalQuotes / filters.limit)}
+                onClick={() =>
+                  setFilters({ ...filters, page: filters.page + 1 })
+                }
+                disabled={
+                  filters.page >= Math.ceil(stats?.totalQuotes / filters.limit)
+                }
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 <ChevronRight className="w-4 h-4 inline" />
@@ -437,63 +526,148 @@ const AdminDashboard = () => {
             <div className="p-6 space-y-6">
               {/* Customer Info */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Customer Information
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">First Name</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.firstName}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.firstName}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Last Name</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.lastName}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.lastName}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.email}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.email}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.phone}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.phone}
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-gray-600">Address</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.address}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.address}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Property Info */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Details</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Property Details
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Property Type</p>
-                    <p className="font-medium text-gray-900 capitalize">{selectedQuote.propertyType}</p>
+                    <p className="font-medium text-gray-900 capitalize">
+                      {selectedQuote.propertyType}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Service Type</p>
-                    <p className="font-medium text-gray-900 capitalize">{selectedQuote.serviceType.replace('-', ' ')}</p>
+                    <p className="font-medium text-gray-900 capitalize">
+                      {selectedQuote.serviceType.replace("-", " ")}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Bedrooms</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.bedrooms}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.bedrooms}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Bathrooms</p>
-                    <p className="font-medium text-gray-900">{selectedQuote.bathrooms}</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedQuote.bathrooms}
+                    </p>
                   </div>
                 </div>
+                {(selectedQuote.additionalServices || []).length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Additional Services</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedQuote.additionalServices.map((id) => {
+                        const labels = {
+                          "interior-fridge-freezer": "Fridge, Freezer & Oven",
+                          "interior-window-blind": "Window & Blind",
+                          "deep-tile-grout": "Tile & Grout",
+                          "cabinet-cupboard-organization": "Cabinet Organization",
+                          "sanitizing-high-touch": "Sanitizing",
+                        };
+                        return (
+                          <span
+                            key={id}
+                            className="inline-block px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm"
+                          >
+                            {labels[id] || id}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {(selectedQuote.images || []).length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Property Photos</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedQuote.images.map((img, i) => (
+                        <a
+                          key={i}
+                          href={img.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:border-teal-500"
+                        >
+                          <img
+                            src={img.url}
+                            alt={`Property ${i + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedQuote.additionalNotes && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Additional Notes</p>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg text-sm">
+                      {selectedQuote.additionalNotes}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Status Update */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Update Quote</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Update Quote
+                </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
                     <select
                       value={selectedQuote.status}
-                      onChange={(e) => setSelectedQuote({ ...selectedQuote, status: e.target.value })}
+                      onChange={(e) =>
+                        setSelectedQuote({
+                          ...selectedQuote,
+                          status: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
                     >
                       <option value="new">New</option>
@@ -503,7 +677,9 @@ const AdminDashboard = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Admin Notes</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Admin Notes
+                    </label>
                     <textarea
                       value={adminNote}
                       onChange={(e) => setAdminNote(e.target.value)}
@@ -524,16 +700,29 @@ const AdminDashboard = () => {
                   Close
                 </button>
                 <button
-                  onClick={() => updateQuote(selectedQuote._id, selectedQuote.status, adminNote)}
-                  disabled={updatingStatus === 'loading'}
+                  onClick={() =>
+                    updateQuote(
+                      selectedQuote._id,
+                      selectedQuote.status,
+                      adminNote,
+                    )
+                  }
+                  disabled={updatingStatus === "loading"}
                   className={`flex-1 px-4 py-2 rounded-lg text-white font-semibold transition ${
-                    updatingStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed' :
-                    updatingStatus === 'success' ? 'bg-green-600' :
-                    updatingStatus === 'error' ? 'bg-red-600' :
-                    'bg-teal-600 hover:bg-teal-700'
+                    updatingStatus === "loading"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : updatingStatus === "success"
+                        ? "bg-green-600"
+                        : updatingStatus === "error"
+                          ? "bg-red-600"
+                          : "bg-teal-600 hover:bg-teal-700"
                   }`}
                 >
-                  {updatingStatus === 'loading' ? 'Saving...' : updatingStatus === 'success' ? 'Saved!' : 'Save Changes'}
+                  {updatingStatus === "loading"
+                    ? "Saving..."
+                    : updatingStatus === "success"
+                      ? "Saved!"
+                      : "Save Changes"}
                 </button>
               </div>
             </div>
@@ -541,7 +730,7 @@ const AdminDashboard = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;

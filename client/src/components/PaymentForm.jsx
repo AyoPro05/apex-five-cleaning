@@ -20,10 +20,11 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
+import { useAuth } from '../context/AuthContext';
 
 // Initialize Stripe (use your public key)
 const stripePromise = loadStripe(
-  process.env.REACT_APP_STRIPE_PUBLIC_KEY || 'pk_test_example'
+  import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_example'
 );
 
 /**
@@ -41,8 +42,7 @@ function PaymentFormContent({ bookingId, bookingAmount, onSuccess, onError }) {
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentId, setPaymentId] = useState(null);
 
-  // Get JWT token from localStorage
-  const token = localStorage.getItem('jwtToken');
+  const { token } = useAuth();
 
   /**
    * Initialize payment intent

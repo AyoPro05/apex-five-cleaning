@@ -5,6 +5,7 @@
 
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Referral from '../models/Referral.js';
 import { sendVerificationEmail } from '../src/utils/emailService.js';
 import crypto from 'crypto';
 
@@ -36,7 +37,7 @@ const generateRefreshToken = (userId, role) => {
  */
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, passwordConfirm } = req.body;
+    const { firstName, lastName, email, phone, password, passwordConfirm, referralCode } = req.body;
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password || !passwordConfirm) {
@@ -69,7 +70,11 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create new user
+    let referrer = null;
+    if (referralCode) {
+      referrer = await User.findOne({ referralCode: String(referralCode).trim().toUpperCase() });
+    }
+
     const user = await User.create({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -77,8 +82,19 @@ export const register = async (req, res) => {
       phone: phone.replace(/\D/g, ''),
       password,
       role: 'member',
-      isVerified: false
+      isVerified: false,
+      referredBy: referrer?._id,
+      referredAt: referrer ? new Date() : undefined,
     });
+
+    if (referrer) {
+      await Referral.create({
+        referrerId: referrer._id,
+        referredUserId: user._id,
+        referredEmail: user.email,
+        status: 'pending',
+      });
+    }
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -255,6 +271,53 @@ export const refreshToken = async (req, res) => {
       error: 'Token refresh failed',
       message: 'Invalid or expired refresh token'
     });
+  }
+};
+
+/**
+ * GET CURRENT USER
+ * GET /api/auth/me
+ */
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('-password -verificationToken -passwordResetToken')
+      .lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Get me error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+};
+
+/**
+ * UPDATE CURRENT USER (profile)
+ * PATCH /api/auth/me
+ */
+export const updateMe = async (req, res) => {
+  try {
+    const allowed = ['firstName', 'lastName', 'phone', 'address'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        if (key === 'phone') updates[key] = String(req.body[key]).replace(/\D/g, '');
+        else if (key === 'address') updates[key] = req.body[key];
+        else updates[key] = req.body[key];
+      }
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: { ...updates, updatedAt: new Date() } },
+      { new: true, runValidators: true }
+    ).select('-password -verificationToken -passwordResetToken');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Update me error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 };
 

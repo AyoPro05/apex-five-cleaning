@@ -233,6 +233,36 @@ router.post('/confirm', authMiddleware, async (req, res) => {
       booking.status = 'confirmed';
       await booking.save();
 
+      // Referral: award points when referred user completes first booking (5 pts each)
+      const previousPayments = await Payment.countDocuments({
+        userId: req.user.id,
+        status: 'succeeded',
+        _id: { $ne: payment._id },
+      });
+      if (previousPayments === 0) {
+        const Referral = (await import('../../models/Referral.js')).default;
+        const referredUser = await User.findById(req.user.id).select('referredBy referralPoints');
+        if (referredUser?.referredBy) {
+          const referral = await Referral.findOne({
+            referredUserId: req.user.id,
+            status: 'pending',
+          });
+          if (referral) {
+            referral.status = 'completed';
+            referral.pointsAwarded = 5;
+            referral.bookingId = booking._id;
+            referral.completedAt = new Date();
+            await referral.save();
+            await User.findByIdAndUpdate(referral.referrerId, {
+              $inc: { referralPoints: 5 },
+            });
+            await User.findByIdAndUpdate(req.user.id, {
+              $inc: { referralPoints: 5 },
+            });
+          }
+        }
+      }
+
       return res.json({
         success: true,
         message: 'Payment confirmed successfully',

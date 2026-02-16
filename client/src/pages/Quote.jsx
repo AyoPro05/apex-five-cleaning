@@ -1,210 +1,275 @@
-import { useState, useEffect } from 'react'
-import { Check, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Check, AlertCircle, Plus, X, ImageIcon } from "lucide-react";
+
+// Additional services customers can add to their quote
+const ADDITIONAL_SERVICES = [
+  { id: "interior-fridge-freezer", label: "Interior Fridge, Freezer & Oven Cleaning" },
+  { id: "interior-window-blind", label: "Interior Window and Blind Cleaning" },
+  { id: "deep-tile-grout", label: "Deep Tile & Grout Cleaning" },
+  { id: "cabinet-cupboard-organization", label: "Inside Cabinet and Cupboard Organization" },
+  { id: "sanitizing-high-touch", label: "Sanitizing High-Touch Points (Disinfection)" },
+];
 
 // Load reCAPTCHA script
 const loadRecaptchaScript = () => {
   if (!window.grecaptcha) {
-    const script = document.createElement('script')
-    script.src = `https://www.google.com/recaptcha/api.js?render=${import.meta.env.VITE_RECAPTCHA_SITE_KEY}`
-    document.head.appendChild(script)
+    const script = document.createElement("script");
+    script.src = `https://www.google.com/recaptcha/api.js?render=${import.meta.env.VITE_RECAPTCHA_SITE_KEY}`;
+    document.head.appendChild(script);
   }
-}
+};
 
 const Quote = () => {
   useEffect(() => {
-    loadRecaptchaScript()
-  }, [])
+    loadRecaptchaScript();
+  }, []);
 
-  const [step, setStep] = useState(1)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [quoteId, setQuoteId] = useState('')
-  
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [quoteId, setQuoteId] = useState("");
+
   const [formData, setFormData] = useState({
-    propertyType: '',
-    bedrooms: '',
-    bathrooms: '',
-    serviceType: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    additionalNotes: ''
-  })
+    propertyType: "",
+    bedrooms: "",
+    bathrooms: "",
+    serviceType: "",
+    additionalServices: [],
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    additionalNotes: "",
+  });
+  const [selectedImages, setSelectedImages] = useState([]);
 
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState({});
 
   // Client-side validation
   const validateStep = (stepNum) => {
-    const newErrors = {}
+    const newErrors = {};
 
     if (stepNum === 1) {
       if (!formData.propertyType) {
-        newErrors.propertyType = 'Please select a property type'
+        newErrors.propertyType = "Please select a property type";
       }
-      if (!formData.bedrooms || formData.bedrooms < 1 || formData.bedrooms > 20) {
-        newErrors.bedrooms = 'Please enter a valid number of bedrooms (1-20)'
+      if (
+        !formData.bedrooms ||
+        formData.bedrooms < 1 ||
+        formData.bedrooms > 20
+      ) {
+        newErrors.bedrooms = "Please enter a valid number of bedrooms (1-20)";
       }
-      if (!formData.bathrooms || formData.bathrooms < 1 || formData.bathrooms > 20) {
-        newErrors.bathrooms = 'Please enter a valid number of bathrooms (1-20)'
+      if (
+        !formData.bathrooms ||
+        formData.bathrooms < 1 ||
+        formData.bathrooms > 20
+      ) {
+        newErrors.bathrooms = "Please enter a valid number of bathrooms (1-20)";
       }
     }
 
     if (stepNum === 2) {
       if (!formData.serviceType) {
-        newErrors.serviceType = 'Please select a service type'
+        newErrors.serviceType = "Please select a service type";
       }
     }
 
     if (stepNum === 3) {
       if (!formData.firstName || formData.firstName.length < 2) {
-        newErrors.firstName = 'First name must be at least 2 characters'
+        newErrors.firstName = "First name must be at least 2 characters";
       }
       if (!formData.lastName || formData.lastName.length < 2) {
-        newErrors.lastName = 'Last name must be at least 2 characters'
+        newErrors.lastName = "Last name must be at least 2 characters";
       }
       if (!formData.email || !isValidEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address'
+        newErrors.email = "Please enter a valid email address";
       }
       if (!formData.phone || !isValidPhone(formData.phone)) {
-        newErrors.phone = 'Please enter a valid UK phone number (e.g., 01234 567890)'
+        newErrors.phone =
+          "Please enter a valid UK phone number (e.g., 01234 567890)";
       }
       if (!formData.address || formData.address.length < 5) {
-        newErrors.address = 'Please enter a valid address'
+        newErrors.address = "Please enter a valid address";
       }
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const isValidEmail = (email) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return regex.test(email)
-  }
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
 
   const isValidPhone = (phone) => {
-    const regex = /^(?:\+44|0)(?:\d\s?){9,10}$/
-    const cleaned = phone.replace(/\s/g, '')
-    return regex.test(cleaned)
-  }
+    const regex = /^(?:\+44|0)(?:\d\s?){9,10}$/;
+    const cleaned = phone.replace(/\s/g, "");
+    return regex.test(cleaned);
+  };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
-    })
-    // Clear error for this field when user starts typing
+      [name]: value,
+    });
     if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ''
-      })
+      setErrors({ ...errors, [name]: "" });
     }
-  }
+  };
+
+  const handleAdditionalServiceToggle = (serviceId) => {
+    const current = formData.additionalServices || [];
+    const isSelected = current.includes(serviceId);
+    const updated = isSelected
+      ? current.filter((id) => id !== serviceId)
+      : [...current, serviceId];
+    setFormData({ ...formData, additionalServices: updated });
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    const valid = files.filter((f) => validTypes.includes(f.type) && f.size <= 3 * 1024 * 1024);
+    const combined = [...selectedImages, ...valid].slice(0, 5);
+    setSelectedImages(combined);
+  };
+
+  const removeImage = (index) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitError('')
-    setSubmitting(true)
+    e.preventDefault();
+    setSubmitError("");
+    setSubmitting(true);
 
     try {
-      // Get reCAPTCHA token
-      const token = await window.grecaptcha.execute(import.meta.env.VITE_RECAPTCHA_SITE_KEY, {
-        action: 'submit'
-      })
+      let token = "";
+      if (window.grecaptcha && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
+        token = await window.grecaptcha.execute(
+          import.meta.env.VITE_RECAPTCHA_SITE_KEY,
+          { action: "submit" },
+        );
+      }
 
-      // Submit to backend
-      const response = await fetch('/api/quotes/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          captchaToken: token
-        })
-      })
+      const formDataToSend = new FormData();
+      formDataToSend.append("propertyType", formData.propertyType);
+      formDataToSend.append("bedrooms", formData.bedrooms);
+      formDataToSend.append("bathrooms", formData.bathrooms);
+      formDataToSend.append("serviceType", formData.serviceType);
+      formDataToSend.append("additionalServices", JSON.stringify(formData.additionalServices || []));
+      formDataToSend.append("firstName", formData.firstName);
+      formDataToSend.append("lastName", formData.lastName);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("phone", formData.phone);
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("additionalNotes", formData.additionalNotes || "");
+      formDataToSend.append("captchaToken", token);
 
-      const data = await response.json()
+      selectedImages.forEach((file) => {
+        formDataToSend.append("images", file);
+      });
+
+      const response = await fetch("/api/quotes/submit", {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      const data = await response.json();
 
       if (!response.ok) {
         if (data.errors) {
-          setErrors(data.errors)
-          setSubmitError('Please check the form for errors')
+          setErrors(data.errors);
+          setSubmitError("Please check the form for errors");
         } else {
-          setSubmitError(data.error || 'An error occurred. Please try again.')
+          setSubmitError(data.error || "An error occurred. Please try again.");
         }
-        setSubmitting(false)
-        return
+        setSubmitting(false);
+        return;
       }
 
-      // Success
-      setQuoteId(data.quoteId)
-      setSuccessMessage(data.message)
-      setStep(4)
+      setQuoteId(data.quoteId);
+      setSuccessMessage(data.message);
+      setStep(4);
     } catch (error) {
-      console.error('Submission error:', error)
-      setSubmitError('A network error occurred. Please try again.')
-      setSubmitting(false)
+      console.error("Submission error:", error);
+      setSubmitError("A network error occurred. Please try again.");
+      setSubmitting(false);
     }
-  }
+  };
 
   const nextStep = () => {
     if (validateStep(step)) {
-      setStep(step + 1)
+      setStep(step + 1);
     }
-  }
+  };
 
   const prevStep = () => {
     if (step > 1) {
-      setStep(step - 1)
-      setErrors({})
+      setStep(step - 1);
+      setErrors({});
     }
-  }
+  };
 
   const resetForm = () => {
-    setStep(1)
+    setStep(1);
     setFormData({
-      propertyType: '',
-      bedrooms: '',
-      bathrooms: '',
-      serviceType: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      address: '',
-      additionalNotes: ''
-    })
-    setErrors({})
-    setSubmitError('')
-    setSuccessMessage('')
-    setQuoteId('')
-  }
+      propertyType: "",
+      bedrooms: "",
+      bathrooms: "",
+      serviceType: "",
+      additionalServices: [],
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      address: "",
+      additionalNotes: "",
+    });
+    setSelectedImages([]);
+    setErrors({});
+    setSubmitError("");
+    setSuccessMessage("");
+    setQuoteId("");
+  };
 
   return (
     <section className="pt-32 pb-20 bg-gray-50 min-h-screen">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Get a Quote</span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-4">Request Your Free Quote</h1>
-          <p className="text-gray-600">Fill out the form below and we'll get back to you with a personalized quote</p>
+          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
+            Get a Quote
+          </span>
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-4">
+            Request Your Free Quote
+          </h1>
+          <p className="text-gray-600">
+            Fill out the form below and we'll get back to you with a
+            personalized quote
+          </p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - 25%/50%/75% for steps 1-3, 100% on success */}
         <div className="mb-8">
           <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Step {step} of 3</span>
-            <span className="text-sm font-medium text-gray-600">{Math.round((step / 3) * 100)}%</span>
+            <span className="text-sm font-medium text-gray-600">
+              {step < 4 ? `Step ${step} of 3` : "Complete"}
+            </span>
+            <span className="text-sm font-medium text-gray-600">
+              {step < 4 ? Math.round((step / 3) * 75) : 100}%
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-teal-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{
+                width: step < 4 ? `${(step / 3) * 75}%` : "100%",
+              }}
             ></div>
           </div>
         </div>
@@ -214,18 +279,26 @@ const Quote = () => {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Quote Request Submitted!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Quote Request Submitted!
+            </h2>
             <p className="text-gray-600 mb-2">
-              Thank you for your request. We've sent a confirmation to your email.
+              Thank you for your request. We've sent a confirmation to your
+              email.
             </p>
             <p className="text-gray-600 mb-6">
-              Our team will review your details and get back to you within 24 hours with a personalized quote.
+              Our team will review your details and get back to you within 24
+              hours with a personalized quote.
             </p>
-            
+
             {quoteId && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-600 mb-1">Your Quote Reference</p>
-                <p className="font-mono text-lg font-semibold text-gray-900 break-all">{quoteId}</p>
+                <p className="text-sm text-gray-600 mb-1">
+                  Your Quote Reference
+                </p>
+                <p className="font-mono text-lg font-semibold text-gray-900 break-all">
+                  {quoteId}
+                </p>
               </div>
             )}
 
@@ -237,13 +310,18 @@ const Quote = () => {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 shadow-lg">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-2xl p-8 shadow-lg"
+          >
             {/* Error Alert */}
             {submitError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-red-800 font-medium">Error submitting form</p>
+                  <p className="text-red-800 font-medium">
+                    Error submitting form
+                  </p>
                   <p className="text-red-700 text-sm">{submitError}</p>
                 </div>
               </div>
@@ -252,17 +330,21 @@ const Quote = () => {
             {/* Step 1: Property Details */}
             {step === 1 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Property Details</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Property Details
+                </h2>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Property Type *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Property Type *
+                  </label>
                   <select
                     name="propertyType"
                     value={formData.propertyType}
                     onChange={handleInputChange}
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.propertyType 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-teal-500'
+                      errors.propertyType
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
                     }`}
                   >
                     <option value="">Select property type</option>
@@ -271,12 +353,16 @@ const Quote = () => {
                     <option value="bungalow">Bungalow</option>
                   </select>
                   {errors.propertyType && (
-                    <p className="text-red-600 text-sm mt-2">{errors.propertyType}</p>
+                    <p className="text-red-600 text-sm mt-2">
+                      {errors.propertyType}
+                    </p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bedrooms *
+                    </label>
                     <input
                       type="number"
                       name="bedrooms"
@@ -285,17 +371,21 @@ const Quote = () => {
                       min="1"
                       max="20"
                       className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.bedrooms 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-teal-500'
+                        errors.bedrooms
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-teal-500"
                       }`}
                     />
                     {errors.bedrooms && (
-                      <p className="text-red-600 text-sm mt-2">{errors.bedrooms}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.bedrooms}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bathrooms *
+                    </label>
                     <input
                       type="number"
                       name="bathrooms"
@@ -304,13 +394,15 @@ const Quote = () => {
                       min="1"
                       max="20"
                       className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.bathrooms 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-teal-500'
+                        errors.bathrooms
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-teal-500"
                       }`}
                     />
                     {errors.bathrooms && (
-                      <p className="text-red-600 text-sm mt-2">{errors.bathrooms}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.bathrooms}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -329,32 +421,134 @@ const Quote = () => {
             {/* Step 2: Service Type */}
             {step === 2 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Service Type</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Service Type
+                </h2>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">What service do you need? *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    What service do you need? *
+                  </label>
                   <select
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleInputChange}
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.serviceType 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-teal-500'
+                      errors.serviceType
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
                     }`}
                   >
                     <option value="">Select service</option>
-                    <option value="residential">Regular Residential Cleaning</option>
-                    <option value="end-of-tenancy">End of Tenancy Cleaning</option>
+                    <option value="residential">
+                      Regular Residential Cleaning
+                    </option>
+                    <option value="end-of-tenancy">
+                      End of Tenancy Cleaning
+                    </option>
                     <option value="airbnb">Airbnb Turnover Cleaning</option>
                     <option value="commercial">Commercial Cleaning</option>
                   </select>
                   {errors.serviceType && (
-                    <p className="text-red-600 text-sm mt-2">{errors.serviceType}</p>
+                    <p className="text-red-600 text-sm mt-2">
+                      {errors.serviceType}
+                    </p>
                   )}
                 </div>
-                
+
+                {/* Additional Services - Clickable list */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional Notes (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Add-ons (optional)
+                  </label>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Click to add any of these services to your quote:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {ADDITIONAL_SERVICES.map((service) => {
+                      const isSelected = (formData.additionalServices || []).includes(service.id);
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => handleAdditionalServiceToggle(service.id)}
+                          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                            isSelected
+                              ? "bg-teal-600 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-teal-50 hover:border-teal-300 border border-gray-200"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <X className="w-4 h-4" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                          {service.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(formData.additionalServices || []).length > 0 && (
+                    <p className="text-xs text-teal-600 mt-2">
+                      {(formData.additionalServices || []).length} add-on(s) selected
+                    </p>
+                  )}
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Property photos (optional, max 5)
+                  </label>
+                  <p className="text-sm text-gray-500 mb-2">
+                    Upload images to help us give you a more accurate quote
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedImages.length < 5 && (
+                      <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition">
+                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                        <span className="text-xs text-gray-500 mt-1">Add</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          multiple
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    {selectedImages.map((file, i) => (
+                      <div
+                        key={i}
+                        className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 group"
+                      >
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-0.5 text-center truncate px-1">
+                          {file.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    JPG, PNG, GIF or WebP. Max 3MB per image.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Additional Notes (Optional)
+                  </label>
                   <textarea
                     name="additionalNotes"
                     value={formData.additionalNotes}
@@ -364,9 +558,11 @@ const Quote = () => {
                     rows="4"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">{formData.additionalNotes.length}/500 characters</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.additionalNotes.length}/500 characters
+                  </p>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <button
                     type="button"
@@ -389,10 +585,14 @@ const Quote = () => {
             {/* Step 3: Contact Information */}
             {step === 3 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Contact Information
+                </h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name *
+                    </label>
                     <input
                       type="text"
                       name="firstName"
@@ -400,17 +600,21 @@ const Quote = () => {
                       onChange={handleInputChange}
                       placeholder="John"
                       className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.firstName 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-teal-500'
+                        errors.firstName
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-teal-500"
                       }`}
                     />
                     {errors.firstName && (
-                      <p className="text-red-600 text-sm mt-2">{errors.firstName}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.firstName}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name *
+                    </label>
                     <input
                       type="text"
                       name="lastName"
@@ -418,18 +622,22 @@ const Quote = () => {
                       onChange={handleInputChange}
                       placeholder="Smith"
                       className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.lastName 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-teal-500'
+                        errors.lastName
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-teal-500"
                       }`}
                     />
                     {errors.lastName && (
-                      <p className="text-red-600 text-sm mt-2">{errors.lastName}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.lastName}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -437,9 +645,9 @@ const Quote = () => {
                     onChange={handleInputChange}
                     placeholder="john@example.com"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.email 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-teal-500'
+                      errors.email
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
                     }`}
                   />
                   {errors.email && (
@@ -447,7 +655,9 @@ const Quote = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number *
+                  </label>
                   <input
                     type="tel"
                     name="phone"
@@ -455,9 +665,9 @@ const Quote = () => {
                     onChange={handleInputChange}
                     placeholder="01234 567890 or +44 1234 567890"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.phone 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-teal-500'
+                      errors.phone
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
                     }`}
                   />
                   {errors.phone && (
@@ -465,7 +675,9 @@ const Quote = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Property Address *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Property Address *
+                  </label>
                   <input
                     type="text"
                     name="address"
@@ -473,27 +685,40 @@ const Quote = () => {
                     onChange={handleInputChange}
                     placeholder="123 Main Street, London, SE1 1AA"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.address 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-teal-500'
+                      errors.address
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
                     }`}
                   />
                   {errors.address && (
-                    <p className="text-red-600 text-sm mt-2">{errors.address}</p>
+                    <p className="text-red-600 text-sm mt-2">
+                      {errors.address}
+                    </p>
                   )}
                 </div>
 
                 {/* CAPTCHA Notice */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-700">
-                    <span className="font-medium">Protected by reCAPTCHA:</span> This site is protected by reCAPTCHA and the Google{' '}
-                    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+                    <span className="font-medium">Protected by reCAPTCHA:</span>{" "}
+                    This site is protected by reCAPTCHA and the Google{" "}
+                    <a
+                      href="https://policies.google.com/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
                       Privacy Policy
-                    </a>{' '}
-                    and{' '}
-                    <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline">
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="https://policies.google.com/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
                       Terms of Service
-                    </a>{' '}
+                    </a>{" "}
                     apply.
                   </p>
                 </div>
@@ -511,11 +736,11 @@ const Quote = () => {
                     disabled={submitting}
                     className={`px-6 py-3 rounded-lg font-semibold transition ${
                       submitting
-                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        : 'bg-teal-600 hover:bg-teal-700 text-white'
+                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                        : "bg-teal-600 hover:bg-teal-700 text-white"
                     }`}
                   >
-                    {submitting ? 'Submitting...' : 'Submit Request'}
+                    {submitting ? "Submitting..." : "Submit Request"}
                   </button>
                 </div>
               </div>
@@ -524,7 +749,7 @@ const Quote = () => {
         )}
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default Quote
+export default Quote;
