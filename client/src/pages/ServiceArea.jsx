@@ -1,6 +1,18 @@
+import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import ServiceAreaMap from "../components/ServiceAreaMap";
+import { scrollReveal } from "../utils/scrollReveal";
+import { SITE_URL } from "../config/site";
+
+// Service images - same as Services/ServiceDetail
+const SERVICE_IMAGES = {
+  "Residential Cleaning": "/images/services/Service_Residential_Cleaning.png",
+  "End of Tenancy": "/images/services/Service_EndOfTenancy_Cleaning.png",
+  "Airbnb Turnover": "/images/services/Service_Airbnb_Cleaning.png",
+  "Commercial Cleaning": "/images/services/Service_Commercial_Cleaning.png",
+};
 
 const ServiceArea = () => {
   const { areaSlug } = useParams();
@@ -298,7 +310,7 @@ const ServiceArea = () => {
       longitude: area.coordinates.lng,
     },
     telephone: "+441622621133",
-    url: `https://apexfivecleaning.co.uk/service-areas/${areaSlug}`,
+    url: `${SITE_URL}/service-areas/${areaSlug}`,
     priceRange: "£45-£250",
     areaServed: {
       "@type": "City",
@@ -318,7 +330,7 @@ const ServiceArea = () => {
           backgroundImage: `url('${heroImage || area.image || "/images/heroes/Hero_Services.png"}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundAttachment: "fixed",
+          backgroundAttachment: "scroll",
         }}
       >
         {/* Preload image with fallback */}
@@ -377,16 +389,19 @@ const ServiceArea = () => {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
-        <div className="bg-gray-50 rounded-2xl p-8 mb-16">
+      <motion.div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16" {...scrollReveal}>
+        <div className="bg-gray-50 rounded-2xl p-8 mb-16 overflow-visible">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Coverage Area
           </h2>
-          <p className="text-lg text-gray-600">{area.coverage}</p>
+          <p className="text-lg text-gray-600 mb-6">{area.coverage}</p>
+          <div className="rounded-lg overflow-hidden" style={{ minHeight: 320 }}>
+            <ServiceAreaMap singleAreaSlug={areaSlug} height="320px" />
+          </div>
         </div>
 
         {/* Services Available */}
-        <div className="mb-16">
+        <motion.div className="mb-16" {...scrollReveal}>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Services Available in {area.name}
           </h2>
@@ -394,26 +409,35 @@ const ServiceArea = () => {
             {area.servicesCovered.map((service, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition"
               >
-                <h3 className="font-bold text-gray-900 mb-2">{service}</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Professional {service.toLowerCase()} services tailored for{" "}
-                  {area.name} properties.
-                </p>
-                <button
-                  onClick={() => navigate("/request-a-quote")}
-                  className="text-teal-600 hover:text-teal-700 font-semibold text-sm"
-                >
-                  Learn More →
-                </button>
+                {SERVICE_IMAGES[service] && (
+                  <img
+                    src={SERVICE_IMAGES[service]}
+                    alt={service}
+                    className="w-full h-40 object-cover"
+                  />
+                )}
+                <div className="p-6">
+                  <h3 className="font-bold text-gray-900 mb-2">{service}</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Professional {service.toLowerCase()} services tailored for{" "}
+                    {area.name} properties.
+                  </p>
+                  <button
+                    onClick={() => navigate("/request-a-quote")}
+                    className="text-teal-600 hover:text-teal-700 font-semibold text-sm"
+                  >
+                    Learn More →
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Why Choose Us Locally */}
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 mb-16">
+        <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 mb-16" {...scrollReveal}>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Why Choose Apex Five in {area.name}?
           </h2>
@@ -427,10 +451,10 @@ const ServiceArea = () => {
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Testimonials Snippet */}
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 mb-16">
+        <motion.div className="bg-white rounded-2xl p-8 border border-gray-200 mb-16" {...scrollReveal}>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             What {area.name} Customers Say
           </h2>
@@ -447,10 +471,10 @@ const ServiceArea = () => {
           <p className="font-semibold text-gray-900">
             — Local {area.name} Customer
           </p>
-        </div>
+        </motion.div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center mb-16">
+        <motion.div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center mb-16" {...scrollReveal}>
           <h3 className="text-3xl font-bold text-white mb-4">Ready to Book?</h3>
           <p className="text-teal-50 text-lg mb-8 max-w-2xl mx-auto">
             Get a free, no-obligation quote for cleaning services in {area.name}
@@ -472,8 +496,8 @@ const ServiceArea = () => {
               WhatsApp
             </a>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </>
   );
 };

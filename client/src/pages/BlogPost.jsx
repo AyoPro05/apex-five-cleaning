@@ -1,5 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Clock, User, Share2, ArrowLeft, ArrowRight } from 'lucide-react'
+import { scrollReveal } from '../utils/scrollReveal'
+import { SITE_URL } from '../config/site'
 
 const BlogPost = () => {
   const { slug } = useParams()
@@ -206,7 +209,7 @@ const BlogPost = () => {
       {/* Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>
 
-      <section className="pt-20 pb-20">
+      <motion.section className="pt-20 pb-20" {...scrollReveal}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <button
@@ -268,7 +271,7 @@ const BlogPost = () => {
               </div>
               <div className="flex gap-3">
                 <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=apexfivecleaning.co.uk/blog/${slug}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE_URL}/blog/${slug}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition"
@@ -276,7 +279,7 @@ const BlogPost = () => {
                   <Share2 className="w-5 h-5" />
                 </a>
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${post.title}&url=apexfivecleaning.co.uk/blog/${slug}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_URL}/blog/${slug}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-black hover:bg-gray-800 text-white p-3 rounded-lg transition"
@@ -329,7 +332,7 @@ const BlogPost = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
     </>
   )
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MessageCircle, X, Send, Bot, User } from 'lucide-react'
+import { MessageCircle, X, Send, User } from 'lucide-react'
+import { getBotResponse } from '../data/websiteContent'
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -25,46 +26,33 @@ const ChatWidget = () => {
   }, [messages])
 
   const getAIResponse = (message) => {
-    const lowerMessage = message.toLowerCase()
-
-    if (lowerMessage.includes('quote') || lowerMessage.includes('price') || lowerMessage.includes('cost')) {
+    // First try the website knowledge base
+    const kbResponse = getBotResponse(message)
+    if (kbResponse) {
+      const quickReplies = ['Get a quote', 'View services', 'Contact us']
+      if (kbResponse.link) {
+        const pageName = kbResponse.link === '/request-a-quote' ? 'Get a quote' : kbResponse.link === '/services' ? 'View services' : kbResponse.link === '/contact' ? 'Contact us' : null
+        if (pageName && !quickReplies.includes(pageName)) quickReplies.unshift(pageName)
+      }
       return {
-        text: "Great question! Our residential cleaning starts from £45 per visit, end of tenancy from £150, and Airbnb turnover from £60. The exact price depends on your property size and specific requirements. Would you like me to help you get a detailed quote?",
-        quickReplies: ['Yes, get a quote', 'Tell me more']
+        text: kbResponse.text,
+        link: kbResponse.link,
+        quickReplies: quickReplies.slice(0, 4)
       }
     }
 
-    if (lowerMessage.includes('service') || lowerMessage.includes('what')) {
+    // Fallback for greetings/simple queries
+    const lower = message.toLowerCase()
+    if (['hi', 'hello', 'hey', 'hola'].some((g) => lower.startsWith(g) || lower === g)) {
       return {
-        text: "We offer residential cleaning, end of tenancy cleaning, Airbnb turnover cleaning, and commercial cleaning. Our most popular is regular residential cleaning. Which service are you most interested in?",
-        quickReplies: ['Residential', 'End of Tenancy', 'Airbnb']
-      }
-    }
-
-    if (lowerMessage.includes('book') || lowerMessage.includes('appointment')) {
-      return {
-        text: "To book a cleaning, the easiest way is to request a quote on our website. You'll answer a few questions about your property, and we'll send you a personalized quote within 24 hours.",
-        quickReplies: ['Get a quote', 'Contact us']
-      }
-    }
-
-    if (lowerMessage.includes('eco') || lowerMessage.includes('product') || lowerMessage.includes('chemical')) {
-      return {
-        text: "Yes! We offer eco-friendly cleaning using plant-based, non-toxic products that are safe for children and pets. This option is available for a small surcharge of £5 per visit.",
-        quickReplies: ['That\'s great', 'More info']
-      }
-    }
-
-    if (lowerMessage.includes('contact') || lowerMessage.includes('phone') || lowerMessage.includes('email')) {
-      return {
-        text: "You can reach us by email at info@apexfivecleaning.co.uk. You can also use our online quote form or chat with me here. A member of our team will respond within 24 hours.",
-        quickReplies: ['Send a message']
+        text: "Hi! 👋 I'm the Apex Assistant. I can help with services, pricing, booking, contact info, and more. What would you like to know?",
+        quickReplies: ['Get a quote', 'Services', 'Pricing', 'Contact us']
       }
     }
 
     return {
-      text: "Thanks for your message! I can help answer questions about our services, pricing, and booking. For a detailed quote tailored to your needs, I recommend using our online quote form. Is there anything specific you'd like to know about?",
-      quickReplies: ['Get a quote', 'View services']
+      text: "I can help with our services, pricing, booking, contact details, and more. Try asking about residential cleaning, end of tenancy, Airbnb turnover, or how to get a quote. Or use the quick links below!",
+      quickReplies: ['Get a quote', 'View services', 'Pricing', 'Contact us']
     }
   }
 
@@ -111,8 +99,8 @@ const ChatWidget = () => {
           {/* Chat Header */}
           <div className="hero-gradient px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                <img src="/apex-five-logo.png" alt="Apex Assistant" className="w-8 h-8 object-contain" />
               </div>
               <div>
                 <h3 className="text-white font-semibold text-sm">Apex Assistant</h3>
@@ -135,8 +123,8 @@ const ChatWidget = () => {
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} fade-in`}
               >
                 {message.type === 'ai' && (
-                  <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-teal-600" />
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border border-teal-100">
+                    <img src="/apex-five-logo.png" alt="" className="w-5 h-5 object-contain" />
                   </div>
                 )}
                 <div

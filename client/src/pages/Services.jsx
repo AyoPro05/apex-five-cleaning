@@ -1,5 +1,15 @@
 import { useNavigate } from 'react-router-dom'
-import { Home, Building, Calendar, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
+import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
+
+// Service image paths - files in /public/images/services/ named as below
+const SERVICE_IMAGES = {
+  residential: '/images/services/Service_Residential_Cleaning.png',
+  'end-of-tenancy': '/images/services/Service_EndOfTenancy_Cleaning.png',
+  airbnb: '/images/services/Service_Airbnb_Cleaning.png',
+  commercial: '/images/services/Service_Commercial_Cleaning.png'
+}
 
 const Services = () => {
   const navigate = useNavigate()
@@ -9,7 +19,7 @@ const Services = () => {
       id: 'residential',
       title: 'Residential Cleaning',
       icon: Home,
-      image: '/images/services/Service_Residential_Cleaning.png',
+      image: SERVICE_IMAGES.residential,
       description: 'Regular cleaning services to keep your home spotless and fresh.',
       price: 'From £45 per visit',
       duration: '2-4 hours',
@@ -34,7 +44,7 @@ const Services = () => {
       id: 'end-of-tenancy',
       title: 'End of Tenancy Cleaning',
       icon: Building,
-      image: '/images/services/Service_EndOfTenancy_Cleaning.png',
+      image: SERVICE_IMAGES['end-of-tenancy'],
       description: 'Comprehensive deep cleaning to help you get your full deposit back.',
       price: 'From £150',
       duration: '6-10 hours',
@@ -58,7 +68,7 @@ const Services = () => {
       id: 'airbnb',
       title: 'Airbnb Turnover Cleaning',
       icon: Calendar,
-      image: '/images/services/Service_Airbnb_Cleaning.png',
+      image: SERVICE_IMAGES.airbnb,
       description: 'Fast, reliable cleaning between guests to keep your bookings flowing.',
       price: 'From £60',
       duration: '2-3 hours',
@@ -78,14 +88,38 @@ const Services = () => {
         'Damage reporting included',
         'Photo documentation'
       ]
+    },
+    {
+      id: 'commercial',
+      title: 'Commercial Cleaning',
+      icon: Briefcase,
+      image: SERVICE_IMAGES.commercial,
+      description: 'Professional cleaning for offices, retail, and business premises.',
+      price: 'From £80',
+      duration: 'Varies by site',
+      rating: 4.8,
+      reviews: 41,
+      features: [
+        'Daily or periodic office cleaning',
+        'Reception & communal areas',
+        'Restroom sanitization',
+        'Floor care & vacuuming',
+        'Waste management'
+      ],
+      benefits: [
+        'Out-of-hours scheduling',
+        'Contract and one-off options',
+        'COSHH-compliant products',
+        'Key-holder arrangements'
+      ]
     }
   ]
 
   return (
-    <section className="pt-32 pb-20 bg-white">
+    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Our Services</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
             Professional Cleaning Services
@@ -93,31 +127,52 @@ const Services = () => {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             We offer a range of eco-friendly cleaning services tailored to your needs. All our services use professional-grade, environmentally safe products and are backed by our satisfaction guarantee.
           </p>
-        </div>
+        </motion.div>
 
         {/* Service Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <motion.div
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16"
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={{ once: true, amount: 0.1 }}
+        >
           {services.map((service) => {
             const Icon = service.icon
             return (
-              <div
+              <motion.div
                 key={service.id}
-                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition border border-gray-100 flex flex-col h-full relative"
+                variants={staggerItem}
+                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition border border-gray-100 flex flex-col h-full relative group cursor-pointer"
+                onClick={() => navigate(`/services/${service.id}`)}
               >
+                {/* Service Image */}
+                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop'
+                    }}
+                  />
+                </div>
                 {/* Badge */}
                 {service.badge && (
-                  <div className="absolute top-4 right-4 bg-amber-400 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                  <div className="absolute top-4 right-4 bg-amber-400 text-gray-900 px-3 py-1 rounded-full text-xs font-bold z-10">
                     {service.badge}
                   </div>
                 )}
 
                 {/* Content */}
-                <div className="p-8 flex flex-col flex-grow">
-                  <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center mb-6">
-                    <Icon className="w-8 h-8 text-teal-600" />
+                <div className="p-6 flex flex-col flex-grow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-teal-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900">{service.title}</h2>
                   </div>
-                  
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">{service.title}</h2>
                   <p className="text-gray-600 mb-4">{service.description}</p>
 
                   {/* Rating */}
@@ -160,13 +215,13 @@ const Services = () => {
                     Learn More
                   </button>
                 </div>
-              </div>
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
 
         {/* Why Choose Us */}
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16">
+        <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16" {...scrollReveal}>
           <h3 className="text-3xl font-bold text-gray-900 mb-8 text-center">Why Choose Apex Five?</h3>
           <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
@@ -198,10 +253,10 @@ const Services = () => {
               <p className="text-gray-600 text-sm">Consistent, punctual, professional team</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center">
+        <motion.div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center" {...scrollReveal}>
           <h3 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h3>
           <p className="text-teal-50 text-lg mb-8 max-w-2xl mx-auto">
             Get a free, no-obligation quote for your cleaning needs. We respond within 24 hours.
@@ -220,9 +275,9 @@ const Services = () => {
               Call Now: +44 1622 621133
             </a>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

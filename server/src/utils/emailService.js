@@ -158,7 +158,9 @@ export const getAdminNotificationTemplate = (quoteData) => {
   const propertyMap = {
     'house': 'House',
     'flat': 'Flat/Apartment',
-    'bungalow': 'Bungalow'
+    'bungalow': 'Bungalow',
+    'commercial': 'Commercial',
+    'sharehouse-room': 'Sharehouse/Room'
   };
   const brand = getBrandConfig();
   const adminUrl = `${brand.website.replace(/\/?$/, '')}/admin/quotes/${quoteData._id}`;
@@ -186,6 +188,7 @@ export const getAdminNotificationTemplate = (quoteData) => {
                 <tr><td>Email</td><td><a href="mailto:${quoteData.email}">${quoteData.email}</a></td></tr>
                 <tr><td>Phone</td><td><a href="tel:${quoteData.phone}">${quoteData.phone}</a></td></tr>
                 <tr><td>Address</td><td>${quoteData.address}</td></tr>
+                ${quoteData.postcode ? `<tr><td>Postcode</td><td>${quoteData.postcode}</td></tr>` : ''}
               </table>
               <div class="section-title">Property Details</div>
               <table class="admin-table">

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { get } from '../utils/apiClient'
 import {
   LayoutDashboard,
   Calendar,
@@ -22,10 +24,9 @@ const tabs = [
   { id: 'quotes', label: 'Quote Requests', icon: FileText },
 ]
 
-const apiUrl = import.meta.env.VITE_API_URL || ''
-
 export default function CustomerDashboard() {
   const { user, token } = useAuth()
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('overview')
   const [dashboard, setDashboard] = useState(null)
   const [referral, setReferral] = useState(null)
@@ -34,8 +35,10 @@ export default function CustomerDashboard() {
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const fetchWithAuth = (path) =>
-    fetch(`${apiUrl}${path}`, { headers: { Authorization: `Bearer ${token}` } })
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'referral') setActiveTab('referral')
+  }, [searchParams])
 
   useEffect(() => {
     if (!token) return
@@ -43,9 +46,9 @@ export default function CustomerDashboard() {
       setLoading(true)
       try {
         const [d, r, a] = await Promise.all([
-          fetchWithAuth('/api/customer/dashboard').then((r) => r.json()),
-          fetchWithAuth('/api/customer/referral').then((r) => r.json()),
-          fetchWithAuth('/api/customer/addresses').then((r) => r.json()),
+          get('/api/customer/dashboard'),
+          get('/api/customer/referral'),
+          get('/api/customer/addresses'),
         ])
         if (d.success) setDashboard(d.dashboard)
         if (r.success) setReferral(r.referral)
@@ -59,10 +62,10 @@ export default function CustomerDashboard() {
   useEffect(() => {
     if (!token) return
     if (activeTab === 'bookings') {
-      fetchWithAuth('/api/bookings').then((r) => r.json()).then((d) => d.success && setBookings(d.bookings || []))
+      get('/api/bookings').then((d) => d.success && setBookings(d.bookings || [])).catch(() => {})
     }
     if (activeTab === 'payments') {
-      fetchWithAuth('/api/payments').then((r) => r.json()).then((d) => d.success && setPayments(d.payments || []))
+      get('/api/payments').then((d) => d.success && setPayments(d.payments || [])).catch(() => {})
     }
   }, [activeTab, token])
 
@@ -130,7 +133,7 @@ export default function CustomerDashboard() {
                   <li>Profile – update your details</li>
                   <li>Saved Addresses – manage your property addresses (including postcode)</li>
                   <li>Notifications – email and booking preferences</li>
-                  <li>Refer a Friend – earn 5 points per referral (20 points = 10% discount)</li>
+                  <li>Refer a Friend – share £10: you get £5 off a window clean, your friend gets £5 off their first clean</li>
                   <li>Quote Requests – view and submit new quotes</li>
                 </ul>
               </div>
@@ -221,10 +224,9 @@ export default function CustomerDashboard() {
             )}
             {activeTab === 'referral' && (
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Refer a Friend</h2>
-                <p className="text-gray-600 mb-4">
-                  Earn 5 points for each friend who completes their first booking. 20 points = 10%
-                  discount on your next clean or invoice.
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Refer a Friend and Share £10</h2>
+                <p className="text-gray-600 mb-6">
+                  For every friend you refer who books our service, you&apos;ll get £5 off a window clean. And your friend will get £5 off their first clean too, thanks to you!
                 </p>
                 {referral && (
                   <div className="space-y-4">
@@ -248,9 +250,6 @@ export default function CustomerDashboard() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-gray-600">
-                      Points: <strong>{referral.points}</strong> · {referral.discountPercent}% discount available
-                    </p>
                   </div>
                 )}
               </div>

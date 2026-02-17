@@ -125,10 +125,9 @@ const userSchema = new mongoose.Schema({
 });
 
 // ============================================
-// INDEXES
+// INDEXES (email has unique: true above, which creates its own index)
 // ============================================
 
-userSchema.index({ email: 1 });
 userSchema.index({ createdAt: -1 });
 
 // ============================================

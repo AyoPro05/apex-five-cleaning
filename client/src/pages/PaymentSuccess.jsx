@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, Download, AlertCircle } from 'lucide-react';
+import { get } from '../utils/apiClient';
 
 /**
  * PAYMENT SUCCESS PAGE
@@ -8,7 +9,6 @@ import { CheckCircle, Download, AlertCircle } from 'lucide-react';
  */
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [error, setError] = useState(null);
@@ -18,23 +18,29 @@ const PaymentSuccess = () => {
       try {
         const paymentId = searchParams.get('payment_id');
         const bookingId = searchParams.get('booking_id');
+        const isGuest = searchParams.get('guest') === '1';
 
-        if (!paymentId || !bookingId) {
-          throw new Error('Missing payment or booking information');
+        if (!paymentId) {
+          throw new Error('Missing payment information');
         }
 
-        // Fetch payment and booking details
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`/api/payments/${paymentId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch payment details');
-
-        const data = await response.json();
-        setPaymentDetails(data);
+        if (isGuest) {
+          const data = await get(`/api/payments/guest/${paymentId}`);
+          if (data.success && data.payment) {
+            setPaymentDetails(data.payment);
+          } else {
+            throw new Error('Failed to load payment details');
+          }
+        } else if (bookingId) {
+          const data = await get(`/api/payments/${paymentId}`);
+          if (data.success && data.payment) {
+            setPaymentDetails(data.payment);
+          } else {
+            throw new Error('Failed to load payment details');
+          }
+        } else {
+          throw new Error('Missing payment or booking information');
+        }
       } catch (err) {
         console.error('Error fetching payment details:', err);
         setError(err.message);
@@ -60,6 +66,7 @@ const PaymentSuccess = () => {
   }
 
   if (error) {
+    const isGuest = searchParams.get('guest') === '1';
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
@@ -67,10 +74,10 @@ const PaymentSuccess = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Details</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <Link
-            to="/bookings"
+            to={isGuest ? '/pay-online' : '/dashboard'}
             className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition"
           >
-            View My Bookings
+            {isGuest ? 'Back to Pay Online' : 'My Dashboard'}
           </Link>
         </div>
       </div>
@@ -115,7 +122,7 @@ const PaymentSuccess = () => {
                   <div className="flex justify-between py-2 border-b border-gray-200">
                     <span className="text-gray-600">Amount Paid:</span>
                     <span className="text-2xl font-bold text-emerald-600">
-                      £{(paymentDetails.amount / 100).toFixed(2)}
+                      {paymentDetails.amountDisplay || `£${(paymentDetails.amount / 100).toFixed(2)}`}
                     </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-200">
@@ -140,10 +147,12 @@ const PaymentSuccess = () => {
               </div>
             )}
 
-            {/* Booking Details */}
+            {/* Booking / Quote Details */}
             {paymentDetails?.booking && (
               <div className="mb-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Booking Confirmed</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  {paymentDetails.booking.date && paymentDetails.booking.date !== '-' ? 'Booking Confirmed' : 'Quote Payment'}
+                </h2>
                 <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Service</p>
@@ -151,27 +160,33 @@ const PaymentSuccess = () => {
                       {paymentDetails.booking.serviceName}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Scheduled Date</p>
-                    <p className="font-semibold text-gray-900 text-lg">
-                      📅 {new Date(paymentDetails.booking.date).toLocaleDateString('en-GB', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Time</p>
-                    <p className="font-semibold text-gray-900">🕐 {paymentDetails.booking.time}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Location</p>
-                    <p className="font-semibold text-gray-900">
-                      📍 {paymentDetails.booking.serviceArea}
-                    </p>
-                  </div>
+                  {paymentDetails.booking.date && paymentDetails.booking.date !== '-' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Scheduled Date</p>
+                      <p className="font-semibold text-gray-900 text-lg">
+                        📅 {new Date(paymentDetails.booking.date).toLocaleDateString('en-GB', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  {paymentDetails.booking.time && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Time</p>
+                      <p className="font-semibold text-gray-900">🕐 {paymentDetails.booking.time}</p>
+                    </div>
+                  )}
+                  {paymentDetails.booking.serviceArea && paymentDetails.booking.serviceArea !== '-' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Location</p>
+                      <p className="font-semibold text-gray-900">
+                        📍 {paymentDetails.booking.serviceArea}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -205,10 +220,10 @@ const PaymentSuccess = () => {
                 Print Receipt
               </button>
               <Link
-                to="/bookings"
+                to={searchParams.get('guest') === '1' ? '/' : '/dashboard'}
                 className="flex items-center justify-center flex-1 bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
               >
-                View All Bookings
+                {searchParams.get('guest') === '1' ? 'Return to Home' : 'View Dashboard'}
               </Link>
             </div>
 

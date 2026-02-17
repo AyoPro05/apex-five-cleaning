@@ -22,7 +22,7 @@ const Footer = () => {
               <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="Facebook">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="Instagram">
+              <a href="https://www.instagram.com/apexfive01" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-500 transition" title="Instagram">
                 <Instagram className="w-5 h-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-teal-500 transition" title="X (Twitter)">
@@ -73,9 +73,16 @@ const Footer = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-3">
-              <li className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-teal-500" />
-                <span>Kent, South East England</span>
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=123+Main+road+Broadway+Sittingbourne+plaza+ME11+2BY"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-teal-500 transition"
+                >
+                  123, Main road, Broadway, Sittingbourne plaza ME11 2BY
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-teal-500" />
@@ -94,8 +101,8 @@ const Footer = () => {
             &copy; 2024 Apex Five Cleaning. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="text-gray-500 hover:text-teal-500 transition">Privacy Policy</a>
-            <a href="#" className="text-gray-500 hover:text-teal-500 transition">Terms of Service</a>
+            <Link to="/privacy-policy" className="text-gray-500 hover:text-teal-500 transition">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="text-gray-500 hover:text-teal-500 transition">Terms of Service</Link>
           </div>
         </div>
       </div>

@@ -16,16 +16,21 @@ import { authMiddleware } from '../../middleware/auth.js';
 import Payment from '../../models/Payment.js';
 import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
+import Quote from '../models/Quote.js';
+import QuotePayment from '../../models/QuotePayment.js';
 
 const router = express.Router();
 
-// Initialize Stripe with fallback for development
-const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_default';
+// Initialize Stripe - required in production, optional fallback only in development
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (process.env.NODE_ENV === "production" && !stripeKey) {
+  throw new Error("STRIPE_SECRET_KEY is required in production. Set it in your environment.");
+}
 let stripe;
 try {
-  stripe = new Stripe(stripeKey);
+  stripe = stripeKey ? new Stripe(stripeKey) : null;
 } catch (error) {
-  console.warn('Stripe initialization warning:', error.message);
+  console.warn("Stripe initialization warning:", error.message);
   stripe = null;
 }
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -50,9 +55,258 @@ const formatAmount = (pence) => {
   return (pence / 100).toFixed(2);
 };
 
+/**
+ * Resolve quote reference (AP12345678 or ObjectId) to a Mongoose query.
+ * Returns a Query when the format is valid, otherwise null.
+ */
+const findQuoteByRef = (quoteRef) => {
+  const trimmed = String(quoteRef).trim().toUpperCase();
+
+  // New human-friendly reference (AP + 8 digits)
+  if (/^AP\d{8}$/.test(trimmed)) {
+    return Quote.findOne({ reference: trimmed });
+  }
+
+  // Legacy Mongo ObjectId support
+  if (/^[a-f0-9]{24}$/i.test(trimmed)) {
+    return Quote.findById(trimmed);
+  }
+
+  // Invalid format
+  return null;
+};
+
 // ============================================
 // ROUTES
 // ============================================
+
+/**
+ * GUEST: Lookup quote for payment
+ * GET /api/payments/guest/lookup?quoteId=xxx&email=xxx
+ * quoteId can be AP12345678 (reference) or MongoDB ObjectId
+ */
+router.get('/guest/lookup', async (req, res) => {
+  try {
+    const { quoteId, email } = req.query;
+    if (!quoteId || !email) {
+      return res.status(400).json({ success: false, message: 'Quote reference and email are required' });
+    }
+
+    const quoteQuery = findQuoteByRef(quoteId);
+    if (!quoteQuery) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Quote not found. Check your reference." });
+    }
+
+    const quote = await quoteQuery.lean();
+    if (!quote) {
+      return res.status(404).json({ success: false, message: 'Quote not found' });
+    }
+    if (quote.email.toLowerCase() !== email.trim().toLowerCase()) {
+      return res.status(403).json({ success: false, message: 'Email does not match this quote' });
+    }
+    if (quote.status !== 'converted') {
+      return res.status(400).json({ success: false, message: 'This quote is not yet approved for payment' });
+    }
+    if (!quote.approvedAmount || quote.approvedAmount < 0.5) {
+      return res.status(400).json({ success: false, message: 'No payment amount set. Please contact us.' });
+    }
+
+    // Check if already paid
+    const existingPayment = await QuotePayment.findOne({ quoteId: quote._id, status: 'succeeded' });
+    if (existingPayment) {
+      return res.status(400).json({ success: false, message: 'This quote has already been paid' });
+    }
+
+    const amountInPence = Math.round(quote.approvedAmount * 100);
+    res.json({
+      success: true,
+      quote: {
+        id: quote._id,
+        reference: quote.reference,
+        customerName: `${quote.firstName} ${quote.lastName}`,
+        serviceType: quote.serviceType,
+        amount: quote.approvedAmount,
+        amountDisplay: `£${(quote.approvedAmount).toFixed(2)}`,
+        amountInPence,
+      },
+    });
+  } catch (error) {
+    console.error('Guest lookup error:', error);
+    res.status(500).json({ success: false, message: 'Failed to lookup quote' });
+  }
+});
+
+/**
+ * GUEST: Create payment intent (no auth)
+ * POST /api/payments/guest/create-intent
+ */
+router.post('/guest/create-intent', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payment system unavailable' });
+    }
+
+    const { quoteId, email } = req.body;
+    if (!quoteId || !email) {
+      return res.status(400).json({ success: false, message: 'Quote reference and email are required' });
+    }
+
+    const quote = await findQuoteByRef(quoteId);
+    if (!quote) {
+      return res.status(404).json({ success: false, message: 'Quote not found' });
+    }
+    if (quote.email.toLowerCase() !== email.trim().toLowerCase()) {
+      return res.status(403).json({ success: false, message: 'Email does not match this quote' });
+    }
+    if (quote.status !== 'converted' || !quote.approvedAmount || quote.approvedAmount < 0.5) {
+      return res.status(400).json({ success: false, message: 'Quote not ready for payment' });
+    }
+
+    const existingPayment = await QuotePayment.findOne({ quoteId: quote._id, status: 'succeeded' });
+    if (existingPayment) {
+      return res.status(400).json({ success: false, message: 'Already paid' });
+    }
+
+    const amountInPence = Math.round(quote.approvedAmount * 100);
+    if (!validatePaymentAmount(amountInPence)) {
+      return res.status(400).json({ success: false, message: 'Invalid amount' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInPence,
+      currency: 'gbp',
+      description: `Quote payment - ${quote.serviceType} - ${quote.firstName} ${quote.lastName}`,
+      metadata: {
+        quoteId: quote._id.toString(),
+        email: quote.email,
+      },
+      automatic_payment_methods: { enabled: true },
+    });
+
+    const quotePayment = new QuotePayment({
+      quoteId: quote._id,
+      email: quote.email,
+      amount: quote.approvedAmount,
+      status: 'pending',
+      stripePaymentIntentId: paymentIntent.id,
+    });
+    await quotePayment.save();
+
+    res.status(201).json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentId: quotePayment._id.toString(),
+      amount: quote.approvedAmount,
+      amountDisplay: `£${formatAmount(amountInPence)}`,
+    });
+  } catch (error) {
+    console.error('Guest create-intent error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create payment' });
+  }
+});
+
+/**
+ * GUEST: Get payment success details (no auth)
+ * GET /api/payments/guest/:paymentId
+ */
+router.get('/guest/:paymentId', async (req, res) => {
+  try {
+    const quotePayment = await QuotePayment.findById(req.params.paymentId)
+      .populate('quoteId', 'firstName lastName serviceType');
+    if (!quotePayment || quotePayment.status !== 'succeeded') {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    const q = quotePayment.quoteId;
+    res.json({
+      success: true,
+      payment: {
+        id: quotePayment._id,
+        status: 'succeeded',
+        amount: Math.round(quotePayment.amount * 100),
+        amountDisplay: `£${(quotePayment.amount).toFixed(2)}`,
+        cardLast4: quotePayment.cardLast4,
+        cardBrand: quotePayment.cardBrand,
+        processedAt: quotePayment.processedAt,
+        booking: q ? {
+          serviceName: (q.serviceType || '').replace(/-/g, ' '),
+          serviceArea: '-',
+          date: '-',
+          totalPrice: quotePayment.amount,
+        } : null,
+      },
+    });
+  } catch (error) {
+    console.error('Guest payment fetch error:', error);
+    res.status(500).json({ success: false });
+  }
+});
+
+/**
+ * GUEST: Confirm payment (no auth)
+ * POST /api/payments/guest/confirm
+ */
+router.post('/guest/confirm', async (req, res) => {
+  try {
+    const { paymentIntentId, paymentId } = req.body;
+    if (!paymentIntentId || !paymentId) {
+      return res.status(400).json({ success: false, message: 'Payment details required' });
+    }
+
+    const quotePayment = await QuotePayment.findById(paymentId);
+    if (!quotePayment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    if (quotePayment.stripePaymentIntentId !== paymentIntentId) {
+      return res.status(403).json({ success: false, message: 'Invalid payment' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status === 'succeeded') {
+      quotePayment.status = 'succeeded';
+      quotePayment.processedAt = new Date();
+      if (paymentIntent.charges?.data?.[0]) {
+        const charge = paymentIntent.charges.data[0];
+        const card = charge.payment_method_details?.card;
+        if (card) {
+          quotePayment.cardLast4 = card.last4;
+          quotePayment.cardBrand = card.brand?.toUpperCase();
+          quotePayment.stripeChargeId = charge.id;
+        }
+      }
+      await quotePayment.save();
+
+      return res.json({
+        success: true,
+        payment: {
+          id: quotePayment._id,
+          status: 'succeeded',
+          amount: quotePayment.amount,
+          amountDisplay: `£${(quotePayment.amount).toFixed(2)}`,
+        },
+      });
+    }
+
+    if (paymentIntent.status === 'processing') {
+      quotePayment.status = 'processing';
+      await quotePayment.save();
+      return res.json({ success: true, status: 'processing' });
+    }
+
+    quotePayment.status = 'failed';
+    quotePayment.failureReason = paymentIntent.last_payment_error?.message;
+    await quotePayment.save();
+    return res.status(400).json({
+      success: false,
+      message: paymentIntent.last_payment_error?.message || 'Payment failed',
+    });
+  } catch (error) {
+    console.error('Guest confirm error:', error);
+    res.status(500).json({ success: false, message: 'Failed to confirm payment' });
+  }
+});
 
 /**
  * CREATE PAYMENT INTENT

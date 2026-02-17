@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Mail, Lock, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -24,11 +25,28 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
     }
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative">
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose()
+  }
+
+  const modal = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Account login"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative my-auto" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -36,7 +54,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
         >
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Login</h2>
         <p className="text-gray-600 mb-6">Welcome back to Apex Five Cleaning</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -93,10 +111,10 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Signing in...
+                Logging in...
               </>
             ) : (
-              'Sign In'
+              'Account Login'
             )}
           </button>
         </form>
@@ -117,4 +135,5 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
       </div>
     </div>
   )
+  return createPortal(modal, document.body)
 }

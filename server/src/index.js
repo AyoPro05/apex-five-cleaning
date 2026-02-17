@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import express from "express";
 import cors from "cors";
@@ -18,18 +22,35 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Security headers
+// Security headers (HSTS added by reverse proxy/HTTPS in production)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
 
-// Middleware - Updated origin to match your Vite port 5173
+// CORS: localhost for dev, CLIENT_URL for production
+const corsOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+];
+if (process.env.CLIENT_URL) {
+  const url = process.env.CLIENT_URL.replace(/\/$/, "");
+  if (!corsOrigins.includes(url)) corsOrigins.push(url);
+}
+// Production: allow both www and non-www
+if (process.env.NODE_ENV === "production") {
+  ["https://www.apexfivecleaning.co.uk", "https://apexfivecleaning.co.uk"].forEach((origin) => {
+    if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
+  });
+}
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: corsOrigins,
     credentials: true,
   }),
 );
@@ -37,8 +58,24 @@ app.use(
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ limit: "10kb", extended: true }));
 
-// Serve uploaded quote images
-app.use("/uploads", express.static("uploads"));
+// API rate limiting – apply before routes to intercept all incoming requests
+app.use(apiRateLimiter);
+
+// Serve uploaded quote images – use API route so Vite proxy works reliably
+const uploadsPath = path.resolve(__dirname, "..", "uploads");
+app.get("/api/uploads/quotes/:filename", (req, res) => {
+  const safeName = path.basename(req.params.filename).replace(/[^a-zA-Z0-9._-]/g, "");
+  if (!safeName) return res.status(400).send("Invalid filename");
+  const filePath = path.join(uploadsPath, "quotes", safeName);
+  res.sendFile(filePath, (err) => {
+    if (err) res.status(404).send("Image not found");
+  });
+});
+// Fallback: direct /uploads for non-proxied setups
+app.use("/uploads", express.static(uploadsPath));
+if (NODE_ENV === "development") {
+  console.log(`✓ Uploads served from: ${uploadsPath}`);
+}
 
 // Routes
 app.use("/api/auth", authRouter);
@@ -67,7 +104,7 @@ const startServer = async () => {
   app.listen(PORT, () => {
     console.log(`\n✓ Server running on http://localhost:${PORT}`);
     console.log(`✓ Environment: ${NODE_ENV}`);
-    console.log(`✓ Client URL: http://localhost:5173\n`);
+    console.log(`✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`);
   });
 };
 

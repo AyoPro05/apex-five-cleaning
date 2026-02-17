@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import { MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
+import { scrollReveal } from '../utils/scrollReveal'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -79,15 +81,17 @@ const Contact = () => {
   }
 
   return (
-    <section className="pt-32 pb-20 bg-white">
+    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Contact Us</span>
+        <motion.div {...scrollReveal}>
+          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Contact Us</span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">Get in Touch</h1>
         <p className="text-xl text-gray-600 mb-12">
           Have a question or ready to book? We're here to help! We typically respond within 24 hours.
         </p>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <motion.div className="grid md:grid-cols-2 gap-12" {...scrollReveal}>
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
             <div className="space-y-6">
@@ -114,9 +118,16 @@ const Contact = () => {
               <div className="flex items-start gap-4">
                 <MapPin className="w-6 h-6 text-teal-600 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-gray-900">Location</h3>
-                  <p className="text-gray-600">Kent, South East England</p>
-                  <p className="text-gray-500 text-sm">Serving Canterbury, Dover, Maidstone & surrounding areas</p>
+                  <h3 className="font-semibold text-gray-900">Address</h3>
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=123+Main+road+Broadway+Sittingbourne+plaza+ME11+2BY"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-teal-600 hover:text-teal-700 font-medium block"
+                  >
+                    123, Main road, Broadway, Sittingbourne plaza ME11 2BY
+                  </a>
+                  <p className="text-gray-500 text-sm mt-1">Serving Kent, Swale & surrounding areas</p>
                 </div>
               </div>
             </div>
@@ -242,9 +253,9 @@ const Contact = () => {
               </button>
             </form>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

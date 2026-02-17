@@ -1,11 +1,20 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Check, AlertCircle, Plus, X, ImageIcon } from "lucide-react";
+import { post } from "../utils/apiClient";
+import { scrollReveal } from "../utils/scrollReveal";
 
 // Additional services customers can add to their quote
 const ADDITIONAL_SERVICES = [
-  { id: "interior-fridge-freezer", label: "Interior Fridge, Freezer & Oven Cleaning" },
+  { id: "interior-fridge-freezer", label: "Interior Fridge & Freezer Cleaning" },
+  { id: "oven-hob-extractor", label: "Oven, Hob & Extractor Cleaning" },
+  { id: "microwave-deep-cleaning", label: "Microwave Deep Cleaning" },
+  { id: "washing-machine-cleaning", label: "Washing Machine Cleaning" },
   { id: "interior-window-blind", label: "Interior Window and Blind Cleaning" },
   { id: "deep-tile-grout", label: "Deep Tile & Grout Cleaning" },
+  { id: "skirting-board-cleaning", label: "Skirting Board Cleaning" },
+  { id: "changing-bedsheet", label: "Changing Bedsheet" },
+  { id: "carpet-rug-cleaning", label: "Carpet and Rug Cleaning" },
   { id: "cabinet-cupboard-organization", label: "Inside Cabinet and Cupboard Organization" },
   { id: "sanitizing-high-touch", label: "Sanitizing High-Touch Points (Disinfection)" },
 ];
@@ -28,7 +37,7 @@ const Quote = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [quoteId, setQuoteId] = useState("");
+  const [quoteReference, setQuoteReference] = useState("");
 
   const [formData, setFormData] = useState({
     propertyType: "",
@@ -41,9 +50,11 @@ const Quote = () => {
     email: "",
     phone: "",
     address: "",
+    postcode: "",
     additionalNotes: "",
   });
   const [selectedImages, setSelectedImages] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -94,6 +105,9 @@ const Quote = () => {
       if (!formData.address || formData.address.length < 5) {
         newErrors.address = "Please enter a valid address";
       }
+      if (!formData.postcode || !isValidUKPostcode(formData.postcode)) {
+        newErrors.postcode = "Please enter a valid UK postcode (e.g. ME11 2BY)";
+      }
     }
 
     setErrors(newErrors);
@@ -111,6 +125,11 @@ const Quote = () => {
     return regex.test(cleaned);
   };
 
+  const isValidUKPostcode = (postcode) => {
+    const regex = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+    return regex.test(String(postcode).trim());
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -122,6 +141,19 @@ const Quote = () => {
     }
   };
 
+  // Remove sanitizing from selection if property type changes to non-commercial/sharehouse
+  useEffect(() => {
+    if (
+      !["commercial", "sharehouse-room"].includes(formData.propertyType) &&
+      (formData.additionalServices || []).includes("sanitizing-high-touch")
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        additionalServices: (prev.additionalServices || []).filter((id) => id !== "sanitizing-high-touch"),
+      }));
+    }
+  }, [formData.propertyType]);
+
   const handleAdditionalServiceToggle = (serviceId) => {
     const current = formData.additionalServices || [];
     const isSelected = current.includes(serviceId);
@@ -131,12 +163,38 @@ const Quote = () => {
     setFormData({ ...formData, additionalServices: updated });
   };
 
+  const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  const maxSize = 3 * 1024 * 1024;
+
+  const processFiles = (files) => {
+    const valid = Array.from(files || []).filter(
+      (f) => validImageTypes.includes(f.type) && f.size <= maxSize
+    );
+    return [...selectedImages, ...valid].slice(0, 5);
+  };
+
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-    const valid = files.filter((f) => validTypes.includes(f.type) && f.size <= 3 * 1024 * 1024);
-    const combined = [...selectedImages, ...valid].slice(0, 5);
-    setSelectedImages(combined);
+    setSelectedImages(processFiles(e.target.files));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files?.length) setSelectedImages(processFiles(files));
   };
 
   const removeImage = (index) => {
@@ -168,6 +226,7 @@ const Quote = () => {
       formDataToSend.append("email", formData.email);
       formDataToSend.append("phone", formData.phone);
       formDataToSend.append("address", formData.address);
+      formDataToSend.append("postcode", String(formData.postcode).trim().toUpperCase());
       formDataToSend.append("additionalNotes", formData.additionalNotes || "");
       formDataToSend.append("captchaToken", token);
 
@@ -175,30 +234,27 @@ const Quote = () => {
         formDataToSend.append("images", file);
       });
 
-      const response = await fetch("/api/quotes/submit", {
-        method: "POST",
-        body: formDataToSend,
-      });
+      const data = await post("/api/quotes/submit", formDataToSend);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.errors) {
-          setErrors(data.errors);
-          setSubmitError("Please check the form for errors");
-        } else {
-          setSubmitError(data.error || "An error occurred. Please try again.");
-        }
+      if (data.errors) {
+        setErrors(data.errors);
+        setSubmitError("Please check the form for errors");
         setSubmitting(false);
         return;
       }
 
-      setQuoteId(data.quoteId);
+      setQuoteReference(data.reference || data.quoteId);
       setSuccessMessage(data.message);
       setStep(4);
     } catch (error) {
       console.error("Submission error:", error);
-      setSubmitError("A network error occurred. Please try again.");
+      const res = error.response?.data;
+      if (res?.errors) {
+        setErrors(res.errors);
+        setSubmitError("Please check the form for errors");
+      } else {
+        setSubmitError(res?.error || error.message || "A network error occurred. Please try again.");
+      }
       setSubmitting(false);
     }
   };
@@ -229,19 +285,20 @@ const Quote = () => {
       email: "",
       phone: "",
       address: "",
+      postcode: "",
       additionalNotes: "",
     });
     setSelectedImages([]);
     setErrors({});
     setSubmitError("");
     setSuccessMessage("");
-    setQuoteId("");
+    setQuoteReference("");
   };
 
   return (
-    <section className="pt-32 pb-20 bg-gray-50 min-h-screen">
+    <motion.section className="pt-32 pb-20 bg-gray-50 min-h-screen" {...scrollReveal}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
+        <motion.div className="text-center mb-8" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
             Get a Quote
           </span>
@@ -252,7 +309,7 @@ const Quote = () => {
             Fill out the form below and we'll get back to you with a
             personalized quote
           </p>
-        </div>
+        </motion.div>
 
         {/* Progress Bar - 25%/50%/75% for steps 1-3, 100% on success */}
         <div className="mb-8">
@@ -291,13 +348,16 @@ const Quote = () => {
               hours with a personalized quote.
             </p>
 
-            {quoteId && (
+            {quoteReference && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-600 mb-1">
                   Your Quote Reference
                 </p>
-                <p className="font-mono text-lg font-semibold text-gray-900 break-all">
-                  {quoteId}
+                <p className="font-mono text-lg font-semibold text-gray-900 tracking-wider">
+                  {quoteReference}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Save this reference – you'll need it to pay online once your quote is approved.
                 </p>
               </div>
             )}
@@ -351,6 +411,8 @@ const Quote = () => {
                     <option value="house">House</option>
                     <option value="flat">Flat/Apartment</option>
                     <option value="bungalow">Bungalow</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="sharehouse-room">Sharehouse/Room</option>
                   </select>
                   {errors.propertyType && (
                     <p className="text-red-600 text-sm mt-2">
@@ -464,7 +526,12 @@ const Quote = () => {
                     Click to add any of these services to your quote:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {ADDITIONAL_SERVICES.map((service) => {
+                    {ADDITIONAL_SERVICES.filter((service) => {
+                      if (service.id === "sanitizing-high-touch") {
+                        return ["commercial", "sharehouse-room"].includes(formData.propertyType);
+                      }
+                      return true;
+                    }).map((service) => {
                       const isSelected = (formData.additionalServices || []).includes(service.id);
                       return (
                         <button
@@ -500,13 +567,24 @@ const Quote = () => {
                     Property photos (optional, max 5)
                   </label>
                   <p className="text-sm text-gray-500 mb-2">
-                    Upload images to help us give you a more accurate quote
+                    Drag and drop or click to upload images for a more accurate quote
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {selectedImages.length < 5 && (
-                      <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition">
-                        <ImageIcon className="w-8 h-8 text-gray-400" />
-                        <span className="text-xs text-gray-500 mt-1">Add</span>
+                      <label
+                        className={`flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-lg cursor-pointer transition ${
+                          isDragging
+                            ? "border-teal-500 bg-teal-50"
+                            : "border-gray-300 hover:border-teal-500 hover:bg-teal-50/50"
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
+                        <ImageIcon className="w-10 h-10 text-gray-400" />
+                        <span className="text-xs text-gray-500 mt-1">
+                          {isDragging ? "Drop here" : "Drop or click"}
+                        </span>
                         <input
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
@@ -683,7 +761,7 @@ const Quote = () => {
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="123 Main Street, London, SE1 1AA"
+                    placeholder="123 Main Street, Town or City"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
                       errors.address
                         ? "border-red-500 focus:border-red-500"
@@ -693,6 +771,28 @@ const Quote = () => {
                   {errors.address && (
                     <p className="text-red-600 text-sm mt-2">
                       {errors.address}
+                    </p>
+                  )}
+                </div>
+                <div className="max-w-[12rem]">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Postcode *
+                  </label>
+                  <input
+                    type="text"
+                    name="postcode"
+                    value={formData.postcode}
+                    onChange={handleInputChange}
+                    placeholder="ME11 2BY"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
+                      errors.postcode
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-teal-500"
+                    }`}
+                  />
+                  {errors.postcode && (
+                    <p className="text-red-600 text-sm mt-2">
+                      {errors.postcode}
                     </p>
                   )}
                 </div>
@@ -748,7 +848,7 @@ const Quote = () => {
           </form>
         )}
       </div>
-    </section>
+    </motion.section>
   );
 };
 

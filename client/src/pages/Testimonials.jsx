@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { scrollReveal } from '../utils/scrollReveal'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -78,10 +80,10 @@ const Testimonials = () => {
   }
 
   return (
-    <section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50">
+    <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50" {...scrollReveal}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Customer Reviews</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
             Loved by Thousands
@@ -97,7 +99,7 @@ const Testimonials = () => {
             </div>
             <span className="text-gray-600 font-semibold">4.9 / 5 Stars (200+ Reviews)</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Desktop Carousel (3 visible) */}
         <div className="hidden md:grid grid-cols-3 gap-8 mb-8">
@@ -214,7 +216,7 @@ const Testimonials = () => {
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

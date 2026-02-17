@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { MapPin, Phone, Clock } from 'lucide-react'
+import ServiceAreaMap from '../components/ServiceAreaMap'
+import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
 
 const ServiceAreas = () => {
   const navigate = useNavigate()
@@ -37,10 +40,10 @@ const ServiceAreas = () => {
   ]
 
   return (
-    <section className="pt-32 pb-20 bg-white">
+    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Service Coverage</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
             Areas We Serve
@@ -49,7 +52,7 @@ const ServiceAreas = () => {
             We provide professional cleaning services across Kent, Swale, and Greater London. 
             Select your area to learn more about our local services and get a quote.
           </p>
-        </div>
+        </motion.div>
 
         {/* Service Areas by Region */}
         {regions.map((region, regionIdx) => (
@@ -80,39 +83,36 @@ const ServiceAreas = () => {
           </div>
         ))}
 
-        {/* Map Section (placeholder for future implementation) */}
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-12 mb-16">
+        {/* Interactive Service Map */}
+        <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16" {...scrollReveal}>
           <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">Service Map</h2>
-          <div className="bg-white rounded-lg h-96 flex items-center justify-center border-2 border-dashed border-gray-300 mb-6">
-            <div className="text-center">
-              <MapPin className="w-12 h-12 text-teal-600 mx-auto mb-4" />
-              <p className="text-gray-600">Interactive service map coming soon</p>
-              <p className="text-sm text-gray-500 mt-2">Showing all service areas across Kent, Swale, and Greater London</p>
-            </div>
-          </div>
-        </div>
+          <p className="text-gray-600 text-center mb-6 max-w-2xl mx-auto">
+            Click on a marker to view our cleaning services in that area. We serve Kent, Swale, and Greater London.
+          </p>
+          <ServiceAreaMap height="420px" />
+        </motion.div>
 
         {/* Service Details */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <motion.div className="grid md:grid-cols-3 gap-8 mb-16" variants={staggerContainer} initial="initial" whileInView="whileInView" viewport={{ once: true }}>
+          <motion.div variants={staggerItem} className="bg-white border border-gray-200 rounded-xl p-6">
             <Clock className="w-8 h-8 text-teal-600 mb-3" />
             <h3 className="font-bold text-gray-900 mb-2">Quick Response</h3>
             <p className="text-gray-600">Most areas get quotes within 24 hours. Premium response available for urgent requests.</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          </motion.div>
+          <motion.div variants={staggerItem} className="bg-white border border-gray-200 rounded-xl p-6">
             <Phone className="w-8 h-8 text-teal-600 mb-3" />
             <h3 className="font-bold text-gray-900 mb-2">Direct Contact</h3>
             <p className="text-gray-600">Call us on +44 1622 621133 to discuss your specific area and requirements.</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          </motion.div>
+          <motion.div variants={staggerItem} className="bg-white border border-gray-200 rounded-xl p-6">
             <MapPin className="w-8 h-8 text-teal-600 mb-3" />
             <h3 className="font-bold text-gray-900 mb-2">Expanding Coverage</h3>
             <p className="text-gray-600">Don't see your area? Contact us anyway - we may be able to service nearby locations.</p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center">
+        <motion.div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center" {...scrollReveal}>
           <h3 className="text-3xl font-bold text-white mb-4">Ready to Book?</h3>
           <p className="text-teal-50 text-lg mb-8">
             Get a free, no-obligation quote for your area today.
@@ -131,9 +131,9 @@ const ServiceAreas = () => {
               Call Now
             </a>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

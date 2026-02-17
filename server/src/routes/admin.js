@@ -1,5 +1,6 @@
 import express from 'express';
 import Quote from '../models/Quote.js';
+import User from '../../models/User.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail } from '../utils/emailService.js';
 
@@ -19,6 +20,68 @@ const verifyAdminToken = (req, res, next) => {
   
   next();
 };
+
+// ================================
+// USERS (REGISTERED CUSTOMERS)
+// ================================
+
+// Get registered users (customers) with basic search and pagination
+router.get('/users', verifyAdminToken, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    const filter = {};
+
+    if (search) {
+      const term = String(search).trim();
+      const regex = new RegExp(term, 'i');
+      filter.$or = [
+        { firstName: { $regex: regex } },
+        { lastName: { $regex: regex } },
+        { email: { $regex: regex } },
+        { phone: { $regex: regex } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    const [total, users] = await Promise.all([
+      User.countDocuments(filter),
+      User.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select(
+          'firstName lastName email phone role isVerified createdAt lastLogin referralCode referralPoints'
+        )
+        .lean(),
+    ]);
+
+    return res.json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit) || 1),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error fetching users',
+    });
+  }
+});
 
 // Get all quotes with filtering, sorting, and pagination
 router.get('/quotes', verifyAdminToken, async (req, res) => {
@@ -40,11 +103,13 @@ router.get('/quotes', verifyAdminToken, async (req, res) => {
     }
     
     if (search) {
+      const searchUpper = search.trim().toUpperCase();
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { phone: { $regex: search, $options: 'i' } },
+        ...(searchUpper ? [{ reference: searchUpper }] : [])
       ];
     }
     
@@ -111,7 +176,7 @@ router.get('/quotes/:id', verifyAdminToken, async (req, res) => {
 // Update quote status and notes
 router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
   try {
-    const { status, adminNotes } = req.body;
+    const { status, adminNotes, approvedAmount } = req.body;
     
     if (status && !['new', 'contacted', 'converted', 'rejected'].includes(status)) {
       return res.status(400).json({
@@ -131,6 +196,7 @@ router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
     const updateData = {};
     if (status) updateData.status = status;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+    if (approvedAmount !== undefined) updateData.approvedAmount = Number(approvedAmount) || 0;
     
     const quote = await Quote.findByIdAndUpdate(
       req.params.id,
@@ -144,7 +210,7 @@ router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
         await sendQuoteApprovedEmail(
           quote.email,
           quote.firstName,
-          quote._id.toString()
+          quote.reference || quote._id.toString()
         );
       } catch (emailErr) {
         console.warn('Quote approved email failed:', emailErr.message);
@@ -193,55 +259,82 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
     }
     
     const additionalServiceLabels = {
-      'interior-fridge-freezer': 'Fridge, Freezer & Oven',
+      'interior-fridge-freezer': 'Fridge & Freezer',
+      'oven-hob-extractor': 'Oven, Hob & Extractor',
+      'microwave-deep-cleaning': 'Microwave Deep Clean',
+      'washing-machine-cleaning': 'Washing Machine',
       'interior-window-blind': 'Window & Blind',
       'deep-tile-grout': 'Tile & Grout',
+      'skirting-board-cleaning': 'Skirting Board',
+      'changing-bedsheet': 'Changing Bedsheet',
+      'carpet-rug-cleaning': 'Carpet & Rug',
       'cabinet-cupboard-organization': 'Cabinet Organization',
       'sanitizing-high-touch': 'Sanitizing'
     };
+    const propertyTypeLabels = { house: 'House', flat: 'Flat/Apartment', bungalow: 'Bungalow', commercial: 'Commercial', 'sharehouse-room': 'Sharehouse/Room' };
+    const serviceTypeLabels = {
+      residential: 'Residential Cleaning',
+      'end-of-tenancy': 'End of Tenancy',
+      airbnb: 'Airbnb Turnover',
+      commercial: 'Commercial Cleaning'
+    };
+    const statusLabels = { new: 'New', contacted: 'Contacted', converted: 'Converted', rejected: 'Rejected' };
 
-    const csvData = quotes.map(quote => ({
+    const exportDate = new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' });
+    const headerBlock = [
+      'Apex Five Cleaning - Quote Export',
+      `Exported: ${exportDate}`,
+      `Total Records: ${quotes.length}`,
+      ''
+    ].join('\n');
+
+    const csvData = quotes.map((quote, idx) => ({
+      '#': idx + 1,
+      'Reference': quote.reference || quote._id.toString(),
       'Quote ID': quote._id.toString(),
-      'Created Date': new Date(quote.createdAt).toLocaleString('en-GB'),
-      'First Name': quote.firstName,
-      'Last Name': quote.lastName,
-      'Email': quote.email,
-      'Phone': quote.phone,
-      'Property Type': quote.propertyType,
-      'Bedrooms': quote.bedrooms,
-      'Bathrooms': quote.bathrooms,
-      'Service Type': quote.serviceType,
-      'Additional Services': (quote.additionalServices || []).map(id => additionalServiceLabels[id] || id).join('; '),
-      'Address': quote.address,
-      'Status': quote.status,
-      'CAPTCHA Score': (quote.captchaScore * 100).toFixed(0) + '%',
-      'Images': (quote.images || []).length,
-      'Admin Notes': quote.adminNotes || ''
+      'Received': new Date(quote.createdAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      'Customer': `${(quote.firstName || '').trim()} ${(quote.lastName || '').trim()}`.trim(),
+      'Email': quote.email || '',
+      'Phone': quote.phone || '',
+      'Property': propertyTypeLabels[quote.propertyType] || quote.propertyType,
+      'Beds': quote.bedrooms,
+      'Baths': quote.bathrooms,
+      'Service': serviceTypeLabels[quote.serviceType] || quote.serviceType,
+      'Add-ons': (quote.additionalServices || []).map(id => additionalServiceLabels[id] || id).join('; ') || '-',
+      'Address': (quote.address || '').replace(/\n/g, ', ').trim(),
+      'Postcode': (quote.postcode || '').trim(),
+      'Status': statusLabels[quote.status] || quote.status,
+      'Verification': quote.captchaScore != null ? `${Math.round((quote.captchaScore || 0) * 100)}%` : '-',
+      'Photos': (quote.images || []).length,
+      'Notes': (quote.adminNotes || '').replace(/\n/g, ' ').trim() || '-'
     }));
 
     const csvStringifier = createObjectCsvStringifier({
       header: [
+        { id: '#', title: '#' },
+        { id: 'Reference', title: 'Reference' },
         { id: 'Quote ID', title: 'Quote ID' },
-        { id: 'Created Date', title: 'Created Date' },
-        { id: 'First Name', title: 'First Name' },
-        { id: 'Last Name', title: 'Last Name' },
+        { id: 'Received', title: 'Received' },
+        { id: 'Customer', title: 'Customer' },
         { id: 'Email', title: 'Email' },
         { id: 'Phone', title: 'Phone' },
-        { id: 'Property Type', title: 'Property Type' },
-        { id: 'Bedrooms', title: 'Bedrooms' },
-        { id: 'Bathrooms', title: 'Bathrooms' },
-        { id: 'Service Type', title: 'Service Type' },
-        { id: 'Additional Services', title: 'Additional Services' },
+        { id: 'Property', title: 'Property' },
+        { id: 'Beds', title: 'Beds' },
+        { id: 'Baths', title: 'Baths' },
+        { id: 'Service', title: 'Service' },
+        { id: 'Add-ons', title: 'Add-ons' },
         { id: 'Address', title: 'Address' },
+        { id: 'Postcode', title: 'Postcode' },
         { id: 'Status', title: 'Status' },
-        { id: 'CAPTCHA Score', title: 'CAPTCHA Score' },
-        { id: 'Images', title: 'Images' },
-        { id: 'Admin Notes', title: 'Admin Notes' }
+        { id: 'Verification', title: 'Verification' },
+        { id: 'Photos', title: 'Photos' },
+        { id: 'Notes', title: 'Notes' }
       ]
     });
-    
-    const csvString = csvStringifier.getHeaderString() + 
-                      csvStringifier.stringifyRecords(csvData);
+
+    const csvString = headerBlock +
+      csvStringifier.getHeaderString() +
+      csvStringifier.stringifyRecords(csvData);
     
     // Set response headers
     res.setHeader('Content-Type', 'text/csv');
@@ -253,6 +346,98 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Error exporting quotes'
+    });
+  }
+});
+
+// Export registered users (customers) to CSV
+router.get('/export/users-csv', verifyAdminToken, async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select('firstName lastName email phone role isVerified createdAt lastLogin referralCode referralPoints')
+      .lean();
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No users found to export'
+      });
+    }
+
+    const exportDate = new Date().toLocaleString('en-GB', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const headerBlock = [
+      'Apex Five Cleaning - Customers Export',
+      `Exported: ${exportDate}`,
+      `Total Records: ${users.length}`,
+      '',
+    ].join('\n');
+
+    const csvData = users.map((u, idx) => ({
+      '#': idx + 1,
+      'First Name': u.firstName || '',
+      'Last Name': u.lastName || '',
+      'Email': u.email || '',
+      'Phone': u.phone || '',
+      'Role': u.role || 'member',
+      'Verified': u.isVerified ? 'Yes' : 'No',
+      'Referral Code': u.referralCode || '',
+      'Referral Points': u.referralPoints ?? 0,
+      'Joined': u.createdAt
+        ? new Date(u.createdAt).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '',
+      'Last Login': u.lastLogin
+        ? new Date(u.lastLogin).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '',
+    }));
+
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: '#', title: '#' },
+        { id: 'First Name', title: 'First Name' },
+        { id: 'Last Name', title: 'Last Name' },
+        { id: 'Email', title: 'Email' },
+        { id: 'Phone', title: 'Phone' },
+        { id: 'Role', title: 'Role' },
+        { id: 'Verified', title: 'Verified' },
+        { id: 'Referral Code', title: 'Referral Code' },
+        { id: 'Referral Points', title: 'Referral Points' },
+        { id: 'Joined', title: 'Joined' },
+        { id: 'Last Login', title: 'Last Login' },
+      ],
+    });
+
+    const csvString =
+      headerBlock +
+      csvStringifier.getHeaderString() +
+      csvStringifier.stringifyRecords(csvData);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=customers_export.csv',
+    );
+
+    return res.send(csvString);
+  } catch (error) {
+    console.error('Error exporting users:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error exporting users',
     });
   }
 });

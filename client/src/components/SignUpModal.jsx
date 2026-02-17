@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { X, Mail, Lock, User, Phone, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -66,11 +67,28 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
     }
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative my-8">
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose()
+  }
+
+  const modal = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Create account"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative my-8" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -219,10 +237,11 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
             }}
             className="text-teal-600 font-semibold hover:underline"
           >
-            Sign in
+            Log in
           </button>
         </p>
       </div>
     </div>
   )
+  return createPortal(modal, document.body)
 }

@@ -1,11 +1,27 @@
 import mongoose from "mongoose";
 
+/**
+ * Generate unique quote reference: AP + 8 digits (e.g. AP12345678)
+ */
+function generateQuoteReference() {
+  const digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+  return `AP${digits}`;
+}
+
 const quoteSchema = new mongoose.Schema(
   {
+    // Human-readable reference (AP + 8 digits) - used in emails, Pay Online, display
+    reference: {
+      type: String,
+      unique: true,
+      trim: true,
+      uppercase: true,
+    },
+
     // Property Details
     propertyType: {
       type: String,
-      enum: ["house", "flat", "bungalow"],
+      enum: ["house", "flat", "bungalow", "commercial", "sharehouse-room"],
       required: true,
     },
     bedrooms: {
@@ -55,6 +71,11 @@ const quoteSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    postcode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
 
     // Additional Information
     additionalNotes: {
@@ -91,6 +112,12 @@ const quoteSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Payment (set when admin converts - allows guest pay online)
+    approvedAmount: {
+      type: Number,
+      min: 0,
+    },
+
     // Email Status
     confirmationEmailSent: {
       type: Boolean,
@@ -111,7 +138,15 @@ const quoteSchema = new mongoose.Schema(
   },
 );
 
-// Index for better query performance
+// Generate reference before first save
+quoteSchema.pre("save", function (next) {
+  if (!this.reference) {
+    this.reference = generateQuoteReference();
+  }
+  next();
+});
+
+// Index for better query performance (reference already has unique index)
 quoteSchema.index({ createdAt: -1 });
 quoteSchema.index({ status: 1 });
 

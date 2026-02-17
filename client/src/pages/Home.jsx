@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import ServiceAreaMap from '../components/ServiceAreaMap'
 
 // Scroll reveal animation config
 const scrollReveal = {
@@ -206,7 +207,7 @@ const Home = () => {
                     onClick={openSignIn}
                     className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2"
                   >
-                    Sign In
+                    Account Login
                   </button>
                 )}
               </div>
@@ -358,10 +359,17 @@ const Home = () => {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-6">
               Areas We Serve
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
               Professional cleaning across Kent, Swale, and Greater London. Select your area to learn
               more.
             </p>
+            <motion.button
+              onClick={() => navigate('/service-areas')}
+              className="text-teal-600 font-semibold hover:text-teal-700 mb-8 inline-flex items-center gap-2"
+              {...scrollReveal}
+            >
+              Learn more about our service areas →
+            </motion.button>
           </motion.div>
 
           {regions.map((region, regionIdx) => (
@@ -397,6 +405,10 @@ const Home = () => {
               </motion.div>
             </motion.div>
           ))}
+
+          <motion.div className="mb-12" {...scrollReveal}>
+            <ServiceAreaMap height="420px" />
+          </motion.div>
 
           <motion.div
             className="grid md:grid-cols-3 gap-6 mb-12"

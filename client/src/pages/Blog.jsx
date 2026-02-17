@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Clock, User, ArrowRight, Search } from 'lucide-react'
 import { useState } from 'react'
+import { scrollReveal } from '../utils/scrollReveal'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -96,10 +98,10 @@ const Blog = () => {
   const featuredPosts = blogPosts.filter(post => post.featured).slice(0, 2)
 
   return (
-    <section className="pt-32 pb-20 bg-white">
+    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Blog & Resources</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
             Cleaning Tips & Expert Advice
@@ -107,7 +109,7 @@ const Blog = () => {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Learn from our cleaning experts. Discover tips, best practices, and insider knowledge to keep your home spotless.
           </p>
-        </div>
+        </motion.div>
 
         {/* Featured Posts */}
         {featuredPosts.length > 0 && (
@@ -252,7 +254,7 @@ const Blog = () => {
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

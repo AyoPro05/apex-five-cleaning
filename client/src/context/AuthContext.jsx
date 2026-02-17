@@ -6,6 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { post } from '../utils/apiClient'
 
 const AuthContext = createContext(null)
 
@@ -51,18 +52,10 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const apiUrl = import.meta.env.VITE_API_URL || ''
-
   const login = async (email, password, rememberMe = false) => {
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, rememberMe }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || data.error || 'Login failed')
+    const data = await post('/api/auth/login', { email, password, rememberMe })
     const st = typeof window !== 'undefined' ? (rememberMe ? localStorage : sessionStorage) : null
-    if (st) {
+    if (st && data.tokens) {
       if (rememberMe) localStorage.setItem(REMEMBER_KEY, 'true')
       else localStorage.removeItem(REMEMBER_KEY)
       st.setItem(TOKEN_KEY, data.tokens.accessToken)
@@ -75,13 +68,7 @@ export function AuthProvider({ children }) {
   }
 
   const register = async (formData) => {
-    const res = await fetch(`${apiUrl}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || data.error || 'Registration failed')
+    const data = await post('/api/auth/register', formData)
     const st = typeof window !== 'undefined' ? (formData.rememberMe ? localStorage : sessionStorage) : null
     if (st && data.tokens) {
       if (formData.rememberMe) localStorage.setItem(REMEMBER_KEY, 'true')
@@ -96,16 +83,9 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
-    const st = getStorage()
-    const t = st?.getItem(TOKEN_KEY)
-    if (t) {
-      try {
-        await fetch(`${apiUrl}/api/auth/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${t}` },
-        })
-      } catch {}
-    }
+    try {
+      await post('/api/auth/logout')
+    } catch {}
     ;[localStorage, sessionStorage].forEach((s) => {
       s.removeItem(TOKEN_KEY)
       s.removeItem(REFRESH_KEY)

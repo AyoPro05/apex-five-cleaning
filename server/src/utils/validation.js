@@ -2,7 +2,7 @@ import Joi from 'joi';
 
 const quoteValidationSchema = Joi.object({
   propertyType: Joi.string()
-    .valid('house', 'flat', 'bungalow')
+    .valid('house', 'flat', 'bungalow', 'commercial', 'sharehouse-room')
     .required()
     .messages({
       'string.empty': 'Please select a property type',
@@ -101,7 +101,17 @@ const quoteValidationSchema = Joi.object({
       'string.max': 'Address must not exceed 200 characters',
       'any.required': 'Property address is required'
     }),
-    
+
+  postcode: Joi.string()
+    .trim()
+    .pattern(/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i)
+    .required()
+    .messages({
+      'string.empty': 'Postcode is required',
+      'string.pattern.base': 'Please enter a valid UK postcode (e.g. ME11 2BY or SW1A 1AA)',
+      'any.required': 'Postcode is required'
+    }),
+
   additionalNotes: Joi.string()
     .trim()
     .max(500)
@@ -113,8 +123,14 @@ const quoteValidationSchema = Joi.object({
   additionalServices: Joi.array()
     .items(Joi.string().valid(
       'interior-fridge-freezer',
+      'oven-hob-extractor',
+      'microwave-deep-cleaning',
+      'washing-machine-cleaning',
       'interior-window-blind',
       'deep-tile-grout',
+      'skirting-board-cleaning',
+      'changing-bedsheet',
+      'carpet-rug-cleaning',
       'cabinet-cupboard-organization',
       'sanitizing-high-touch'
     ))
