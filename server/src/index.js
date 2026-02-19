@@ -44,7 +44,10 @@ if (process.env.CLIENT_URL) {
 }
 // Production: allow both www and non-www
 if (process.env.NODE_ENV === "production") {
-  ["https://www.apexfivecleaning.co.uk", "https://apexfivecleaning.co.uk"].forEach((origin) => {
+  [
+    "https://www.apexfivecleaning.co.uk",
+    "https://apexfivecleaning.co.uk",
+  ].forEach((origin) => {
     if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
   });
 }
@@ -61,17 +64,17 @@ app.use(express.urlencoded({ limit: "10kb", extended: true }));
 // API rate limiting – apply before routes to intercept all incoming requests
 app.use(apiRateLimiter);
 
-// Serve uploaded quote images – use API route so Vite proxy works reliably
-const uploadsPath = path.resolve(__dirname, "..", "uploads");
-app.get("/api/uploads/quotes/:filename", (req, res) => {
-  const safeName = path.basename(req.params.filename).replace(/[^a-zA-Z0-9._-]/g, "");
-  if (!safeName) return res.status(400).send("Invalid filename");
-  const filePath = path.join(uploadsPath, "quotes", safeName);
-  res.sendFile(filePath, (err) => {
-    if (err) res.status(404).send("Image not found");
+// Root – health / welcome (so "GET /" doesn’t 404)
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    service: "Apex Five Cleaning API",
+    docs: "Use /api/quotes, /api/payments, /api/admin, etc.",
   });
 });
-// Fallback: direct /uploads for non-proxied setups
+
+// Serve uploaded quote images (absolute path so it works regardless of cwd)
+const uploadsPath = path.resolve(__dirname, "..", "uploads");
 app.use("/uploads", express.static(uploadsPath));
 if (NODE_ENV === "development") {
   console.log(`✓ Uploads served from: ${uploadsPath}`);
@@ -104,7 +107,9 @@ const startServer = async () => {
   app.listen(PORT, () => {
     console.log(`\n✓ Server running on http://localhost:${PORT}`);
     console.log(`✓ Environment: ${NODE_ENV}`);
-    console.log(`✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`);
+    console.log(
+      `✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`,
+    );
   });
 };
 
