@@ -23,11 +23,16 @@ export function getImageUrl(imgPath) {
   return base ? `${base}${normalized}` : normalized
 }
 
-const getAuthToken = () =>
-  typeof window !== 'undefined'
-    ? localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken') ||
-      localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
-    : null
+const getAuthToken = (url = '') => {
+  if (typeof window === 'undefined') return null
+  // Admin routes must use admin token only (customer JWT would be sent otherwise and backend rejects)
+  const isAdminRequest = (url && String(url).includes('/api/admin')) || false
+  if (isAdminRequest) {
+    return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || null
+  }
+  return localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken') ||
+    localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || null
+}
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -39,7 +44,9 @@ const apiClient = axios.create({
 
 // Request: add auth token when present
 apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken()
+  const url = config.url || ''
+  const fullUrl = config.baseURL ? `${config.baseURL}${url}` : url
+  const token = getAuthToken(fullUrl)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
