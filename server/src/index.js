@@ -42,11 +42,12 @@ if (process.env.CLIENT_URL) {
   const url = process.env.CLIENT_URL.replace(/\/$/, "");
   if (!corsOrigins.includes(url)) corsOrigins.push(url);
 }
-// Production: allow both www and non-www
+// Production: allow custom domain + Render static site URL (so API works before DNS is verified)
 if (process.env.NODE_ENV === "production") {
   [
     "https://www.apexfivecleaning.co.uk",
     "https://apexfivecleaning.co.uk",
+    "https://apex-five-cleaning-2.onrender.com", // frontend static site
   ].forEach((origin) => {
     if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
   });
