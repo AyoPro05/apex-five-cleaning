@@ -588,7 +588,9 @@ export const sendVerificationEmail = async (toEmail, firstName, verificationToke
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending verification email:', error.message);
+    const detail = error.response || error.responseCode || error.code ? ` (${error.response || error.responseCode || error.code})` : '';
+    console.error('❌ Error sending verification email:', error.message + detail);
+    if (error.response) console.error('   SMTP response:', String(error.response).slice(0, 200));
     return { success: false, error: error.message };
   }
 };

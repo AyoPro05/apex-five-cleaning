@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { loadStripe } from '@stripe/stripe-js'
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { get, post } from '../utils/apiClient'
 import { scrollReveal } from '../utils/scrollReveal'
 import { CreditCard, ArrowLeft, LogIn } from 'lucide-react'
@@ -10,12 +10,24 @@ import { useAuth } from '../context/AuthContext'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_example')
 
+const cardElementOptions = {
+  style: {
+    base: { fontSize: '16px', color: '#424770', '::placeholder': { color: '#aab7c4' } },
+    invalid: { color: '#fa755a' },
+  },
+}
+
 function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
   const stripe = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [cardComplete, setCardComplete] = useState(false)
+  const [expiryComplete, setExpiryComplete] = useState(false)
+  const [cvcComplete, setCvcComplete] = useState(false)
+  const [postcode, setPostcode] = useState('')
+
+  const allComplete = cardComplete && expiryComplete && cvcComplete && postcode.trim().length >= 3
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,14 +37,30 @@ function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
     setError(null)
 
     try {
-      const cardElement = elements.getElement(CardElement)
+      const cardNumberElement = elements.getElement(CardNumberElement)
+      const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardNumberElement,
+        billing_details: {
+          address: { postal_code: postcode.trim() },
+        },
+      })
+
+      if (pmError) {
+        setError(pmError.message)
+        onError?.(pmError.message)
+        setLoading(false)
+        return
+      }
+
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card: cardElement },
+        payment_method: paymentMethod.id,
       })
 
       if (stripeError) {
         setError(stripeError.message)
         onError?.(stripeError.message)
+        setLoading(false)
         return
       }
 
@@ -62,18 +90,46 @@ function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
         <p className="text-sm text-teal-600 mt-1">{quote.customerName} · {quote.serviceType.replace(/-/g, ' ')}</p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Card details</label>
-        <div className="p-4 border border-gray-300 rounded-lg bg-white">
-          <CardElement
-            onChange={(e) => { setCardComplete(e.complete); setError(e.error?.message || null) }}
-            options={{
-              style: {
-                base: { fontSize: '16px', color: '#424770' },
-                invalid: { color: '#fa755a' },
-              },
-              hidePostalCode: false,
-            }}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Card number</label>
+          <div className="p-3 border border-gray-300 rounded-lg bg-white">
+            <CardNumberElement
+              options={cardElementOptions}
+              onChange={(e) => { setCardComplete(e.complete); setError(e.error?.message || null) }}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Expiry date</label>
+            <div className="p-3 border border-gray-300 rounded-lg bg-white">
+              <CardExpiryElement
+                options={cardElementOptions}
+                onChange={(e) => { setExpiryComplete(e.complete); setError(e.error?.message || null) }}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">CVC</label>
+            <div className="p-3 border border-gray-300 rounded-lg bg-white">
+              <CardCvcElement
+                options={cardElementOptions}
+                onChange={(e) => { setCvcComplete(e.complete); setError(e.error?.message || null) }}
+              />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
+          <input
+            type="text"
+            value={postcode}
+            onChange={(e) => setPostcode(e.target.value)}
+            placeholder="e.g. ME12 3AB"
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            maxLength={12}
+            autoComplete="postal-code"
           />
         </div>
       </div>
@@ -86,9 +142,9 @@ function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
 
       <button
         type="submit"
-        disabled={!stripe || !elements || loading || !cardComplete}
+        disabled={!stripe || !elements || loading || !allComplete}
         className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition ${
-          loading || !cardComplete ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'
+          loading || !allComplete ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'
         }`}
       >
         {loading ? 'Processing...' : `Pay ${quote.amountDisplay}`}
