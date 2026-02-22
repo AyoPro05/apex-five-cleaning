@@ -95,3 +95,57 @@ Host `client/dist` with the static server of your choice and run the Node server
 - [ ] Forms, quotes, payments work
 - [ ] reCAPTCHA works on quote form
 - [ ] Stripe webhooks point to your production URL
+
+---
+
+## Render static site: fix 404 on /pay-online and other routes (SPA)
+
+The frontend is a single-page app (React Router). Direct requests to paths like `/pay-online` or `/request-a-quote` hit the static server, which has no file there, so you get **404**. Fix by telling Render to serve `index.html` for all those paths.
+
+1. **Render Dashboard** → your **Static Site** (e.g. **apex-five-cleaning-2**) → **Settings**.
+2. In the left sidebar, open **Redirects/Rewrites**.
+3. Click **Add Rule**.
+4. Set:
+   - **Source:** `/*`
+   - **Destination:** `/index.html`
+   - **Action:** **Rewrite** (not Redirect).
+5. Save. Redeploy if needed.
+
+After this, visiting `https://apex-five-cleaning-2.onrender.com/pay-online` will serve `index.html` and React Router will show the Pay Online page.
+
+---
+
+## IONOS DNS for Render (custom domain)
+
+**Do not** use or change the `_domainconnect` record. That is for IONOS Domain Connect and is unrelated to pointing your domain to Render.
+
+Add **two separate** DNS records as follows.
+
+### 1. `www` subdomain (CNAME)
+
+- **Type:** CNAME  
+- **Host name:** `www` (only the word `www`, nothing else)  
+- **Points to / Value:** `apex-five-cleaning-2.onrender.com`  
+- **TTL:** 1 hour (or default)
+
+So `www.apexfivecleaning.co.uk` will resolve to your Render static site.
+
+### 2. Root domain `@` (A record)
+
+Render’s root domain often cannot use a CNAME (many DNS providers don’t support CNAME on the root). Use an **A record** instead:
+
+- **Type:** A  
+- **Host name:** `@` (or leave empty if IONOS uses that for “root”)  
+- **Points to / Value:** `216.24.57.1` (Render’s A record target; copy from Render’s “Add Custom Domain” modal if it shows a different IP)  
+- **TTL:** 1 hour (or default)
+
+So `apexfivecleaning.co.uk` (no www) will resolve to Render.
+
+### Summary
+
+| Purpose        | Type | Host name | Value / Points to                    |
+|----------------|------|-----------|--------------------------------------|
+| www subdomain  | CNAME| `www`     | `apex-five-cleaning-2.onrender.com`  |
+| Root domain    | A    | `@`       | `216.24.57.1`                        |
+
+Do **not** create or edit a CNAME for `_domainconnect` to point to Render. If IONOS shows a warning about disabling “Domain Connect” when you try to add the **www** CNAME, that is about their own service; adding the **www** CNAME and the **@** A record as above is correct for Render.

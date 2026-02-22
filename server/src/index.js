@@ -16,6 +16,7 @@ import adminRouter from "./routes/admin.js";
 import bookingsRouter from "./routes/bookings.js";
 import paymentsRouter from "./routes/payments.js";
 import customerRouter from "./routes/customer.js";
+import { getEmailConfigStatus } from "./utils/emailService.js";
 
 const app = express();
 // Force port to 5001 if not specified to match your logs
@@ -42,12 +43,11 @@ if (process.env.CLIENT_URL) {
   const url = process.env.CLIENT_URL.replace(/\/$/, "");
   if (!corsOrigins.includes(url)) corsOrigins.push(url);
 }
-// Production: allow custom domain + Render static site URL (so API works before DNS is verified)
+// Production: allow both www and non-www
 if (process.env.NODE_ENV === "production") {
   [
     "https://www.apexfivecleaning.co.uk",
     "https://apexfivecleaning.co.uk",
-    "https://apex-five-cleaning-2.onrender.com", // frontend static site
   ].forEach((origin) => {
     if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
   });
@@ -65,12 +65,26 @@ app.use(express.urlencoded({ limit: "10kb", extended: true }));
 // API rate limiting – apply before routes to intercept all incoming requests
 app.use(apiRateLimiter);
 
-// Root – health / welcome (so "GET /" doesn’t 404)
+// Root – health / welcome (so "GET /" doesn't 404)
 app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Apex Five Cleaning API",
     docs: "Use /api/quotes, /api/payments, /api/admin, etc.",
+  });
+});
+
+// Health check for ops/monitoring (no secrets). Email status shows if verification/quote emails can be sent.
+app.get("/health", (req, res) => {
+  const email = getEmailConfigStatus();
+  res.json({
+    ok: true,
+    timestamp: new Date().toISOString(),
+    email: {
+      configured: email.configured,
+      provider: email.provider,
+      ...(email.hint && { hint: email.hint }),
+    },
   });
 });
 

@@ -6,7 +6,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Referral from '../models/Referral.js';
-import { sendVerificationEmail } from '../src/utils/emailService.js';
+import { sendVerificationEmail, isEmailConfigured } from '../src/utils/emailService.js';
 import crypto from 'crypto';
 
 /**
@@ -104,12 +104,20 @@ export const register = async (req, res) => {
     user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     await user.save();
 
-    // Send verification email
-    try {
-      await sendVerificationEmail(user.email, user.firstName, verificationToken);
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError.message);
-      // Don't fail registration if email fails, but log it
+    // Send verification email (same sender config works for any customer email domain)
+    let verificationEmailSent = false;
+    if (isEmailConfigured()) {
+      try {
+        const emailResult = await sendVerificationEmail(user.email, user.firstName, verificationToken);
+        verificationEmailSent = emailResult?.success === true;
+        if (!verificationEmailSent) {
+          console.error('Verification email not sent:', emailResult?.error || 'Unknown reason');
+        }
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError.message);
+      }
+    } else {
+      console.error('Verification email skipped: email not configured (check /health).');
     }
 
     // Generate tokens
@@ -122,7 +130,9 @@ export const register = async (req, res) => {
     delete userResponse.verificationToken;
 
     res.status(201).json({
-      message: 'User registered successfully. Please check your email to verify your account.',
+      message: verificationEmailSent
+        ? 'User registered successfully. Please check your email to verify your account.'
+        : 'User registered successfully. Verification email could not be sent—use "Resend verification email" on the Pay Online page.',
       user: userResponse,
       tokens: {
         accessToken: token,
@@ -132,7 +142,10 @@ export const register = async (req, res) => {
       verificationStatus: {
         isVerified: false,
         expiresIn: '24 hours',
-        message: 'A verification email has been sent to your email address.'
+        message: verificationEmailSent
+          ? 'A verification email has been sent to your email address.'
+          : 'Verification email was not sent. Use "Resend verification email" below.',
+        emailSent: verificationEmailSent
       }
     });
   } catch (error) {

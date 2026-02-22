@@ -1,27 +1,60 @@
 import sgMail from '@sendgrid/mail';
 import nodemailer from 'nodemailer';
 
+/**
+ * Email is sent FROM a single configured identity (your SMTP or SendGrid).
+ * Recipients can be ANY email domain (gmail.com, yahoo.com, corporate, etc.)—
+ * one config works for all customers. Deliverability depends on your sending
+ * domain (SPF/DKIM/DMARC), not the recipient's domain.
+ */
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
 
-// Initialize SendGrid if using SendGrid
+let smtpTransport = null;
+let sendGridReady = false;
+
 if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sendGridReady = true;
   console.log('✓ SendGrid initialized');
 }
 
-// Initialize SMTP transport if using SMTP
-let smtpTransport = null;
-if (EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST) {
+if (EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   smtpTransport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: parseInt(process.env.SMTP_PORT) === 465,
+    port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    secure: parseInt(process.env.SMTP_PORT, 10) === 465,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
   console.log(`✓ SMTP configured: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+} else if (EMAIL_PROVIDER === 'smtp') {
+  const missing = [];
+  if (!process.env.SMTP_HOST) missing.push('SMTP_HOST');
+  if (!process.env.SMTP_USER) missing.push('SMTP_USER');
+  if (!process.env.SMTP_PASS) missing.push('SMTP_PASS');
+  console.error(`❌ Email not configured. Missing: ${missing.join(', ')}. Verification and notification emails will not be sent.`);
+}
+
+/** Returns true if outbound email can be sent (same config sends to any recipient domain). */
+export function isEmailConfigured() {
+  if (EMAIL_PROVIDER === 'sendgrid') return sendGridReady;
+  if (EMAIL_PROVIDER === 'smtp') return smtpTransport != null;
+  return false;
+}
+
+/**
+ * Safe status for health checks and ops. No secrets.
+ * @returns {{ configured: boolean, provider: string|null, hint?: string }}
+ */
+export function getEmailConfigStatus() {
+  const provider = EMAIL_PROVIDER === 'sendgrid' ? 'sendgrid' : EMAIL_PROVIDER === 'smtp' ? 'smtp' : null;
+  const configured = isEmailConfigured();
+  let hint;
+  if (!configured && provider === 'smtp') hint = 'Set SMTP_HOST, SMTP_USER, SMTP_PASS (and optionally SMTP_PORT).';
+  if (!configured && provider === 'sendgrid') hint = 'Set SENDGRID_API_KEY and optionally SENDGRID_FROM_EMAIL.';
+  return { configured, provider, ...(hint && { hint }) };
 }
 
 // Get sender email based on provider
@@ -551,7 +584,7 @@ export const sendVerificationEmail = async (toEmail, firstName, verificationToke
       console.log(`✓ Verification email sent to ${toEmail} via SMTP`);
       return { success: true };
     } else {
-      console.warn('⚠️ No email provider configured. Verification email not sent.');
+      console.error('❌ No email provider configured (set EMAIL_PROVIDER and SMTP_* or SENDGRID_API_KEY). Verification email not sent.');
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
