@@ -1,9 +1,18 @@
 // Shared scroll reveal animation config - use with framer-motion
+// amount: 0 = trigger as soon as any part is in view (fixes mobile "scroll to see content")
 export const scrollReveal = {
   initial: { opacity: 0, y: 40 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.15 },
-  transition: { duration: 0.6, ease: 'easeOut' },
+  viewport: { once: true, amount: 0 },
+  transition: { duration: 0.5, ease: 'easeOut' },
+}
+
+// Use for page wrapper so content is visible immediately (no wait for scroll on mobile)
+export const scrollRevealVisible = {
+  initial: { opacity: 1, y: 0 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0 },
+  transition: { duration: 0 },
 }
 
 export const staggerContainer = {

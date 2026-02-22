@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { scrollReveal } from '../utils/scrollReveal'
+import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 
 const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0)
@@ -133,7 +133,7 @@ const FAQ = () => {
       {/* FAQ Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
 
-      <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
+      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <motion.div className="text-center mb-16" {...scrollReveal}>

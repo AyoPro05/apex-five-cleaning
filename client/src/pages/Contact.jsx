@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
-import { scrollReveal } from '../utils/scrollReveal'
+import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -81,7 +81,7 @@ const Contact = () => {
   }
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
+    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Contact Us</span>

@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, User, Share2, ArrowLeft, ArrowRight } from 'lucide-react'
-import { scrollReveal } from '../utils/scrollReveal'
+import { Clock, User, Share2, ArrowLeft } from 'lucide-react'
+import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import { SITE_URL } from '../config/site'
+import BlogImage from '../components/BlogImage'
 
 const BlogPost = () => {
   const { slug } = useParams()
@@ -209,7 +210,7 @@ const BlogPost = () => {
       {/* Schema Markup */}
       <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>
 
-      <motion.section className="pt-20 pb-20" {...scrollReveal}>
+      <motion.section className="pt-20 pb-20 min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <button
@@ -221,19 +222,20 @@ const BlogPost = () => {
           </button>
 
           {/* Hero Image - Full Width Background */}
-          <div className="relative mb-12 rounded-2xl overflow-hidden min-h-80 -mx-4 px-4">
-            <img
+          <div className="relative mb-12 rounded-2xl overflow-hidden h-64 sm:min-h-[20rem] -mx-4 px-4 bg-gray-100">
+            <BlogImage
               src={post.image}
               alt={post.title}
               className="w-full h-full object-cover absolute inset-0 rounded-2xl"
+              loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent rounded-2xl"></div>
-            <div className="relative z-10 h-80 flex flex-col justify-end pb-8">
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent rounded-2xl pointer-events-none" />
+            <div className="absolute inset-0 z-10 flex flex-col justify-end pb-8">
               <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <span className="inline-block bg-amber-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold mb-4">
                   {post.category}
                 </span>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">{post.title}</h1>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-md">{post.title}</h1>
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { scrollReveal } from '../utils/scrollReveal'
+import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -80,7 +80,7 @@ const Testimonials = () => {
   }
 
   return (
-    <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50" {...scrollReveal}>
+    <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50 min-h-screen" {...scrollRevealVisible}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div className="text-center mb-16" {...scrollReveal}>

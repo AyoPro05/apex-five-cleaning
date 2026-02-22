@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
-import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
+import { scrollReveal, scrollRevealVisible, staggerContainer, staggerItem } from '../utils/scrollReveal'
 
 // Service image paths - files in /public/images/services/ named as below
 const SERVICE_IMAGES = {
@@ -116,7 +116,7 @@ const Services = () => {
   ]
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
+    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div className="text-center mb-16" {...scrollReveal}>

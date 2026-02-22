@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, User, ArrowRight, Search } from 'lucide-react'
+import { Clock, ArrowRight, Search } from 'lucide-react'
 import { useState } from 'react'
-import { scrollReveal } from '../utils/scrollReveal'
+import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
+import BlogImage from '../components/BlogImage'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -98,9 +99,9 @@ const Blog = () => {
   const featuredPosts = blogPosts.filter(post => post.featured).slice(0, 2)
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
+    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header - visible immediately */}
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Blog & Resources</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
@@ -120,11 +121,12 @@ const Blog = () => {
                 onClick={() => navigate(`/blog/${post.slug}`)}
                 className="cursor-pointer group bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition"
               >
-                <div className="relative h-64 overflow-hidden">
-                  <img
+                <div className="relative h-64 overflow-hidden bg-gray-100">
+                  <BlogImage
                     src={post.image}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition"
+                    loading="eager"
                   />
                   <div className="absolute top-4 right-4 bg-amber-400 text-gray-900 px-4 py-1 rounded-full text-xs font-bold">
                     Featured
@@ -198,8 +200,8 @@ const Blog = () => {
                 onClick={() => navigate(`/blog/${post.slug}`)}
                 className="cursor-pointer group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition"
               >
-                <div className="relative h-48 overflow-hidden">
-                  <img
+                <div className="relative h-48 overflow-hidden bg-gray-100">
+                  <BlogImage
                     src={post.image}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition"
