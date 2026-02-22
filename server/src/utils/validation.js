@@ -112,6 +112,17 @@ const quoteValidationSchema = Joi.object({
       'any.required': 'Postcode is required'
     }),
 
+  preferredDate: Joi.string()
+    .trim()
+    .max(20)
+    .optional()
+    .allow(''),
+  preferredTime: Joi.string()
+    .trim()
+    .max(20)
+    .optional()
+    .allow(''),
+
   additionalNotes: Joi.string()
     .trim()
     .max(500)

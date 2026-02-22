@@ -77,6 +77,16 @@ const quoteSchema = new mongoose.Schema(
       uppercase: true,
     },
 
+    // Preferred scheduling (optional)
+    preferredDate: {
+      type: String,
+      trim: true,
+    },
+    preferredTime: {
+      type: String,
+      trim: true,
+    },
+
     // Additional Information
     additionalNotes: {
       type: String,

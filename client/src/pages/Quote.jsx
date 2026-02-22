@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, AlertCircle, Plus, X, ImageIcon } from "lucide-react";
+import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-react";
 import { post } from "../utils/apiClient";
 import { scrollReveal } from "../utils/scrollReveal";
 
@@ -51,6 +51,8 @@ const Quote = () => {
     phone: "",
     address: "",
     postcode: "",
+    preferredDate: "",
+    preferredTime: "",
     additionalNotes: "",
   });
   const [selectedImages, setSelectedImages] = useState([]);
@@ -286,6 +288,8 @@ const Quote = () => {
       phone: "",
       address: "",
       postcode: "",
+      preferredDate: "",
+      preferredTime: "",
       additionalNotes: "",
     });
     setSelectedImages([]);
@@ -752,6 +756,41 @@ const Quote = () => {
                     <p className="text-red-600 text-sm mt-2">{errors.phone}</p>
                   )}
                 </div>
+
+                {/* Preferred Date & Time - visible without scrolling */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        name="preferredDate"
+                        value={formData.preferredDate}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+                      />
+                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="time"
+                        name="preferredTime"
+                        value={formData.preferredTime}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+                      />
+                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Property Address *

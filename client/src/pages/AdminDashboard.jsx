@@ -1162,6 +1162,31 @@ const AdminDashboard = () => {
                       {selectedQuote.bathrooms}
                     </p>
                   </div>
+                  {(selectedQuote.preferredDate || selectedQuote.preferredTime) && (
+                    <>
+                      {selectedQuote.preferredDate && (
+                        <div>
+                          <p className="text-sm text-gray-600">Preferred Date</p>
+                          <p className="font-medium text-gray-900">
+                            {new Date(selectedQuote.preferredDate).toLocaleDateString("en-GB", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      )}
+                      {selectedQuote.preferredTime && (
+                        <div>
+                          <p className="text-sm text-gray-600">Preferred Time</p>
+                          <p className="font-medium text-gray-900">
+                            {selectedQuote.preferredTime}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 {(selectedQuote.additionalServices || []).length > 0 && (
                   <div className="mt-4">
@@ -1193,12 +1218,14 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
-                {(selectedQuote.images || []).length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Property Photos</p>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2">Property Photos</p>
+                  {(selectedQuote.images && selectedQuote.images.length > 0) ? (
                     <div className="flex flex-wrap gap-2">
                       {selectedQuote.images.map((img, i) => {
-                        const imageUrl = getImageUrl(img.url);
+                        const url = typeof img === "string" ? img : img?.url;
+                        if (!url) return null;
+                        const imageUrl = getImageUrl(url);
                         return (
                           <a
                             key={i}
@@ -1209,7 +1236,7 @@ const AdminDashboard = () => {
                           >
                             <img
                               src={imageUrl}
-                              alt={`Property ${i + 1}`}
+                              alt={typeof img === "object" && img.filename ? img.filename : `Property ${i + 1}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 e.target.onerror = null;
@@ -1220,8 +1247,10 @@ const AdminDashboard = () => {
                         );
                       })}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No photos uploaded</p>
+                  )}
+                </div>
                 {selectedQuote.additionalNotes && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-600 mb-2">Additional Notes</p>

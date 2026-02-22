@@ -191,12 +191,12 @@ const BlogPost = () => {
     })
   }
 
-  // Blog schema markup
+  // Blog schema markup (absolute URL for image)
   const blogSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
-    image: post.image,
+    image: post.image ? `${SITE_URL}${post.image}` : undefined,
     datePublished: post.date,
     author: {
       '@type': 'Person',
@@ -224,7 +224,7 @@ const BlogPost = () => {
           {/* Hero Image - Full Width Background */}
           <div className="relative mb-12 rounded-2xl overflow-hidden h-64 sm:min-h-[20rem] -mx-4 px-4 bg-gray-100">
             <BlogImage
-              src={post.image}
+              src={`${post.image}?v=1`}
               alt={post.title}
               className="w-full h-full object-cover absolute inset-0 rounded-2xl"
               loading="eager"

@@ -92,6 +92,8 @@ app.get("/health", (req, res) => {
 // Serve uploaded quote images (absolute path so it works regardless of cwd)
 const uploadsPath = path.resolve(__dirname, "..", "uploads");
 app.use("/uploads", express.static(uploadsPath));
+// Also serve at /api/uploads so client getImageUrl() (which uses /api/uploads for proxy) works
+app.use("/api/uploads", express.static(uploadsPath));
 if (NODE_ENV === "development") {
   console.log(`✓ Uploads served from: ${uploadsPath}`);
 }

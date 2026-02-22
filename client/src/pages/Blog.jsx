@@ -123,7 +123,7 @@ const Blog = () => {
               >
                 <div className="relative h-64 overflow-hidden bg-gray-100">
                   <BlogImage
-                    src={post.image}
+                    src={`${post.image}?v=1`}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition"
                     loading="eager"
@@ -202,7 +202,7 @@ const Blog = () => {
               >
                 <div className="relative h-48 overflow-hidden bg-gray-100">
                   <BlogImage
-                    src={post.image}
+                    src={`${post.image}?v=1`}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition"
                   />
