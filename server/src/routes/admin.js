@@ -1,10 +1,25 @@
 import express from 'express';
 import Quote from '../models/Quote.js';
 import User from '../../models/User.js';
+import Referral from '../../models/Referral.js';
+import QuotePayment from '../../models/QuotePayment.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail } from '../utils/emailService.js';
 
 const router = express.Router();
+
+/** GDPR retention: default minimum age (months) before a customer can be deleted */
+const DEFAULT_RETENTION_MONTHS = 6;
+
+/** Allowed sort fields for users list (prevents prototype pollution / arbitrary sort) */
+const USER_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'role', 'lastLogin'];
+/** Allowed sort fields for quotes list */
+const QUOTE_SORT_WHITELIST = ['createdAt', 'reference', 'firstName', 'lastName', 'email', 'status', 'approvedAmount'];
+
+/** Escape a string for safe use in RegExp (prevents ReDoS / injection) */
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // Middleware to verify admin token (basic implementation - replace with proper JWT)
 const verifyAdminToken = (req, res, next) => {
@@ -28,19 +43,17 @@ const verifyAdminToken = (req, res, next) => {
 // Get registered users (customers) with basic search and pagination
 router.get('/users', verifyAdminToken, async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = req.query;
+    const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
+    const search = String(req.query.search || '').trim();
+    const sortBy = USER_SORT_WHITELIST.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
 
     const filter = {};
 
     if (search) {
-      const term = String(search).trim();
-      const regex = new RegExp(term, 'i');
+      const pattern = escapeRegex(search);
+      const regex = new RegExp(pattern, 'i');
       filter.$or = [
         { firstName: { $regex: regex } },
         { lastName: { $regex: regex } },
@@ -49,7 +62,7 @@ router.get('/users', verifyAdminToken, async (req, res) => {
       ];
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
     const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
 
     const [total, users] = await Promise.all([
@@ -57,7 +70,7 @@ router.get('/users', verifyAdminToken, async (req, res) => {
       User.find(filter)
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .select(
           'firstName lastName email phone role isVerified createdAt lastLogin referralCode referralPoints'
         )
@@ -69,9 +82,9 @@ router.get('/users', verifyAdminToken, async (req, res) => {
       data: users,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit) || 1),
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
       },
     });
   } catch (error) {
@@ -83,51 +96,87 @@ router.get('/users', verifyAdminToken, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a customer (GDPR). Optional query: olderThanMonths=6 (default) – only allow delete if user created at least this long ago.
+ */
+router.delete('/users/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const retentionMonths = parseInt(req.query.olderThanMonths, 10) || DEFAULT_RETENTION_MONTHS;
+    const userId = req.params.id;
+
+    const user = await User.findById(userId).select('createdAt role').lean();
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    if (user.role === 'admin') {
+      return res.status(403).json({ success: false, error: 'Cannot delete an admin user' });
+    }
+
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - retentionMonths);
+    const createdAt = user.createdAt ? new Date(user.createdAt) : new Date(0);
+    if (createdAt > cutoff) {
+      return res.status(400).json({
+        success: false,
+        error: `GDPR retention: customer can only be deleted after ${retentionMonths} months. Account is not yet ${retentionMonths} months old.`,
+      });
+    }
+
+    await Referral.deleteMany({ $or: [{ referrerId: userId }, { referredUserId: userId }] });
+    await User.findByIdAndDelete(userId);
+
+    return res.json({
+      success: true,
+      message: 'Customer deleted in line with GDPR retention policy.',
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error deleting customer',
+    });
+  }
+});
+
 // Get all quotes with filtering, sorting, and pagination
 router.get('/quotes', verifyAdminToken, async (req, res) => {
   try {
-    const {
-      status = 'new',
-      page = 1,
-      limit = 20,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      search = ''
-    } = req.query;
+    const status = req.query.status || 'new';
+    const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
+    const sortBy = QUOTE_SORT_WHITELIST.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
+    const search = String(req.query.search || '').trim();
     
-    // Build filter
     const filter = {};
-    
     if (status && status !== 'all') {
       filter.status = status;
     }
     
     if (search) {
-      const searchUpper = search.trim().toUpperCase();
+      const searchUpper = search.toUpperCase();
+      const pattern = escapeRegex(search);
+      const regex = new RegExp(pattern, 'i');
       filter.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: regex } },
+        { lastName: { $regex: regex } },
+        { email: { $regex: regex } },
+        { phone: { $regex: regex } },
         ...(searchUpper ? [{ reference: searchUpper }] : [])
       ];
     }
     
-    // Calculate skip
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Build sort
-    const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    const skip = (page - 1) * limit;
+    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
     
     // Get total count
     const total = await Quote.countDocuments(filter);
     
-    // Get quotes
     const quotes = await Quote.find(filter)
       .sort(sort)
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(limit)
       .lean();
     
     return res.json({
@@ -135,10 +184,10 @@ router.get('/quotes', verifyAdminToken, async (req, res) => {
       data: quotes,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit))
-      }
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      },
     });
   } catch (error) {
     console.error('Error fetching quotes:', error);
@@ -438,6 +487,110 @@ router.get('/export/users-csv', verifyAdminToken, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Error exporting users',
+    });
+  }
+});
+
+/**
+ * GET /api/admin/analytics
+ * Analytics for dashboard: KPIs, revenue over time, service distribution, recent payments.
+ */
+router.get('/analytics', verifyAdminToken, async (req, res) => {
+  try {
+    const now = new Date();
+    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+    const [
+      totalBookings,
+      pendingPaymentsAgg,
+      completedPaymentsAgg,
+      revenueByMonthAgg,
+      serviceDistributionAgg,
+      recentPayments,
+    ] = await Promise.all([
+      QuotePayment.countDocuments(),
+      QuotePayment.aggregate([
+        { $match: { status: 'pending' } },
+        { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      ]),
+      QuotePayment.aggregate([
+        { $match: { status: 'succeeded' } },
+        { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      ]),
+      QuotePayment.aggregate([
+        { $match: { status: 'succeeded', createdAt: { $gte: twelveMonthsAgo } } },
+        {
+          $group: {
+            _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+            income: { $sum: '$amount' },
+          },
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+      ]),
+      Quote.aggregate([
+        { $match: { status: 'converted' } },
+        { $group: { _id: '$serviceType', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      QuotePayment.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('quoteId', 'firstName lastName email serviceType reference')
+        .lean(),
+    ]);
+
+    const pendingPayments = pendingPaymentsAgg[0] || { count: 0, total: 0 };
+    const completedPayments = completedPaymentsAgg[0] || { count: 0, total: 0 };
+    const totalRevenue = completedPayments.total || 0;
+
+    const revenueByMonth = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = { year: d.getFullYear(), month: d.getMonth() + 1 };
+      const found = revenueByMonthAgg.find(
+        (x) => x._id.year === key.year && x._id.month === key.month
+      );
+      revenueByMonth.push({
+        label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        income: found ? found.income : 0,
+      });
+    }
+
+    const recentBookings = recentPayments.map((p) => ({
+      id: p._id,
+      customer: p.quoteId
+        ? `${p.quoteId.firstName || ''} ${p.quoteId.lastName || ''}`.trim() || p.email
+        : p.email,
+      email: p.email,
+      service: p.quoteId ? p.quoteId.serviceType?.replace(/-/g, ' ') || '—' : '—',
+      date: p.createdAt,
+      amount: p.amount,
+      amountDisplay: `£${Number(p.amount).toFixed(2)}`,
+      status: p.status,
+    }));
+
+    return res.json({
+      success: true,
+      analytics: {
+        totalBookings,
+        pendingPaymentsCount: pendingPayments.count,
+        pendingPaymentsTotal: pendingPayments.total,
+        completedPaymentsCount: completedPayments.count,
+        completedPaymentsTotal: completedPayments.total,
+        totalRevenue,
+        revenueByMonth,
+        serviceDistribution: serviceDistributionAgg.map((s) => ({
+          name: (s._id || '').replace(/-/g, ' '),
+          count: s.count,
+        })),
+        recentBookings,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error fetching analytics',
     });
   }
 });

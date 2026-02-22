@@ -97,6 +97,12 @@ export const patch = (endpoint, data, config = {}) =>
   apiClient.patch(endpoint, data, config).then((res) => res.data)
 
 /**
+ * DELETE request
+ */
+export const del = (endpoint, config = {}) =>
+  apiClient.delete(endpoint, config).then((res) => res.data)
+
+/**
  * GET and return blob (e.g. CSV download)
  */
 export const getBlob = (endpoint, config = {}) =>

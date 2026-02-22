@@ -1,6 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { get, patch, getBlob, getImageUrl } from "../utils/apiClient";
+import { get, patch, getBlob, getImageUrl, del } from "../utils/apiClient";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import {
   Download,
   Eye,
@@ -14,11 +27,19 @@ import {
   Clock,
   XCircle,
   LogOut,
+  Trash2,
+  BarChart3,
 } from "lucide-react";
+
+const RETENTION_MONTHS = 6;
+const CHART_COLORS = ["#0d9488", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("quotes");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [quotes, setQuotes] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -95,6 +116,37 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching stats:", err);
+    }
+  };
+
+  // Fetch analytics for dashboard tab
+  const fetchAnalytics = async () => {
+    if (!adminToken) return;
+    setAnalyticsLoading(true);
+    try {
+      const data = await get("/api/admin/analytics");
+      if (data.success) {
+        setAnalytics(data.analytics);
+      }
+    } catch (err) {
+      console.error("Error fetching analytics:", err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (customer) => {
+    if (!window.confirm(`Delete customer "${customer.firstName} ${customer.lastName}" (${customer.email})? This cannot be undone and is for GDPR retention (accounts older than ${RETENTION_MONTHS} months).`)) return;
+    setDeletingId(customer._id);
+    setCustomersError("");
+    try {
+      await del(`/api/admin/users/${customer._id}?olderThanMonths=${RETENTION_MONTHS}`);
+      await fetchCustomers({ page: customerPagination.page });
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message;
+      setCustomersError(msg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -204,6 +256,13 @@ const AdminDashboard = () => {
     }
   }, [activeTab, adminToken, showTokenInput]);
 
+  // Load analytics when switching to the Dashboard tab
+  useEffect(() => {
+    if (adminToken && !showTokenInput && activeTab === "dashboard") {
+      fetchAnalytics();
+    }
+  }, [activeTab, adminToken, showTokenInput]);
+
   const getStatusIcon = (status) => {
     switch (status) {
       case "new":
@@ -288,6 +347,18 @@ const AdminDashboard = () => {
               <div className="space-y-2">
                 <button
                   type="button"
+                  onClick={() => setActiveTab("dashboard")}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    activeTab === "dashboard"
+                      ? "bg-teal-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Dashboard
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveTab("quotes")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                     activeTab === "quotes"
@@ -329,6 +400,150 @@ const AdminDashboard = () => {
 
           {/* Main content */}
           <div className="flex-1">
+            {activeTab === "dashboard" && (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                  <p className="text-gray-600 mt-1">Overview of bookings, payments and revenue</p>
+                </div>
+
+                {analyticsLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+                  </div>
+                ) : analytics ? (
+                  <div className="space-y-8">
+                    {/* KPI cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-red-500">
+                        <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.totalBookings}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-purple-500">
+                        <p className="text-sm font-medium text-gray-600">Pending Payments</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.pendingPaymentsCount}</p>
+                        <p className="text-sm text-purple-600 mt-0.5">£{(analytics.pendingPaymentsTotal || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-teal-500">
+                        <p className="text-sm font-medium text-gray-600">Completed Payments</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.completedPaymentsCount}</p>
+                        <p className="text-sm text-teal-600 mt-0.5">£{(analytics.completedPaymentsTotal || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-amber-500">
+                        <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">£{(analytics.totalRevenue || 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    {/* Charts row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="bg-white rounded-xl shadow p-6">
+                        <h3 className="font-semibold text-gray-900 mb-1">Revenue Overview</h3>
+                        <p className="text-sm text-gray-500 mb-4">Monthly income (last 12 months)</p>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={analytics.revenueByMonth || []}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `£${v}`} />
+                              <Tooltip formatter={(v) => [`£` + Number(v).toFixed(2), "Income"]} />
+                              <Line type="monotone" dataKey="income" stroke="#0d9488" strokeWidth={2} name="Income" dot={{ r: 3 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6">
+                        <h3 className="font-semibold text-gray-900 mb-1">Service Distribution</h3>
+                        <p className="text-sm text-gray-500 mb-4">Bookings by service type</p>
+                        <div className="h-64 flex items-center justify-center">
+                          {(analytics.serviceDistribution?.length && analytics.serviceDistribution.some((s) => s.count > 0)) ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={analytics.serviceDistribution}
+                                  dataKey="count"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={80}
+                                  label={({ name, count }) => `${name} ${count}`}
+                                >
+                                  {(analytics.serviceDistribution || []).map((_, i) => (
+                                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(v) => [v, "Count"]} />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <p className="text-gray-500 text-sm">No data yet</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent bookings table */}
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
+                      <div className="flex justify-between items-center px-6 py-4 border-b">
+                        <h3 className="font-semibold text-gray-900">Recent Bookings</h3>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("quotes")}
+                          className="text-sm font-medium text-teal-600 hover:text-teal-700"
+                        >
+                          View All →
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        {(!analytics.recentBookings || analytics.recentBookings.length === 0) ? (
+                          <div className="p-8 text-center text-gray-500 text-sm">No recent payments</div>
+                        ) : (
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Service</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {analytics.recentBookings.map((b) => (
+                                <tr key={b.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-3 text-sm">
+                                    <span className="font-medium text-gray-900">{b.customer}</span>
+                                    <span className="block text-gray-500 text-xs">{b.email}</span>
+                                  </td>
+                                  <td className="px-6 py-3 text-sm text-gray-600 capitalize">{b.service}</td>
+                                  <td className="px-6 py-3 text-sm text-gray-600">
+                                    {b.date ? new Date(b.date).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}
+                                  </td>
+                                  <td className="px-6 py-3 text-sm font-medium text-gray-900">{b.amountDisplay}</td>
+                                  <td className="px-6 py-3">
+                                    <span
+                                      className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+                                        b.status === "succeeded" ? "bg-green-100 text-green-800" : b.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800"
+                                      }`}
+                                    >
+                                      {b.status === "succeeded" ? "Paid" : b.status === "pending" ? "Pending" : b.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">Unable to load analytics</div>
+                )}
+              </>
+            )}
+
             {activeTab === "quotes" && (
               <>
                 {/* Header */}
@@ -703,6 +918,9 @@ const AdminDashboard = () => {
                             <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                               Joined
                             </th>
+                            <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -737,6 +955,18 @@ const AdminDashboard = () => {
                                       "en-GB",
                                     )
                                   : "-"}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomer(c)}
+                                  disabled={deletingId === c._id}
+                                  className="inline-flex items-center gap-1 px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Delete customer (GDPR – only accounts older than 6 months)"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  {deletingId === c._id ? "Deleting..." : "Delete"}
+                                </button>
                               </td>
                             </tr>
                           ))}

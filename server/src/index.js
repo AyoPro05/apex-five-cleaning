@@ -43,11 +43,12 @@ if (process.env.CLIENT_URL) {
   const url = process.env.CLIENT_URL.replace(/\/$/, "");
   if (!corsOrigins.includes(url)) corsOrigins.push(url);
 }
-// Production: allow both www and non-www
+// Production: allow custom domain + Render static site
 if (process.env.NODE_ENV === "production") {
   [
     "https://www.apexfivecleaning.co.uk",
     "https://apexfivecleaning.co.uk",
+    "https://apex-five-cleaning-2.onrender.com",
   ].forEach((origin) => {
     if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
   });
