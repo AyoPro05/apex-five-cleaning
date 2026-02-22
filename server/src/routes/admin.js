@@ -1,12 +1,19 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import Quote from '../models/Quote.js';
 import User from '../../models/User.js';
 import Referral from '../../models/Referral.js';
 import QuotePayment from '../../models/QuotePayment.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail } from '../utils/emailService.js';
+import { authMiddleware, adminMiddleware } from '../../middleware/auth.js';
+import { strictRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+
+/** Admin JWT expiry (short-lived). Same as JWT_EXPIRE if set, otherwise 1h */
+const ADMIN_JWT_EXPIRE = process.env.JWT_EXPIRE || '1h';
+const ADMIN_JWT_EXPIRE_SECONDS = 3600; // 1h in seconds for client
 
 /** GDPR retention: default minimum age (months) before a customer can be deleted */
 const DEFAULT_RETENTION_MONTHS = 6;
@@ -21,27 +28,38 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Middleware to verify admin token (basic implementation - replace with proper JWT)
-const verifyAdminToken = (req, res, next) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  const adminToken = process.env.ADMIN_TOKEN;
-  
-  if (!adminToken || !token || token !== adminToken) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized'
-    });
+/** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
+const requireAdmin = [authMiddleware, adminMiddleware];
+
+/**
+ * POST /api/admin/login
+ * Exchange static ADMIN_TOKEN for a short-lived JWT. Body: { token }.
+ * Rate-limited to prevent brute force.
+ */
+router.post('/login', strictRateLimiter, (req, res) => {
+  const secret = process.env.ADMIN_TOKEN;
+  const { token } = req.body || {};
+  if (!secret || !token || token !== secret) {
+    return res.status(401).json({ success: false, error: 'Invalid admin token' });
   }
-  
-  next();
-};
+  const jwtToken = jwt.sign(
+    { id: 'admin', role: 'admin' },
+    process.env.JWT_SECRET,
+    { expiresIn: ADMIN_JWT_EXPIRE }
+  );
+  return res.json({
+    success: true,
+    token: jwtToken,
+    expiresIn: ADMIN_JWT_EXPIRE_SECONDS,
+  });
+});
 
 // ================================
 // USERS (REGISTERED CUSTOMERS)
 // ================================
 
 // Get registered users (customers) with basic search and pagination
-router.get('/users', verifyAdminToken, async (req, res) => {
+router.get('/users', requireAdmin, async (req, res) => {
   try {
     const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
@@ -100,7 +118,7 @@ router.get('/users', verifyAdminToken, async (req, res) => {
  * DELETE /api/admin/users/:id
  * Delete a customer (GDPR). Optional query: olderThanMonths=6 (default) – only allow delete if user created at least this long ago.
  */
-router.delete('/users/:id', verifyAdminToken, async (req, res) => {
+router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
     const retentionMonths = parseInt(req.query.olderThanMonths, 10) || DEFAULT_RETENTION_MONTHS;
     const userId = req.params.id;
@@ -140,7 +158,7 @@ router.delete('/users/:id', verifyAdminToken, async (req, res) => {
 });
 
 // Get all quotes with filtering, sorting, and pagination
-router.get('/quotes', verifyAdminToken, async (req, res) => {
+router.get('/quotes', requireAdmin, async (req, res) => {
   try {
     const status = req.query.status || 'new';
     const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
@@ -199,7 +217,7 @@ router.get('/quotes', verifyAdminToken, async (req, res) => {
 });
 
 // Get single quote details
-router.get('/quotes/:id', verifyAdminToken, async (req, res) => {
+router.get('/quotes/:id', requireAdmin, async (req, res) => {
   try {
     const quote = await Quote.findById(req.params.id);
     
@@ -223,7 +241,7 @@ router.get('/quotes/:id', verifyAdminToken, async (req, res) => {
 });
 
 // Update quote status and notes
-router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
+router.patch('/quotes/:id', requireAdmin, async (req, res) => {
   try {
     const { status, adminNotes, approvedAmount } = req.body;
     
@@ -280,7 +298,7 @@ router.patch('/quotes/:id', verifyAdminToken, async (req, res) => {
 });
 
 // Export quotes to CSV
-router.get('/export/csv', verifyAdminToken, async (req, res) => {
+router.get('/export/csv', requireAdmin, async (req, res) => {
   try {
     const { status = 'all', dateFrom, dateTo } = req.query;
     
@@ -400,7 +418,7 @@ router.get('/export/csv', verifyAdminToken, async (req, res) => {
 });
 
 // Export registered users (customers) to CSV
-router.get('/export/users-csv', verifyAdminToken, async (req, res) => {
+router.get('/export/users-csv', requireAdmin, async (req, res) => {
   try {
     const users = await User.find({})
       .select('firstName lastName email phone role isVerified createdAt lastLogin referralCode referralPoints')
@@ -495,7 +513,7 @@ router.get('/export/users-csv', verifyAdminToken, async (req, res) => {
  * GET /api/admin/analytics
  * Analytics for dashboard: KPIs, revenue over time, service distribution, recent payments.
  */
-router.get('/analytics', verifyAdminToken, async (req, res) => {
+router.get('/analytics', requireAdmin, async (req, res) => {
   try {
     const now = new Date();
     const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
@@ -596,7 +614,7 @@ router.get('/analytics', verifyAdminToken, async (req, res) => {
 });
 
 // Get dashboard statistics
-router.get('/stats', verifyAdminToken, async (req, res) => {
+router.get('/stats', requireAdmin, async (req, res) => {
   try {
     const totalQuotes = await Quote.countDocuments();
     const newQuotes = await Quote.countDocuments({ status: 'new' });

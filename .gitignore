@@ -1,8 +1,12 @@
 node_modules/
+# Secrets: never commit env files (use .env.example as template only)
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 client/.env
+server/.env
 dist/
 .DS_Store
 *.log
@@ -19,6 +23,5 @@ out/
 .nuxt/
 .cache/
 .vercel/
-server/.env
 server/node_modules/
 uploads/

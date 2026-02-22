@@ -20,7 +20,7 @@ const Blog = () => {
       date: '2026-01-24',
       readTime: '8 min read',
       category: 'Cleaning Tips',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop',
+      image: '/images/blog/blog-end-of-tenancy.jpg',
       featured: true
     },
     {
@@ -33,7 +33,7 @@ const Blog = () => {
       date: '2026-01-20',
       readTime: '6 min read',
       category: 'Eco-Friendly',
-      image: 'https://images.unsplash.com/photo-1563453392-0a8f0dd88be4?w=800&h=400&fit=crop',
+      image: '/images/blog/blog-eco-friendly.jpg',
       featured: true
     },
     {
@@ -46,7 +46,7 @@ const Blog = () => {
       date: '2026-01-18',
       readTime: '5 min read',
       category: 'Cleaning Tips',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop'
+      image: '/images/blog/blog-prepare-home.jpg'
     },
     {
       id: 4,
@@ -58,7 +58,7 @@ const Blog = () => {
       date: '2026-01-15',
       readTime: '7 min read',
       category: 'Airbnb Tips',
-      image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=400&fit=crop'
+      image: '/images/blog/blog-airbnb-cleaning.jpg'
     },
     {
       id: 5,
@@ -70,7 +70,7 @@ const Blog = () => {
       date: '2026-01-12',
       readTime: '9 min read',
       category: 'Cleaning Tips',
-      image: 'https://images.unsplash.com/photo-1551632786-15e0eaf0c547?w=800&h=400&fit=crop'
+      image: '/images/blog/blog-spring-cleaning.jpg'
     },
     {
       id: 6,
@@ -82,7 +82,7 @@ const Blog = () => {
       date: '2026-01-10',
       readTime: '6 min read',
       category: 'Insights',
-      image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800&h=400&fit=crop'
+      image: '/images/blog/blog-professional-cleaning.jpg'
     }
   ]
 

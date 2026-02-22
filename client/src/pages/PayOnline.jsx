@@ -8,7 +8,8 @@ import { scrollReveal } from '../utils/scrollReveal'
 import { CreditCard, ArrowLeft, LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_example')
+// Stripe publishable key must come from env only (no fallback – never ship secrets or placeholder keys)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
 
 const cardElementOptions = {
   style: {

@@ -35,6 +35,11 @@ try {
 }
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+// Warn in production if webhook secret is missing (Stripe events will be rejected)
+if (process.env.NODE_ENV === 'production' && stripeKey && (!webhookSecret || String(webhookSecret).trim() === '')) {
+  console.warn('STRIPE_WEBHOOK_SECRET is not set. Set it in production and add the webhook endpoint in Stripe Dashboard for payment events.');
+}
+
 // ============================================
 // VALIDATION HELPERS
 // ============================================
@@ -725,25 +730,42 @@ router.post('/:paymentId/refund', authMiddleware, async (req, res) => {
 /**
  * WEBHOOK - STRIPE EVENTS
  * POST /api/payments/webhook
- * Handles Stripe webhook events (signature verified)
+ * Handles Stripe webhook events. Signature verification is mandatory; in production
+ * STRIPE_WEBHOOK_SECRET must be set or the webhook will reject all events.
  */
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const sig = req.headers['stripe-signature'];
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payment system unavailable' });
+    }
+    // Require webhook secret: never process unverified events
+    if (!webhookSecret || typeof webhookSecret !== 'string') {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('Stripe webhook rejected: STRIPE_WEBHOOK_SECRET is not set in production.');
+      }
+      return res.status(503).json({
+        success: false,
+        message: 'Webhook not configured. Set STRIPE_WEBHOOK_SECRET and configure the endpoint in Stripe Dashboard.',
+      });
+    }
 
-    // Verify webhook signature (SECURITY CRITICAL)
+    const sig = req.headers['stripe-signature'];
+    if (!sig) {
+      return res.status(400).json({
+        success: false,
+        message: 'Webhook Error: Missing stripe-signature header',
+      });
+    }
+
+    // Verify webhook signature (SECURITY CRITICAL – prevents forged events)
     let event;
     try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        webhookSecret
-      );
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
       return res.status(400).json({
         success: false,
-        message: `Webhook Error: ${err.message}`
+        message: `Webhook Error: ${err.message}`,
       });
     }
 

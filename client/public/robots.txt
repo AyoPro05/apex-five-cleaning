@@ -1,0 +1,14 @@
+# robots.txt for Apex Five Cleaning
+# Last updated: 2026-02-16
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /.env
+
+# Sitemap and Index Now
+Sitemap: https://www.apexfivecleaning.co.uk/sitemap.xml

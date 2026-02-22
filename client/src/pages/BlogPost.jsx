@@ -17,7 +17,7 @@ const BlogPost = () => {
       date: '2026-01-24',
       readTime: '8 min read',
       category: 'Cleaning Tips',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=600&fit=crop',
+      image: '/images/blog/blog-end-of-tenancy.jpg',
       content: `
         <h2>Introduction</h2>
         <p>Getting your full deposit back is every tenant's goal. Professional end of tenancy cleaning is essential to meet landlord expectations and pass the final inspection. In this guide, we'll walk you through everything you need to know.</p>
@@ -78,7 +78,7 @@ const BlogPost = () => {
       date: '2026-01-20',
       readTime: '6 min read',
       category: 'Eco-Friendly',
-      image: 'https://images.unsplash.com/photo-1563453392-0a8f0dd88be4?w=1200&h=600&fit=crop',
+      image: '/images/blog/blog-eco-friendly.jpg',
       content: `
         <h2>Why Go Eco-Friendly?</h2>
         <p>Traditional cleaning products contain harsh chemicals that are bad for your health, your family, and the environment. Eco-friendly cleaning products offer a safer, more sustainable alternative without compromising on cleaning power.</p>
@@ -126,7 +126,7 @@ const BlogPost = () => {
       date: '2026-01-18',
       readTime: '5 min read',
       category: 'Cleaning Tips',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=600&fit=crop',
+      image: '/images/blog/blog-prepare-home.jpg',
       content: `
         <h2>Preparation is Key</h2>
         <p>When you prepare your home properly for professional cleaning, you get better results and the cleaning team can work more efficiently. Here's what to do:</p>

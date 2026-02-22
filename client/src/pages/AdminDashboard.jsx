@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { get, patch, getBlob, getImageUrl, del } from "../utils/apiClient";
+import { get, post, patch, getBlob, getImageUrl, del } from "../utils/apiClient";
 import {
   LineChart,
   Line,
@@ -48,6 +48,8 @@ const AdminDashboard = () => {
     localStorage.getItem("adminToken") || "",
   );
   const [showTokenInput, setShowTokenInput] = useState(!adminToken);
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -297,6 +299,27 @@ const AdminDashboard = () => {
     return `${config.bg} ${config.text}`;
   };
 
+  const handleAdminLogin = async () => {
+    if (!adminToken.trim()) return;
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      const res = await post("/api/admin/login", { token: adminToken.trim() });
+      if (res.success && res.token) {
+        localStorage.setItem("adminToken", res.token);
+        sessionStorage.setItem("adminToken", res.token);
+        setAdminToken(res.token);
+        setShowTokenInput(false);
+      } else {
+        setLoginError(res.error || "Login failed");
+      }
+    } catch (err) {
+      setLoginError(err.message || "Invalid admin token");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   if (showTokenInput) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -304,6 +327,9 @@ const AdminDashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Admin Access
           </h1>
+          <p className="text-sm text-gray-600 mb-4">
+            Enter your admin token to receive a short-lived session. You may need to sign in again after about an hour.
+          </p>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -312,21 +338,24 @@ const AdminDashboard = () => {
               <input
                 type="password"
                 value={adminToken}
-                onChange={(e) => setAdminToken(e.target.value)}
+                onChange={(e) => {
+                  setAdminToken(e.target.value);
+                  setLoginError("");
+                }}
                 placeholder="Enter your admin token"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
+                disabled={loginLoading}
               />
             </div>
+            {loginError && (
+              <p className="text-sm text-red-600">{loginError}</p>
+            )}
             <button
-              onClick={() => {
-                if (adminToken) {
-                  localStorage.setItem("adminToken", adminToken);
-                  setShowTokenInput(false);
-                }
-              }}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold transition"
+              onClick={handleAdminLogin}
+              disabled={loginLoading || !adminToken.trim()}
+              className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white py-2 rounded-lg font-semibold transition"
             >
-              Access Dashboard
+              {loginLoading ? "Signing in…" : "Access Dashboard"}
             </button>
           </div>
         </div>
@@ -384,6 +413,7 @@ const AdminDashboard = () => {
                 <button
                   onClick={() => {
                     localStorage.removeItem("adminToken");
+                    sessionStorage.removeItem("adminToken");
                     setAdminToken("");
                     setShowTokenInput(true);
                     navigate("/");

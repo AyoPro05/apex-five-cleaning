@@ -53,6 +53,7 @@ export const adminMiddleware = (req, res, next) => {
     });
   }
 
+  req.isAdmin = true; // for rate limiter skip
   next();
 };
 

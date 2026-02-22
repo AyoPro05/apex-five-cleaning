@@ -1,34 +1,56 @@
 # Apex Five Cleaning
 
-Professional cleaning services website – quotes, bookings, payments, admin dashboard.
+Professional cleaning services site for **apexfivecleaning.co.uk**: quotes, bookings, online payments, blog, and admin dashboard.
+
+## Stack
+
+- **Frontend:** React, Vite, Tailwind CSS
+- **Backend:** Node.js, Express, MongoDB
+- **Payments:** Stripe
+- **Auth:** JWT (customers), Bearer token (admin)
 
 ## Run locally
 
-**Backend**
+**1. Backend**
+
 ```bash
 cd server
 npm install
-cp .env.example .env   # configure as needed
+cp .env.example .env   # set MONGODB_URI, Stripe, etc.
 npm run dev
 ```
-→ `http://localhost:5001`
 
-**Frontend**
+API: `http://localhost:5001`
+
+**2. Frontend**
+
 ```bash
 cd client
 npm install
-cp .env.example .env   # configure as needed
+cp .env.example .env   # set VITE_API_URL, etc.
 npm run dev
 ```
-→ `http://localhost:5173`
 
-**Requires:** MongoDB. Set `MONGODB_URI` in `server/.env`.
+App: `http://localhost:5173`
 
-## Environment
+**Requires:** MongoDB (e.g. Atlas). Configure `server/.env` and `client/.env` from the `.env.example` files in each folder. Never commit real `.env` files or put secrets in source; see [docs/SECURITY.md](docs/SECURITY.md).
 
-- `server/.env.example` – backend config (DB, Stripe, email, reCAPTCHA)
-- `client/.env.example` – frontend config (API URL, reCAPTCHA, Stripe publishable key)
+## Project layout
 
-## Tech stack
+| Path | Purpose |
+|------|--------|
+| `client/` | React SPA (Vite). Static build → `client/dist` |
+| `server/` | Express API, auth, quotes, payments, admin |
+| `client/public/` | Static assets: favicon, logo, blog images, `robots.txt`, `sitemap.xml` |
+| `docs/` | Deployment, SEO, security, email (reference only) |
 
-React, Vite, Tailwind | Node.js, Express, MongoDB, Stripe, JWT
+## Documentation
+
+- **Deploy & env:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **SEO (sitemap, Index Now):** [docs/SEO.md](docs/SEO.md)
+- **Security overview:** [docs/SECURITY.md](docs/SECURITY.md)
+- **Email (SMTP/SendGrid):** [docs/EMAIL.md](docs/EMAIL.md)
+
+## License
+
+Proprietary — Apex Five Cleaning.

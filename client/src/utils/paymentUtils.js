@@ -103,11 +103,11 @@ export const formatCardDisplay = (last4, brand) => {
 };
 
 /**
- * Check if in test mode
+ * Check if Stripe is in test mode (use env only – no hardcoded keys)
  */
 export const isTestMode = () => {
-  const key = process.env.REACT_APP_STRIPE_PUBLIC_KEY || '';
-  return key.includes('pk_test_');
+  const key = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_STRIPE_PUBLIC_KEY) || '';
+  return typeof key === 'string' && key.includes('pk_test_');
 };
 
 /**
