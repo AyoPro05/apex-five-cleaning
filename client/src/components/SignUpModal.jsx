@@ -54,11 +54,13 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
     }
     setLoading(true)
     try {
-      await register({
+      const res = await register({
         ...formData,
         phone: phoneClean,
         referralCode: refCode || undefined,
       })
+      // Optionally we could surface res.message in a toast; for now we just close
+      // and rely on the verification email + sign-in flow.
       onClose()
     } catch (err) {
       setError(err.message || 'Registration failed')

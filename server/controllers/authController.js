@@ -120,31 +120,29 @@ export const register = async (req, res) => {
       console.error('Verification email skipped: email not configured (check /health).');
     }
 
-    // Generate tokens
-    const token = generateToken(user._id, user.role);
-    const refreshToken = generateRefreshToken(user._id, user.role);
-
-    // Remove password from response
+    // Do NOT log the user in on registration.
+    // We only create the account and send a verification email.
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.verificationToken;
 
     res.status(201).json({
       message: verificationEmailSent
-        ? 'User registered successfully. Please check your email to verify your account.'
-        : 'User registered successfully. Verification email could not be sent—use "Resend verification email" on the Pay Online page.',
-      user: userResponse,
-      tokens: {
-        accessToken: token,
-        refreshToken: refreshToken,
-        expiresIn: process.env.JWT_EXPIRE || '1h'
+        ? 'Account created. Please check your email and verify your address before signing in.'
+        : 'Account created, but the verification email could not be sent. Use “Resend verification email” on the Pay Online page.',
+      user: {
+        id: userResponse._id,
+        email: userResponse.email,
+        firstName: userResponse.firstName,
+        lastName: userResponse.lastName,
+        isVerified: userResponse.isVerified,
       },
       verificationStatus: {
         isVerified: false,
         expiresIn: '24 hours',
         message: verificationEmailSent
           ? 'A verification email has been sent to your email address.'
-          : 'Verification email was not sent. Use "Resend verification email" below.',
+          : 'Verification email was not sent. Use “Resend verification email” below.',
         emailSent: verificationEmailSent
       }
     });
@@ -199,6 +197,14 @@ export const login = async (req, res) => {
       return res.status(401).json({
         error: 'Authentication failed',
         message: 'Invalid email or password'
+      });
+    }
+
+    // Require verified email for non-admin users
+    if (!user.isVerified && user.role !== 'admin') {
+      return res.status(401).json({
+        error: 'Email not verified',
+        message: 'Please verify your email address before signing in. Check your inbox for a verification link or use "Resend verification email".'
       });
     }
 

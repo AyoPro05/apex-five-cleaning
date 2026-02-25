@@ -4,14 +4,17 @@
  */
 
 import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 /**
- * Verify JWT token and attach user to request
+ * Verify JWT token, load user, and enforce verification
  */
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     // Get token from header
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization || '';
+    const parts = authHeader.split(' ');
+    const token = parts.length === 2 && parts[0] === 'Bearer' ? parts[1] : null;
 
     if (!token) {
       return res.status(401).json({
@@ -20,9 +23,43 @@ export const authMiddleware = (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Verify token signature and expiry
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const userId = decoded.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'Your token is invalid or malformed'
+      });
+    }
+
+    // Load user to enforce current status (role, isVerified, etc.)
+    const user = await User.findById(userId).select('role isVerified');
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'User not found',
+        message: 'The account associated with this token no longer exists'
+      });
+    }
+
+    // Enforce email verification for non-admin users on every authenticated request
+    if (!user.isVerified && user.role !== 'admin') {
+      return res.status(401).json({
+        error: 'Email not verified',
+        message: 'Please verify your email address before accessing your account. Check your inbox for a verification link or use "Resend verification email".'
+      });
+    }
+
+    // Attach up-to-date user info to the request
+    req.user = {
+      ...decoded,
+      id: userId,
+      role: user.role,
+      isVerified: user.isVerified,
+    };
+
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

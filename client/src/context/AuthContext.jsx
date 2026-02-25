@@ -68,17 +68,9 @@ export function AuthProvider({ children }) {
   }
 
   const register = async (formData) => {
+    // Registration no longer logs the user in. It only creates the account
+    // and sends a verification email. The user must verify first, then sign in.
     const data = await post('/api/auth/register', formData)
-    const st = typeof window !== 'undefined' ? (formData.rememberMe ? localStorage : sessionStorage) : null
-    if (st && data.tokens) {
-      if (formData.rememberMe) localStorage.setItem(REMEMBER_KEY, 'true')
-      else localStorage.removeItem(REMEMBER_KEY)
-      st.setItem(TOKEN_KEY, data.tokens.accessToken)
-      st.setItem(REFRESH_KEY, data.tokens.refreshToken)
-      st.setItem(USER_KEY, JSON.stringify(data.user))
-      setToken(data.tokens.accessToken)
-      setUser(data.user)
-    }
     return data
   }
 
