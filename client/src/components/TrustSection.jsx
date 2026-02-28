@@ -89,7 +89,7 @@ export default function TrustSection() {
               onClick={openSignIn}
               className="px-6 py-3 border-2 border-white/50 text-white hover:bg-white/10 rounded-xl font-semibold transition"
             >
-              Account Login
+              Login
             </button>
           ) : (
             <Link

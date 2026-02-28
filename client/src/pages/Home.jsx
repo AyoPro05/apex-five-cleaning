@@ -253,7 +253,7 @@ const Home = () => {
                     onClick={openSignIn}
                     className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2"
                   >
-                    Account Login
+                    Login
                   </button>
                 )}
               </div>

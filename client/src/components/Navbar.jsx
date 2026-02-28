@@ -158,6 +158,13 @@ const Navbar = () => {
                 >
                   Pay Online
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowSignIn(true)}
+                  className="text-gray-600 hover:text-teal-600 font-medium transition whitespace-nowrap"
+                >
+                  Login
+                </button>
                 <Link
                   to="/request-a-quote"
                   className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-lg shadow-teal-600/25 flex items-center gap-2 whitespace-nowrap"
@@ -252,6 +259,13 @@ const Navbar = () => {
             >
               Pay Online
             </Link>
+            <button
+              type="button"
+              onClick={() => { setShowSignIn(true); setIsMobileMenuOpen(false); }}
+              className="block py-2 font-medium text-gray-600 w-full text-left whitespace-nowrap"
+            >
+              Login
+            </button>
             <Link
               to="/request-a-quote"
               onClick={() => setIsMobileMenuOpen(false)}

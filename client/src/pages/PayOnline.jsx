@@ -274,7 +274,7 @@ export default function PayOnline() {
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition"
               >
                 <LogIn className="w-5 h-5" />
-                Account Login
+                Log In
               </button>
               <p className="text-center text-gray-600 text-sm">
                 Don&apos;t have an account?{' '}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Mail, Lock, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { post } from '../utils/apiClient'
 
 export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
   const { login } = useAuth()
@@ -10,10 +11,15 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
+
+  const isUnverifiedError = error && /verify|verification/i.test(error)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setResendMessage('')
     setLoading(true)
     try {
       await login(email, password, rememberMe)
@@ -22,6 +28,22 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
       setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email || resendLoading) return
+    setResendLoading(true)
+    setResendMessage('')
+    setError('')
+    try {
+      await post('/api/auth/resend-verification-email', { email: email.trim() })
+      setResendMessage('If an account exists with this email, a new verification link has been sent. Check your inbox and spam folder.')
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message
+      setResendMessage(msg || 'Could not send verification email.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -42,7 +64,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Account login"
+      aria-label="Login"
       className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={handleBackdropClick}
     >
@@ -54,13 +76,31 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
         >
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Login</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Login</h2>
         <p className="text-gray-600 mb-6">Welcome back to Apex Five Cleaning</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
+              {isUnverifiedError && (
+                <div className="mt-3 pt-3 border-t border-red-200">
+                  <p className="text-red-700 mb-2">Didn’t get the email?</p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading || !email.trim()}
+                    className="text-red-800 font-semibold underline hover:no-underline disabled:opacity-50"
+                  >
+                    {resendLoading ? 'Sending…' : 'Resend verification email'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {resendMessage && !error && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm">
+              {resendMessage}
             </div>
           )}
           <div>
@@ -126,7 +166,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
                 Logging in...
               </>
             ) : (
-              'Account Login'
+              'Login'
             )}
           </button>
         </form>

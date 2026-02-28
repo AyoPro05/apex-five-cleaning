@@ -117,9 +117,11 @@ router.get('/users', requireAdmin, async (req, res) => {
 /**
  * DELETE /api/admin/users/:id
  * Delete a customer (GDPR). Optional query: olderThanMonths=6 (default) – only allow delete if user created at least this long ago.
+ * Optional query: force=true – temporarily skip retention (for deleting test accounts; remove when enforcing GDPR).
  */
 router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
+    const force = req.query.force === 'true';
     const retentionMonths = parseInt(req.query.olderThanMonths, 10) || DEFAULT_RETENTION_MONTHS;
     const userId = req.params.id;
 
@@ -131,14 +133,16 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Cannot delete an admin user' });
     }
 
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - retentionMonths);
-    const createdAt = user.createdAt ? new Date(user.createdAt) : new Date(0);
-    if (createdAt > cutoff) {
-      return res.status(400).json({
-        success: false,
-        error: `GDPR retention: customer can only be deleted after ${retentionMonths} months. Account is not yet ${retentionMonths} months old.`,
-      });
+    if (!force) {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - retentionMonths);
+      const createdAt = user.createdAt ? new Date(user.createdAt) : new Date(0);
+      if (createdAt > cutoff) {
+        return res.status(400).json({
+          success: false,
+          error: `GDPR retention: customer can only be deleted after ${retentionMonths} months. Account is not yet ${retentionMonths} months old.`,
+        });
+      }
     }
 
     await Referral.deleteMany({ $or: [{ referrerId: userId }, { referredUserId: userId }] });
@@ -146,7 +150,7 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Customer deleted in line with GDPR retention policy.',
+      message: force ? 'Customer deleted.' : 'Customer deleted in line with GDPR retention policy.',
     });
   } catch (error) {
     console.error('Error deleting user:', error);

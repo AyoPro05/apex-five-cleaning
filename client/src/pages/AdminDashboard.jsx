@@ -138,11 +138,12 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteCustomer = async (customer) => {
-    if (!window.confirm(`Delete customer "${customer.firstName} ${customer.lastName}" (${customer.email})? This cannot be undone and is for GDPR retention (accounts older than ${RETENTION_MONTHS} months).`)) return;
+    if (!window.confirm(`Delete customer "${customer.firstName} ${customer.lastName}" (${customer.email})? This cannot be undone.`)) return;
     setDeletingId(customer._id);
     setCustomersError("");
     try {
-      await del(`/api/admin/users/${customer._id}?olderThanMonths=${RETENTION_MONTHS}`);
+      // Temporary: force=true skips GDPR retention so you can delete test accounts. Remove force when enforcing GDPR.
+      await del(`/api/admin/users/${customer._id}?force=true`);
       await fetchCustomers({ page: customerPagination.page });
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
