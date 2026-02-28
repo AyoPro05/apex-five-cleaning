@@ -170,7 +170,7 @@ const PaymentPending = () => {
                 If your payment is still processing after 2 minutes, please contact support immediately.
               </p>
               <a
-                href="tel:+441234567890"
+                href="tel:+447377280558"
                 className="inline-block bg-red-600 text-white px-4 py-2 rounded font-semibold hover:bg-red-700 transition"
               >
                 📞 Call Support Now

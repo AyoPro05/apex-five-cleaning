@@ -2,9 +2,9 @@ import { Phone, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 
-const WHATSAPP_NUMBER = '441622621133'
-const PHONE_DISPLAY = '01622 621 133'
-const PHONE_LINK = 'tel:+441622621133'
+const WHATSAPP_NUMBER = '447377280558'
+const PHONE_DISPLAY = '+44 7377 280558'
+const PHONE_LINK = 'tel:+447377280558'
 
 const badges = [
   {

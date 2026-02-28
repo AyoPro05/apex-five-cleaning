@@ -528,7 +528,7 @@ const Home = () => {
               <Phone className="w-8 h-8 text-teal-600 mb-3" />
               <h3 className="font-bold text-gray-900 mb-2">Direct Contact</h3>
               <p className="text-gray-600">
-                Call +44 1622 621133 for your area.
+                Call +44 7377 280558 for your area.
               </p>
             </motion.div>
             <motion.div
@@ -563,7 +563,7 @@ const Home = () => {
                 Get Free Quote
               </button>
               <a
-                href="tel:+441622621133"
+                href="tel:+447377280558"
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
               >
                 Call Now
@@ -738,10 +738,10 @@ const Home = () => {
                 Book Now
               </button>
               <a
-                href="tel:+441622621133"
+                href="tel:+447377280558"
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
               >
-                Call +44 1622 621133
+                Call +44 7377 280558
               </a>
             </div>
           </motion.div>

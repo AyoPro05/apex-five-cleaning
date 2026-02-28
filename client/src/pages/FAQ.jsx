@@ -76,7 +76,7 @@ const FAQ = () => {
       items: [
         {
           question: 'How do I book a cleaning service?',
-          answer: 'Book via our website (Request a Quote form), call +44 1622 621133, or message us on WhatsApp. We\'ll confirm availability and send a no-obligation quote within 24 hours (often sooner). For recurring services, we can set up a standing schedule. For urgent or same-day requests, call or WhatsApp for fastest response.'
+          answer: 'Book via our website (Request a Quote form), call +44 7377 280558, or message us on WhatsApp. We\'ll confirm availability and send a no-obligation quote within 24 hours (often sooner). For recurring services, we can set up a standing schedule. For urgent or same-day requests, call or WhatsApp for fastest response.'
         },
         {
           question: 'What payment methods do you accept?',
@@ -142,7 +142,7 @@ const FAQ = () => {
               Frequently Asked Questions
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Can't find the answer you're looking for? Contact us directly at +44 1622 621133 or via our contact form.
+              Can't find the answer you're looking for? Contact us directly at +44 7377 280558 or via our contact form.
             </p>
           </motion.div>
 
@@ -198,7 +198,7 @@ const FAQ = () => {
                 Contact Us
               </Link>
               <a
-                href="tel:+441622621133"
+                href="tel:+447377280558"
                 className="bg-amber-400 hover:bg-amber-500 text-gray-900 px-8 py-3 rounded-lg font-bold transition text-center"
               >
                 Call Now

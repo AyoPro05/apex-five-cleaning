@@ -248,7 +248,7 @@ const Blog = () => {
               Contact Us
             </button>
             <a
-              href="tel:+441622621133"
+              href="tel:+447377280558"
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
               Call Now

@@ -25,17 +25,17 @@ export const websiteKnowledge = [
   // Pricing
   { keywords: ['price', 'cost', 'quote', 'how much', 'pricing'],
     topic: 'Pricing',
-    answer: 'Residential from £45, end of tenancy from £150, Airbnb from £60, commercial from £80. Exact price depends on property size. Get a free quote on our website or call +44 1622 621133.',
+    answer: 'Residential from £45, end of tenancy from £150, Airbnb from £60, commercial from £80. Exact price depends on property size. Get a free quote on our website or call +44 7377 280558.',
     link: '/request-a-quote' },
   // Booking
   { keywords: ['book', 'appointment', 'schedule', 'how to book'],
     topic: 'Booking',
-    answer: 'Book via Request a Quote on our website, call +44 1622 621133, or WhatsApp. We send a no-obligation quote within 24 hours. Urgent requests: call or WhatsApp for fastest response.',
+    answer: 'Book via Request a Quote on our website, call +44 7377 280558, or WhatsApp. We send a no-obligation quote within 24 hours. Urgent requests: call or WhatsApp for fastest response.',
     link: '/request-a-quote' },
   // Contact
   { keywords: ['contact', 'phone', 'email', 'address', 'where', 'location'],
     topic: 'Contact',
-    answer: 'Address: 123, Main road, Broadway, Sittingbourne plaza ME11 2BY. Phone: +44 1622 621133. Email: info@apexfivecleaning.co.uk. We reply within 24 hours.',
+    answer: 'Address: 123, Main road, Broadway, Sittingbourne plaza ME11 2BY. Phone: +44 7377 280558. Email: info@apexfivecleaning.co.uk. We reply within 24 hours.',
     link: '/contact' },
   // Payment
   { keywords: ['pay', 'payment', 'card', 'pay online'],

@@ -161,6 +161,108 @@ const BlogPost = () => {
         <h2>Conclusion</h2>
         <p>Proper preparation helps your professional cleaners deliver the best possible results. It's a simple way to maximize the value of your cleaning investment.</p>
       `
+    },
+    'airbnb-cleaning-best-practices': {
+      title: 'Cleaning for Airbnb Hosts: Turnaround Best Practices',
+      author: 'Apex Five Team',
+      date: '2026-01-15',
+      readTime: '7 min read',
+      category: 'Airbnb Tips',
+      image: '/images/blog/blog-airbnb-cleaning.jpg',
+      content: `
+        <h2>Why Turnaround Cleaning Matters</h2>
+        <p>As an Airbnb host, your reviews live and die by how clean and welcoming your property feels. Guests expect a spotless, hotel-quality space every time. Fast, consistent turnaround cleaning is essential for back-to-back bookings and five-star ratings.</p>
+        
+        <h2>Create a Turnaround Checklist</h2>
+        <p>Develop a repeatable checklist so nothing is missed between guests. Include:</p>
+        <ul>
+          <li>Strip and replace all bedding and towels</li>
+          <li>Deep clean kitchen and bathroom</li>
+          <li>Vacuum and mop all floors</li>
+          <li>Restock amenities (toiletries, tea, coffee)</li>
+          <li>Check appliances and fix any issues</li>
+          <li>Inspect for damage or missing items</li>
+        </ul>
+        
+        <h2>Time Your Clean Right</h2>
+        <p>Schedule your cleaning as soon as guests check out. A 4–6 hour window between checkout and check-in is ideal. For same-day turnarounds, use a professional cleaning team so the property is guest-ready on time.</p>
+        
+        <h2>Professional vs DIY</h2>
+        <p>Many successful hosts use a professional cleaning service for every turnover. It saves time, ensures consistency, and reduces the risk of negative reviews. Apex Five Cleaning offers dedicated Airbnb turnover services across Kent.</p>
+        
+        <h2>Conclusion</h2>
+        <p>Consistent, thorough cleaning between guests is the foundation of great Airbnb reviews. Invest in a solid process—or a reliable cleaning partner—and your ratings will thank you.</p>
+      `
+    },
+    'spring-cleaning-checklist': {
+      title: 'Spring Cleaning Checklist: Room by Room',
+      author: 'Emily Carter',
+      date: '2026-01-12',
+      readTime: '9 min read',
+      category: 'Cleaning Tips',
+      image: '/images/blog/blog-spring-cleaning.jpg',
+      content: `
+        <h2>Why Spring Clean?</h2>
+        <p>Spring is the perfect time to refresh your home after the winter months. A thorough room-by-room clean improves air quality, reduces allergens, and gives you a fresh start for the warmer season.</p>
+        
+        <h2>Kitchen</h2>
+        <ul>
+          <li>Empty and clean inside fridge and freezer</li>
+          <li>Degrease oven, hob, and extractor</li>
+          <li>Wipe down all cupboards inside and out</li>
+          <li>Clean behind and under appliances</li>
+          <li>Descale kettle and coffee machine</li>
+          <li>Organise pantry and discard out-of-date items</li>
+        </ul>
+        
+        <h2>Bathrooms</h2>
+        <ul>
+          <li>Remove limescale from taps, shower, and tiles</li>
+          <li>Deep clean toilet and grout</li>
+          <li>Clean mirrors and light fixtures</li>
+          <li>Wash bath mats and shower curtain</li>
+          <li>Check and replace sealant if needed</li>
+        </ul>
+        
+        <h2>Bedrooms & Living Areas</h2>
+        <ul>
+          <li>Vacuum under beds and behind furniture</li>
+          <li>Wash or air duvets and pillows</li>
+          <li>Dust all surfaces, skirting boards, and light fittings</li>
+          <li>Clean windows inside and out</li>
+          <li>Rotate or flip mattresses if applicable</li>
+        </ul>
+        
+        <h2>Don't Forget</h2>
+        <p>Include hallways, stairs, and any storage areas. Declutter as you go—donate or recycle items you no longer need. If the list feels overwhelming, consider booking a one-off deep clean with Apex Five to tick the big items off in one go.</p>
+        
+        <h2>Conclusion</h2>
+        <p>A room-by-room spring clean sets you up for a healthier, more organised home. Take it one room at a time and you'll get there.</p>
+      `
+    },
+    'professional-cleaning-saves-time-money': {
+      title: 'Why Professional Cleaning Saves Time and Money',
+      author: 'Apex Five Team',
+      date: '2026-01-10',
+      readTime: '6 min read',
+      category: 'Insights',
+      image: '/images/blog/blog-professional-cleaning.jpg',
+      content: `
+        <h2>The Real Cost of DIY Cleaning</h2>
+        <p>When you add up the time spent cleaning, the cost of equipment and products, and the opportunity cost of your own labour, DIY cleaning is often more expensive than it seems. Many people underestimate how many hours they spend on routine and deep cleans each month.</p>
+        
+        <h2>Time You Get Back</h2>
+        <p>Professional cleaners work efficiently and know the best techniques. What might take you a full weekend can often be done in a few hours by a trained team. That time can go toward work, family, or simply resting.</p>
+        
+        <h2>Better Results, Fewer Redos</h2>
+        <p>Professionals have the right tools and experience to do the job properly the first time. That means fewer half-done jobs, less frustration, and a home that stays cleaner for longer between visits.</p>
+        
+        <h2>When It Makes Sense</h2>
+        <p>Professional cleaning is especially valuable for busy households, end of tenancy, Airbnb turnarounds, and one-off deep cleans. Even a regular fortnightly or monthly clean can free up significant time and reduce stress.</p>
+        
+        <h2>Conclusion</h2>
+        <p>Investing in professional cleaning isn't a luxury—for many households it's the smart, cost-effective choice. Get a free quote and see how much time and money you could save.</p>
+      `
     }
   }
 
@@ -306,7 +408,7 @@ const BlogPost = () => {
                 Get Free Quote
               </button>
               <a
-                href="tel:+441622621133"
+                href="tel:+447377280558"
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
               >
                 Call Now

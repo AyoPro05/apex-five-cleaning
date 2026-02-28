@@ -211,8 +211,8 @@ const PaymentError = () => {
                 </div>
                 <div>
                   📞{' '}
-                  <a href="tel:+441234567890" className="text-blue-600 hover:underline font-semibold">
-                    +44 1234 567890
+                  <a href="tel:+447377280558" className="text-blue-600 hover:underline font-semibold">
+                    +44 7377 280558
                   </a>
                 </div>
                 <div>

@@ -95,7 +95,7 @@ const getBrandConfig = () => {
     website: process.env.COMPANY_WEBSITE || 'https://apexfivecleaning.co.uk',
     websiteDisplay: process.env.COMPANY_WEBSITE_DISPLAY || 'apexfivecleaning.co.uk',
     email: process.env.COMPANY_EMAIL || process.env.NOTIFY_EMAIL || 'hello@apexfivecleaning.co.uk',
-    phone: process.env.COMPANY_PHONE || '+44 1622 621133',
+    phone: process.env.COMPANY_PHONE || '+44 7377 280558',
     address: process.env.COMPANY_ADDRESS || 'Canterbury, Kent, UK',
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'

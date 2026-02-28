@@ -309,7 +309,7 @@ const ServiceArea = () => {
       latitude: area.coordinates.lat,
       longitude: area.coordinates.lng,
     },
-    telephone: "+441622621133",
+    telephone: "+447377280558",
     url: `${SITE_URL}/service-areas/${areaSlug}`,
     priceRange: "£45-£250",
     areaServed: {
@@ -373,7 +373,7 @@ const ServiceArea = () => {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href="tel:+441622621133"
+                href="tel:+447377280558"
                 className="bg-white text-teal-700 px-8 py-3 rounded-lg font-bold transition text-center hover:bg-gray-50"
               >
                 Call Now
@@ -482,13 +482,13 @@ const ServiceArea = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="tel:+441622621133"
+              href="tel:+447377280558"
               className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition text-center"
             >
-              Call: +44 1622 621133
+              Call: +44 7377 280558
             </a>
             <a
-              href={`https://wa.me/441622621133?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20a%20quote%20for%20services%20in%20${area.name}`}
+              href={`https://wa.me/447377280558?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20a%20quote%20for%20services%20in%20${area.name}`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold transition text-center"
