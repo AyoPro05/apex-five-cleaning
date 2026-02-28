@@ -7,38 +7,50 @@ import nodemailer from 'nodemailer';
  * one config works for all customers. Deliverability depends on your sending
  * domain (SPF/DKIM/DMARC), not the recipient's domain.
  */
-const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
 
 let smtpTransport = null;
 let sendGridReady = false;
+let initialized = false;
 
-if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  sendGridReady = true;
-  console.log('✓ SendGrid initialized');
-}
+/**
+ * Lazy initialization - only called once when first needed
+ */
+function initializeEmailProvider() {
+  if (initialized) return;
+  initialized = true;
 
-if (EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  smtpTransport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: parseInt(process.env.SMTP_PORT, 10) === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-  console.log(`✓ SMTP configured: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-} else if (EMAIL_PROVIDER === 'smtp') {
-  const missing = [];
-  if (!process.env.SMTP_HOST) missing.push('SMTP_HOST');
-  if (!process.env.SMTP_USER) missing.push('SMTP_USER');
-  if (!process.env.SMTP_PASS) missing.push('SMTP_PASS');
-  console.error(`❌ Email not configured. Missing: ${missing.join(', ')}. Verification and notification emails will not be sent.`);
+  const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
+
+  if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sendGridReady = true;
+    console.log('✓ SendGrid initialized');
+  }
+
+  if (EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    smtpTransport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      secure: parseInt(process.env.SMTP_PORT, 10) === 465,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    console.log(`✓ SMTP configured: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+  } else if (EMAIL_PROVIDER === 'smtp') {
+    const missing = [];
+    if (!process.env.SMTP_HOST) missing.push('SMTP_HOST');
+    if (!process.env.SMTP_USER) missing.push('SMTP_USER');
+    if (!process.env.SMTP_PASS) missing.push('SMTP_PASS');
+    console.error(`❌ Email not configured. Missing: ${missing.join(', ')}. Verification and notification emails will not be sent.`);
+  }
 }
 
 /** Returns true if outbound email can be sent (same config sends to any recipient domain). */
 export function isEmailConfigured() {
+  initializeEmailProvider();
+  const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
   if (EMAIL_PROVIDER === 'sendgrid') return sendGridReady;
   if (EMAIL_PROVIDER === 'smtp') return smtpTransport != null;
   return false;
@@ -49,6 +61,8 @@ export function isEmailConfigured() {
  * @returns {{ configured: boolean, provider: string|null, hint?: string }}
  */
 export function getEmailConfigStatus() {
+  initializeEmailProvider();
+  const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
   const provider = EMAIL_PROVIDER === 'sendgrid' ? 'sendgrid' : EMAIL_PROVIDER === 'smtp' ? 'smtp' : null;
   const configured = isEmailConfigured();
   let hint;
@@ -253,6 +267,7 @@ export const getAdminNotificationTemplate = (quoteData) => {
 };
 
 export const sendClientConfirmationEmail = async (toEmail, firstName, quoteId) => {
+  initializeEmailProvider();
   const template = getClientConfirmationTemplate(firstName, quoteId);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
@@ -373,6 +388,7 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
 };
 
 export const sendAdminNotificationEmail = async (quoteData) => {
+  initializeEmailProvider();
   const template = getAdminNotificationTemplate(quoteData);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
@@ -555,6 +571,7 @@ export const getResendVerificationTemplate = (firstName, verificationLink, expir
  * Send verification email
  */
 export const sendVerificationEmail = async (toEmail, firstName, verificationToken) => {
+  initializeEmailProvider();
   const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
   const template = getVerificationEmailTemplate(firstName, verificationLink, 24);
   const senderEmail = getSenderEmail();
@@ -676,4 +693,4 @@ export const sendResendVerificationEmail = async (toEmail, firstName, verificati
     console.error('❌ Error sending resend verification email:', error.message);
     return { success: false, error: error.message };
   }
-}
+};

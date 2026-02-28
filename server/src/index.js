@@ -1,9 +1,17 @@
 import dotenv from "dotenv";
-dotenv.config();
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.resolve(__dirname, '..', '.env');
+const result = dotenv.config({ path: envPath });
+console.log('✓ Loaded .env from:', envPath);
+if (result.error) {
+  console.error('❌ Error loading .env:', result.error.message);
+} else {
+  console.log('✓ EMAIL_PROVIDER:', process.env.EMAIL_PROVIDER);
+  console.log('✓ SENDGRID_API_KEY:', process.env.SENDGRID_API_KEY ? '✓ Present' : '✗ Missing');
+}
 
 import express from "express";
 import cors from "cors";
@@ -92,7 +100,6 @@ app.get("/health", (req, res) => {
 // Serve uploaded quote images (absolute path so it works regardless of cwd)
 const uploadsPath = path.resolve(__dirname, "..", "uploads");
 app.use("/uploads", express.static(uploadsPath));
-// Also serve at /api/uploads so client getImageUrl() (which uses /api/uploads for proxy) works
 app.use("/api/uploads", express.static(uploadsPath));
 if (NODE_ENV === "development") {
   console.log(`✓ Uploads served from: ${uploadsPath}`);

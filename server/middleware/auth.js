@@ -34,6 +34,17 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
+    // Special case: admin JWT issued by /api/admin/login (id: "admin", role: "admin")
+    if (decoded.role === 'admin' && userId === 'admin') {
+      req.user = {
+        ...decoded,
+        id: 'admin',
+        isVerified: true,
+      };
+      req.isAdmin = true;
+      return next();
+    }
+
     // Load user to enforce current status (role, isVerified, etc.)
     const user = await User.findById(userId).select('role isVerified');
 
