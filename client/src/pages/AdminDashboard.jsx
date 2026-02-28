@@ -330,7 +330,13 @@ const AdminDashboard = () => {
           <p className="text-sm text-gray-600 mb-4">
             Enter your admin token to receive a short-lived session. You may need to sign in again after about an hour.
           </p>
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleAdminLogin()
+            }}
+            className="space-y-4"
+          >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Admin Token
@@ -339,28 +345,29 @@ const AdminDashboard = () => {
                 type="password"
                 value={adminToken}
                 onChange={(e) => {
-                  setAdminToken(e.target.value);
-                  setLoginError("");
+                  setAdminToken(e.target.value)
+                  setLoginError("")
                 }}
                 placeholder="Enter your admin token"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
                 disabled={loginLoading}
+                autoComplete="one-time-code"
               />
             </div>
             {loginError && (
               <p className="text-sm text-red-600">{loginError}</p>
             )}
             <button
-              onClick={handleAdminLogin}
+              type="submit"
               disabled={loginLoading || !adminToken.trim()}
               className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white py-2 rounded-lg font-semibold transition"
             >
               {loginLoading ? "Signing in…" : "Access Dashboard"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
-    );
+    )
   }
 
   return (

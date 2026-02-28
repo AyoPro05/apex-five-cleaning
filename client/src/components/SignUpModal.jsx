@@ -194,6 +194,12 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
                 name="passwordConfirm"
                 value={formData.passwordConfirm}
                 onChange={handleChange}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !loading) {
+                    e.preventDefault()
+                    handleSubmit(e)
+                  }
+                }}
                 required
                 placeholder="Re-enter password"
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
