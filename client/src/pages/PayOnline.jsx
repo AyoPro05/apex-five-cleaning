@@ -254,7 +254,7 @@ export default function PayOnline() {
     )
   }
 
-  // Gate: must sign in first
+  // Gate: not signed in — offer guest payment (quote ref + email) OR login/signup
   if (!isAuthenticated) {
     return (
       <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
@@ -263,27 +263,90 @@ export default function PayOnline() {
             <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Secure Payment</span>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Pay Online</h1>
             <p className="text-gray-600">
-              Log in to pay for your approved quote. New to Apex Five? Create an account below.
+              Pay for your approved quote with your reference and email — no account needed. Or log in if you have one.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="space-y-6">
-              <button
-                onClick={openSignIn}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition"
-              >
-                <LogIn className="w-5 h-5" />
-                Log In
-              </button>
-              <p className="text-center text-gray-600 text-sm">
-                Don&apos;t have an account?{' '}
-                <button onClick={openSignUp} className="text-teal-600 font-semibold hover:underline">
-                  Sign up
-                </button>
+          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">One-off payment (no account)</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Enter the quote reference from your approval email and your email address.
               </p>
+              <form onSubmit={handleLookup} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Quote reference (e.g. AP12345678)</label>
+                  <input
+                    type="text"
+                    value={quoteRef}
+                    onChange={(e) => setQuoteRef(e.target.value)}
+                    placeholder="e.g. AP12345678"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{error}</p>
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Looking up...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      Continue to payment
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            <div className="border-t border-gray-200 pt-6">
+              <p className="text-sm text-gray-600 mb-3">Already have an account?</p>
+              <div className="space-y-3">
+                <button
+                  onClick={openSignIn}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold transition"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Log in
+                </button>
+                <p className="text-center text-gray-600 text-sm">
+                  Don&apos;t have an account?{' '}
+                  <button onClick={openSignUp} className="text-teal-600 font-semibold hover:underline">
+                    Sign up
+                  </button>
+                </p>
+              </div>
             </div>
           </div>
+
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Don&apos;t have a quote yet?{' '}
+            <button onClick={() => navigate('/request-a-quote')} className="text-teal-600 font-medium hover:underline">
+              Request a quote
+            </button>
+          </p>
         </div>
       </motion.section>
     )
