@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { X, Mail, Lock, User, Phone, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { post } from '../utils/apiClient'
 
 const REF_STORAGE_KEY = 'apex_referral_code'
 
@@ -29,6 +30,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -82,8 +85,24 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
     if (isOpen) {
       setSuccess(false)
       setRegisteredEmail('')
+      setResendMessage('')
     }
   }, [isOpen])
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail || resendLoading) return
+    setResendLoading(true)
+    setResendMessage('')
+    try {
+      await post('/api/auth/resend-verification-email', { email: registeredEmail })
+      setResendMessage('A new verification link has been sent. Check your inbox and spam folder.')
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message
+      setResendMessage(msg || 'Could not send verification email. Please try again.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -112,9 +131,25 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
             <p className="text-gray-600 mb-4">
               We&apos;ve sent a verification link to <span className="font-semibold text-gray-900">{registeredEmail}</span>.
             </p>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 mb-4">
               Please check your inbox (and spam folder). Click the link in the email to verify your account, then you can log in.
             </p>
+            <p className="text-sm text-gray-600 mb-2">
+              Didn&apos;t receive it?{' '}
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="text-teal-600 font-semibold hover:underline disabled:opacity-50"
+              >
+                {resendLoading ? 'Sending…' : 'Request another verification email'}
+              </button>
+            </p>
+            {resendMessage && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${resendMessage.includes('sent') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+                {resendMessage}
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <button
                 type="button"

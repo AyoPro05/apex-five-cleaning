@@ -73,7 +73,8 @@ export function getEmailConfigStatus() {
 
 // Get sender email based on provider
 const getSenderEmail = () => {
-  if (EMAIL_PROVIDER === 'sendgrid') {
+  const provider = process.env.EMAIL_PROVIDER || 'smtp';
+  if (provider === 'sendgrid') {
     return process.env.SENDGRID_FROM_EMAIL || 'no-reply@apexfivecleaning.co.uk';
   }
   return process.env.SMTP_FROM_EMAIL || 'no-reply@apexfivecleaning.co.uk';
