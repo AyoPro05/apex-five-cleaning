@@ -3,14 +3,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = path.resolve(__dirname, '..', '.env');
+const envPath = path.resolve(__dirname, "..", ".env");
 const result = dotenv.config({ path: envPath });
-console.log('✓ Loaded .env from:', envPath);
 if (result.error) {
-  console.error('❌ Error loading .env:', result.error.message);
+  // Expected on Render/Heroku – env vars come from the platform
+  if (process.env.NODE_ENV === "development") {
+    console.warn("⚠ No .env file found at", envPath, "- using environment variables");
+  }
 } else {
-  console.log('✓ EMAIL_PROVIDER:', process.env.EMAIL_PROVIDER);
-  console.log('✓ SENDGRID_API_KEY:', process.env.SENDGRID_API_KEY ? '✓ Present' : '✗ Missing');
+  console.log("✓ Loaded .env from:", envPath);
 }
 
 import express from "express";
