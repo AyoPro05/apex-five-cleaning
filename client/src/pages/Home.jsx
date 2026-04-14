@@ -18,6 +18,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
+import SEO from "../components/SEO";
+import { SITE_URL } from "../config/site";
 
 // Scroll reveal animation config
 const scrollReveal = {
@@ -193,8 +195,46 @@ const Home = () => {
     return visible;
   };
 
+  const homeSchemas = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "Apex Five Cleaning",
+      url: SITE_URL,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/blog?search={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      name: "Apex Five Cleaning",
+      url: SITE_URL,
+      image: `${SITE_URL}/apex-five-logo.png`,
+      telephone: "+447377280558",
+      email: "info@apexfivecleaning.co.uk",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "123 Main road, Broadway, Sittingbourne plaza",
+        addressLocality: "Sittingbourne",
+        postalCode: "ME11 2BY",
+        addressCountry: "GB",
+      },
+      areaServed: ["Kent", "Swale", "Croydon"],
+      sameAs: [],
+    },
+  ];
+
   return (
     <>
+      <SEO
+        title="Professional Eco-Friendly Cleaning Services in Kent"
+        description="Trusted residential, end of tenancy, Airbnb, and commercial cleaning services across Kent and nearby areas. Get a free quote from Apex Five Cleaning."
+        path="/"
+        jsonLd={homeSchemas}
+      />
       {/* Hero Section */}
       <section
         className="relative min-h-screen flex items-center pt-20 overflow-hidden"

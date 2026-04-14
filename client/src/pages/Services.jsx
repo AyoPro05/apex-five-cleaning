@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
 import { scrollReveal, scrollRevealVisible, staggerContainer, staggerItem } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 // Service image paths - files in /public/images/services/ named as below
 const SERVICE_IMAGES = {
@@ -116,8 +117,14 @@ const Services = () => {
   ]
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Cleaning Services in Kent"
+        description="Explore our residential, end of tenancy, Airbnb turnover, and commercial cleaning services. Eco-friendly products, reliable teams, and transparent pricing."
+        path="/services"
+      />
+      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Our Services</span>
@@ -276,8 +283,9 @@ const Services = () => {
             </a>
           </div>
         </motion.div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

@@ -1,11 +1,18 @@
 import { motion } from 'framer-motion'
 import { Crown } from 'lucide-react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 const About = () => {
   return (
-    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="About Apex Five Cleaning"
+        description="Learn about Apex Five Cleaning, our values, and our mission to deliver trusted eco-friendly cleaning services across Kent and nearby areas."
+        path="/about"
+      />
+      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">About Us</span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">About Apex Five Cleaning</h1>
@@ -52,8 +59,9 @@ const About = () => {
             We proudly serve Kent and the surrounding South East England area. Contact us to see if we cover your location.
           </p>
         </motion.div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-react";
 import { post } from "../utils/apiClient";
 import { scrollReveal } from "../utils/scrollReveal";
+import SEO from "../components/SEO";
 
 // Additional services customers can add to their quote
 const ADDITIONAL_SERVICES = [
@@ -300,8 +301,14 @@ const Quote = () => {
   };
 
   return (
-    <motion.section className="pt-32 pb-20 bg-gray-50 min-h-screen" {...scrollReveal}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Request a Cleaning Quote"
+        description="Request a free no-obligation cleaning quote for residential, end of tenancy, Airbnb, or commercial services."
+        path="/request-a-quote"
+      />
+      <motion.section className="pt-32 pb-20 bg-gray-50 min-h-screen" {...scrollReveal}>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div className="text-center mb-8" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
             Get a Quote
@@ -886,8 +893,9 @@ const Quote = () => {
             )}
           </form>
         )}
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   );
 };
 

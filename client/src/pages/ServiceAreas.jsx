@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { MapPin, Phone, Clock } from 'lucide-react'
 import ServiceAreaMap from '../components/ServiceAreaMap'
 import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 const ServiceAreas = () => {
   const navigate = useNavigate()
@@ -40,8 +41,14 @@ const ServiceAreas = () => {
   ]
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Cleaning Service Areas"
+        description="See all areas we cover including Canterbury, Dover, Maidstone, Tunbridge Wells, Sevenoaks, Ashford, and more."
+        path="/service-areas"
+      />
+      <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Service Coverage</span>
@@ -132,8 +139,9 @@ const ServiceAreas = () => {
             </a>
           </div>
         </motion.div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

@@ -4,6 +4,7 @@ import { Clock, ArrowRight, Search } from 'lucide-react'
 import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import BlogImage from '../components/BlogImage'
+import SEO from '../components/SEO'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -99,8 +100,14 @@ const Blog = () => {
   const featuredPosts = blogPosts.filter(post => post.featured).slice(0, 2)
 
   return (
-    <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Cleaning Blog and Resources"
+        description="Read expert cleaning tips, end of tenancy guides, Airbnb turnover advice, and eco-friendly home cleaning insights."
+        path="/blog"
+      />
+      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header - visible immediately */}
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Blog & Resources</span>
@@ -255,8 +262,9 @@ const Blog = () => {
             </a>
           </div>
         </div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

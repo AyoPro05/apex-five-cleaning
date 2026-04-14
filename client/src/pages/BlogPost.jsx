@@ -4,6 +4,7 @@ import { Clock, User, Share2, ArrowLeft } from 'lucide-react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import { SITE_URL } from '../config/site'
 import BlogImage from '../components/BlogImage'
+import SEO from '../components/SEO'
 
 const BlogPost = () => {
   const { slug } = useParams()
@@ -307,10 +308,41 @@ const BlogPost = () => {
     description: post.title
   }
 
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: SITE_URL
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Blog',
+        item: `${SITE_URL}/blog`
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: post.title,
+        item: `${SITE_URL}/blog/${slug}`
+      }
+    ]
+  }
+
   return (
     <>
-      {/* Schema Markup */}
-      <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>
+      <SEO
+        title={post.title}
+        description={`${post.category} article by ${post.author}. ${post.readTime}.`}
+        path={`/blog/${slug}`}
+        image={`${SITE_URL}${post.image}`}
+        type="article"
+        jsonLd={[blogSchema, breadcrumbSchema]}
+      />
 
       <motion.section className="pt-20 pb-20 min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -363,6 +395,7 @@ const BlogPost = () => {
 
           {/* Article Content */}
           <div className="prose prose-lg max-w-none mb-12">
+            {/* Content is from app-controlled blogDatabase only – not user input – so safe for dangerouslySetInnerHTML. If you later load from CMS/API, sanitize HTML. */}
             <div dangerouslySetInnerHTML={{ __html: post.content }} />
           </div>
 

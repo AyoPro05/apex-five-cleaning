@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0)
@@ -130,8 +131,12 @@ const FAQ = () => {
 
   return (
     <>
-      {/* FAQ Schema Markup */}
-      <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+      <SEO
+        title="Cleaning FAQ"
+        description="Answers to common questions about residential, end of tenancy, Airbnb, and commercial cleaning services."
+        path="/faq"
+        jsonLd={faqSchema}
+      />
 
       <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

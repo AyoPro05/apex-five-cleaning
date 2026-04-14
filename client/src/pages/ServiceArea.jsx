@@ -5,6 +5,7 @@ import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
 import { scrollReveal } from "../utils/scrollReveal";
 import { SITE_URL } from "../config/site";
+import SEO from "../components/SEO";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -319,10 +320,40 @@ const ServiceArea = () => {
     serviceType: area.servicesCovered,
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Service Areas",
+        item: `${SITE_URL}/service-areas`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: area.name,
+        item: `${SITE_URL}/service-areas/${areaSlug}`,
+      },
+    ],
+  };
+
   return (
     <>
-      {/* Schema Markup */}
-      <script type="application/ld+json">{JSON.stringify(localSchema)}</script>
+      <SEO
+        title={`Cleaning Services in ${area.name}`}
+        description={`Professional residential, end of tenancy, and Airbnb cleaning services in ${area.name}. Fast quotes and trusted local cleaners.`}
+        path={`/service-areas/${areaSlug}`}
+        image={area.image}
+        jsonLd={[localSchema, breadcrumbSchema]}
+      />
 
       <section
         className="relative min-h-96 py-20 mb-20 overflow-hidden"
