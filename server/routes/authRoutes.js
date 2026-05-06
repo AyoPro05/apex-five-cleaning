@@ -6,6 +6,7 @@
 import express from 'express';
 import * as authController from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { strictRateLimiter } from '../src/middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -50,5 +51,19 @@ router.patch('/me', authMiddleware, authController.updateMe);
  * @access  Private
  */
 router.post('/logout', authMiddleware, authController.logout);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public (rate limited)
+ */
+router.post('/forgot-password', strictRateLimiter, authController.forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with token from email
+ * @access  Public (rate limited)
+ */
+router.post('/reset-password', strictRateLimiter, authController.resetPassword);
 
 export default router;

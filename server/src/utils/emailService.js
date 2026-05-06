@@ -8,6 +8,9 @@ import nodemailer from 'nodemailer';
  * domain (SPF/DKIM/DMARC), not the recipient's domain.
  */
 
+// Provider for send functions (evaluated when module loads, after dotenv in index.js)
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
+
 let smtpTransport = null;
 let sendGridReady = false;
 let initialized = false;
@@ -573,7 +576,7 @@ export const getResendVerificationTemplate = (firstName, verificationLink, expir
  */
 export const sendVerificationEmail = async (toEmail, firstName, verificationToken) => {
   initializeEmailProvider();
-  const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+  const verificationLink = `${(process.env.CLIENT_URL || 'https://www.apexfivecleaning.co.uk').replace(/\/$/, '')}/verify-email?token=${verificationToken}`;
   const template = getVerificationEmailTemplate(firstName, verificationLink, 24);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
@@ -658,7 +661,7 @@ export const sendVerificationSuccessEmail = async (toEmail, firstName) => {
  * Send resend verification email
  */
 export const sendResendVerificationEmail = async (toEmail, firstName, verificationToken) => {
-  const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+  const verificationLink = `${(process.env.CLIENT_URL || 'https://www.apexfivecleaning.co.uk').replace(/\/$/, '')}/verify-email?token=${verificationToken}`;
   const template = getResendVerificationTemplate(firstName, verificationLink, 24);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
@@ -692,6 +695,87 @@ export const sendResendVerificationEmail = async (toEmail, firstName, verificati
     }
   } catch (error) {
     console.error('❌ Error sending resend verification email:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Password reset email template
+ */
+function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
+  const brand = getBrandConfig();
+  return {
+    subject: `🔐 Reset Your Password - ${brand.companyName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .reset-box { background: #ecfdf5; border-left: 4px solid #14b8a6; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .expiry { font-size: 13px; color: #0d9488; margin-top: 12px; }
+          .security-note { background: #fef3c7; padding: 12px; margin: 16px 0; border-radius: 4px; font-size: 13px; }
+        </style></head>
+        <body>
+          <div class="email-container">
+            ${getEmailHeader(brand, '🔐 Reset Your Password', 'Use the link below to set a new password')}
+            <div class="email-content">
+              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>We received a request to reset the password for your ${brand.companyName} account.</p>
+              <div class="reset-box">
+                <a href="${resetLink}" class="cta-button">Reset Password</a>
+                <p class="expiry">⏰ This link expires in <strong>${expiryHours} hour${expiryHours !== 1 ? 's' : ''}</strong>.</p>
+              </div>
+              <div class="security-note">
+                <strong>Didn't request this?</strong> You can safely ignore this email. Your password will not be changed.
+              </div>
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a>.</p>
+            </div>
+            ${getEmailFooter(brand)}
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Reset Your Password - ${brand.companyName}\n\nHello ${firstName},\n\nReset your password: ${resetLink}\n\nLink expires in ${expiryHours} hour(s).\n\nIf you didn't request this, ignore this email.\n\n${brand.companyName}`
+  };
+}
+
+/**
+ * Send password reset email
+ */
+export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => {
+  initializeEmailProvider();
+  const resetLink = `${(process.env.CLIENT_URL || 'https://apexfivecleaning.co.uk').replace(/\/$/, '')}/reset-password?token=${resetToken}`;
+  const template = getPasswordResetTemplate(firstName, resetLink, 1);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      const msg = {
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      };
+      await sgMail.send(msg);
+      console.log(`✓ Password reset email sent to ${toEmail} via SendGrid`);
+      return { success: true };
+    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text
+      });
+      console.log(`✓ Password reset email sent to ${toEmail} via SMTP`);
+      return { success: true };
+    } else {
+      console.warn('⚠️ No email provider configured. Password reset email not sent.');
+      return { success: false, error: 'No email provider configured' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error.message);
     return { success: false, error: error.message };
   }
 };

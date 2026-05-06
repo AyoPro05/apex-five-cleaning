@@ -24,6 +24,7 @@ const ServiceArea = lazy(() => import("./pages/ServiceArea"));
 const Quote = lazy(() => import("./pages/Quote"));
 const PayOnline = lazy(() => import("./pages/PayOnline"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -66,6 +67,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/pay-online" element={<PayOnline />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-error" element={<PaymentError />} />
           <Route path="/payment-pending" element={<PaymentPending />} />

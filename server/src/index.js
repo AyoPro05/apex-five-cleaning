@@ -14,6 +14,11 @@ if (result.error) {
   console.log("✓ Loaded .env from:", envPath);
 }
 
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET is required in production. Set it in your environment (e.g. Render dashboard).");
+  process.exit(1);
+}
+
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -84,18 +89,25 @@ app.get("/", (req, res) => {
   });
 });
 
+let dbConnected = false;
+
 // Health check for ops/monitoring (no secrets). Email status shows if verification/quote emails can be sent.
+// Returns 503 if MongoDB is not connected so load balancers can mark instance unhealthy.
 app.get("/health", (req, res) => {
   const email = getEmailConfigStatus();
-  res.json({
-    ok: true,
+  const payload = {
+    ok: dbConnected,
     timestamp: new Date().toISOString(),
     email: {
       configured: email.configured,
       provider: email.provider,
       ...(email.hint && { hint: email.hint }),
     },
-  });
+  };
+  if (!dbConnected) {
+    return res.status(503).json({ ...payload, error: "Database not connected" });
+  }
+  res.json(payload);
 });
 
 // Serve uploaded quote images (absolute path so it works regardless of cwd)
@@ -122,8 +134,10 @@ const connectDB = async () => {
     await mongoose.connect(
       process.env.MONGODB_URI || "mongodb://localhost:27017/apex-cleaning",
     );
+    dbConnected = true;
     console.log("✓ Connected to MongoDB");
   } catch (error) {
+    dbConnected = false;
     console.error("✗ MongoDB connection failed:", error.message);
   }
 };

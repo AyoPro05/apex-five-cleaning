@@ -142,8 +142,8 @@ const AdminDashboard = () => {
     setDeletingId(customer._id);
     setCustomersError("");
     try {
-      // Temporary: force=true skips GDPR retention so you can delete test accounts. Remove force when enforcing GDPR.
-      await del(`/api/admin/users/${customer._id}?force=true`);
+      // GDPR: only accounts older than 6 months can be deleted (enforced by API)
+      await del(`/api/admin/users/${customer._id}?olderThanMonths=6`);
       await fetchCustomers({ page: customerPagination.page });
     } catch (err) {
       const msg = err.response?.data?.error || err.message;

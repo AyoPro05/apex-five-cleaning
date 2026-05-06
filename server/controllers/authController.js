@@ -6,7 +6,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Referral from '../models/Referral.js';
-import { sendVerificationEmail, isEmailConfigured } from '../src/utils/emailService.js';
+import { sendVerificationEmail, isEmailConfigured, sendPasswordResetEmail } from '../src/utils/emailService.js';
 import crypto from 'crypto';
 
 /**
@@ -355,4 +355,137 @@ export const logout = (req, res) => {
     message: 'Logout successful',
     info: 'Token has been invalidated. Please delete it from client.'
   });
+};
+
+/**
+ * FORGOT PASSWORD
+ * POST /api/auth/forgot-password
+ * Sends a password reset link to the user's email
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing email',
+        message: 'Email address is required.'
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Don't reveal if user exists (security best practice)
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with that email, a password reset link has been sent.'
+      });
+    }
+
+    // Generate reset token (1 hour expiry)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+
+    const emailResult = await sendPasswordResetEmail(user.email, user.firstName, resetToken);
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Email send failed',
+        message: 'Could not send password reset email. Please try again later.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account exists with that email, a password reset link has been sent.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * RESET PASSWORD
+ * POST /api/auth/reset-password
+ * Resets password using token from email
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password, passwordConfirm } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing token',
+        message: 'Reset token is required.'
+      });
+    }
+
+    if (!password || !passwordConfirm) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: 'Password and confirmation are required.'
+      });
+    }
+
+    if (password !== passwordConfirm) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: 'Passwords do not match.'
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: 'Password must be at least 8 characters.'
+      });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired token',
+        message: 'The reset link is invalid or has expired. Please request a new one.'
+      });
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message
+    });
+  }
 };
