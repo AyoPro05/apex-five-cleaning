@@ -84,6 +84,8 @@ function App() {
           />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/quotes" element={<AdminDashboard />} />
+          <Route path="/admin/customers" element={<AdminDashboard />} />
+          <Route path="/admin/staff" element={<AdminDashboard />} />
           </Routes>
         </Suspense>
       </main>

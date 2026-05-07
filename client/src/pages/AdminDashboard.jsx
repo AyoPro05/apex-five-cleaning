@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { get, post, patch, getBlob, getImageUrl, del } from "../utils/apiClient";
 import {
   LineChart,
@@ -34,9 +34,17 @@ import {
 const RETENTION_MONTHS = 6;
 const CHART_COLORS = ["#0d9488", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
 
+const getTabFromPath = (pathname = "") => {
+  if (pathname.startsWith("/admin/quotes")) return "quotes";
+  if (pathname.startsWith("/admin/customers")) return "customers";
+  if (pathname.startsWith("/admin/staff")) return "staff";
+  return "dashboard";
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -139,7 +147,12 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteCustomer = async (customer) => {
-    if (!window.confirm(`Delete customer "${customer.firstName} ${customer.lastName}" (${customer.email})? This cannot be undone.`)) return;
+    if (
+      !window.confirm(
+        `Delete customer "${customer.firstName} ${customer.lastName}" (${customer.email})? This cannot be undone.`,
+      )
+    )
+      return;
     setDeletingId(customer._id);
     setCustomersError("");
     try {
@@ -148,6 +161,27 @@ const AdminDashboard = () => {
       await fetchCustomers({ page: customerPagination.page });
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
+      const isRetentionError =
+        typeof msg === "string" &&
+        msg.toLowerCase().includes("gdpr retention");
+
+      if (isRetentionError) {
+        const forceDelete = window.confirm(
+          `${msg}\n\nUse force delete for this account now?`,
+        );
+        if (forceDelete) {
+          try {
+            await del(`/api/admin/users/${customer._id}?olderThanMonths=6&force=true`);
+            await fetchCustomers({ page: customerPagination.page });
+            return;
+          } catch (forceErr) {
+            const forceMsg = forceErr.response?.data?.error || forceErr.message;
+            setCustomersError(forceMsg);
+            return;
+          }
+        }
+      }
+
       setCustomersError(msg);
     } finally {
       setDeletingId(null);
@@ -281,6 +315,11 @@ const AdminDashboard = () => {
     }
   }, [filters, adminToken]);
 
+  // Keep active tab in sync with URL path.
+  useEffect(() => {
+    setActiveTab(getTabFromPath(location.pathname));
+  }, [location.pathname]);
+
   // Load customers when switching to the Customers tab
   useEffect(() => {
     if (adminToken && !showTokenInput && activeTab === "customers") {
@@ -413,7 +452,7 @@ const AdminDashboard = () => {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("dashboard")}
+                  onClick={() => navigate("/admin")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
                     activeTab === "dashboard"
                       ? "bg-teal-600 text-white"
@@ -425,7 +464,7 @@ const AdminDashboard = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("quotes")}
+                  onClick={() => navigate("/admin/quotes")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                     activeTab === "quotes"
                       ? "bg-teal-600 text-white"
@@ -436,7 +475,7 @@ const AdminDashboard = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("customers")}
+                  onClick={() => navigate("/admin/customers")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                     activeTab === "customers"
                       ? "bg-teal-600 text-white"
@@ -444,6 +483,17 @@ const AdminDashboard = () => {
                   }`}
                 >
                   Customers
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin/staff")}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+                    activeTab === "staff"
+                      ? "bg-teal-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  Staff
                 </button>
               </div>
               <div className="mt-6 border-t pt-4">
@@ -556,7 +606,7 @@ const AdminDashboard = () => {
                         <h3 className="font-semibold text-gray-900">Recent Bookings</h3>
                         <button
                           type="button"
-                          onClick={() => setActiveTab("quotes")}
+                          onClick={() => navigate("/admin/quotes")}
                           className="text-sm font-medium text-teal-600 hover:text-teal-700"
                         >
                           View All →
@@ -1098,6 +1148,20 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
+              </>
+            )}
+
+            {activeTab === "staff" && (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900">Staff</h1>
+                  <p className="text-gray-600 mt-1">
+                    Staff management features will be added here soon.
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg shadow p-8 text-gray-600">
+                  This section is ready for upcoming staff tools (roles, shifts, and permissions).
+                </div>
               </>
             )}
           </div>
