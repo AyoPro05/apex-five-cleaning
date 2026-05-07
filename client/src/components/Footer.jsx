@@ -8,11 +8,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-10 w-auto object-contain" />
-              <span className="text-xl font-bold text-white">
-                Apex Five<span className="text-teal-500">Cleaning</span>
-              </span>
+            <div className="flex items-center mb-4">
+              <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-10 md:h-11 w-auto object-contain" />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Professional eco-friendly cleaning services trusted by homeowners across Kent.

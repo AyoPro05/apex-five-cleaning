@@ -49,11 +49,8 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 md:h-20">
           {/* Logo - 3 steps back from nav menus */}
-          <Link to="/" className="flex items-center gap-2 mr-12 lg:mr-16">
-            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-10 w-auto object-contain" />
-            <span className="text-xl font-bold text-gray-800 hidden sm:inline">
-              Apex Five<span className="text-teal-600">Cleaning</span>
-            </span>
+          <Link to="/" className="flex items-center mr-12 lg:mr-16">
+            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-10 md:h-11 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
