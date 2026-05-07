@@ -128,6 +128,21 @@ const quoteSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Soft-delete support (retained for 30 days, then purged)
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      index: true,
+    },
+    deletedBy: {
+      type: String,
+      trim: true,
+    },
+
     // Email Status
     confirmationEmailSent: {
       type: Boolean,
@@ -159,6 +174,7 @@ quoteSchema.pre("save", function (next) {
 // Index for better query performance (reference already has unique index)
 quoteSchema.index({ createdAt: -1 });
 quoteSchema.index({ status: 1 });
+quoteSchema.index({ isDeleted: 1, deletedAt: 1 });
 
 const Quote = mongoose.model("Quote", quoteSchema);
 

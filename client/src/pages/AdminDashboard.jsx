@@ -40,6 +40,7 @@ const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingQuoteId, setDeletingQuoteId] = useState(null);
   const [quotes, setQuotes] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -150,6 +151,34 @@ const AdminDashboard = () => {
       setCustomersError(msg);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDeleteQuote = async (quote) => {
+    if (
+      !window.confirm(
+        `Delete quote "${quote.reference || quote._id}" for ${quote.firstName} ${quote.lastName}? It will be retained for 30 days before permanent removal.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingQuoteId(quote._id);
+    setError("");
+    try {
+      await del(`/api/admin/quotes/${quote._id}`);
+      await fetchQuotes();
+      await fetchStats();
+      if (activeTab === "dashboard") {
+        await fetchAnalytics();
+      }
+      if (showDetails && selectedQuote?._id === quote._id) {
+        setShowDetails(false);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message;
+      setError(msg || "Failed to delete quote");
+    } finally {
+      setDeletingQuoteId(null);
     }
   };
 
@@ -791,16 +820,27 @@ const AdminDashboard = () => {
                                 ).toLocaleDateString("en-GB")}
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <button
-                                  onClick={() => {
-                                    setSelectedQuote(quote);
-                                    setAdminNote(quote.adminNotes || "");
-                                    setShowDetails(true);
-                                  }}
-                                  className="text-teal-600 hover:text-teal-700 font-semibold"
-                                >
-                                  View
-                                </button>
+                                <div className="inline-flex items-center gap-3">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedQuote(quote);
+                                      setAdminNote(quote.adminNotes || "");
+                                      setShowDetails(true);
+                                    }}
+                                    className="text-teal-600 hover:text-teal-700 font-semibold"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteQuote(quote)}
+                                    disabled={deletingQuoteId === quote._id}
+                                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    {deletingQuoteId === quote._id ? "Deleting..." : "Delete"}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}

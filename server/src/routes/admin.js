@@ -18,6 +18,8 @@ const ADMIN_JWT_EXPIRE_SECONDS = 3600; // 1h in seconds for client
 
 /** GDPR retention: default minimum age (months) before a customer can be deleted */
 const DEFAULT_RETENTION_MONTHS = 6;
+/** Quote soft-delete retention window */
+const QUOTE_RETENTION_DAYS = 30;
 
 /** Allowed sort fields for users list (prevents prototype pollution / arbitrary sort) */
 const USER_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'role', 'lastLogin'];
@@ -31,6 +33,14 @@ function escapeRegex(s) {
 
 /** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
 const requireAdmin = [authMiddleware, adminMiddleware];
+
+async function purgeExpiredDeletedQuotes() {
+  const cutoff = new Date(Date.now() - QUOTE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  await Quote.deleteMany({
+    isDeleted: true,
+    deletedAt: { $lte: cutoff },
+  });
+}
 
 /**
  * POST /api/admin/login
@@ -165,6 +175,7 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 // Get all quotes with filtering, sorting, and pagination
 router.get('/quotes', requireAdmin, async (req, res) => {
   try {
+    await purgeExpiredDeletedQuotes();
     const status = req.query.status || 'new';
     const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
@@ -172,7 +183,7 @@ router.get('/quotes', requireAdmin, async (req, res) => {
     const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
     const search = String(req.query.search || '').trim();
     
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     if (status && status !== 'all') {
       filter.status = status;
     }
@@ -226,7 +237,10 @@ router.get('/quotes', requireAdmin, async (req, res) => {
 // Get single quote details
 router.get('/quotes/:id', requireAdmin, async (req, res) => {
   try {
-    const quote = await Quote.findById(req.params.id);
+    const quote = await Quote.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+    });
     
     if (!quote) {
       return res.status(404).json({
@@ -259,7 +273,10 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
       });
     }
     
-    const existingQuote = await Quote.findById(req.params.id);
+    const existingQuote = await Quote.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+    });
     if (!existingQuote) {
       return res.status(404).json({
         success: false,
@@ -272,8 +289,8 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
     if (approvedAmount !== undefined) updateData.approvedAmount = Number(approvedAmount) || 0;
     
-    const quote = await Quote.findByIdAndUpdate(
-      req.params.id,
+    const quote = await Quote.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: { $ne: true } },
       updateData,
       { new: true }
     );
@@ -304,13 +321,49 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/quotes/:id
+ * Soft-delete quote and retain for 30 days before purge.
+ */
+router.delete('/quotes/:id', requireAdmin, async (req, res) => {
+  try {
+    const quote = await Quote.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+    });
+
+    if (!quote) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quote not found',
+      });
+    }
+
+    quote.isDeleted = true;
+    quote.deletedAt = new Date();
+    quote.deletedBy = req.user?.id || 'admin';
+    await quote.save();
+
+    return res.json({
+      success: true,
+      message: `Quote deleted. It will be permanently removed after ${QUOTE_RETENTION_DAYS} days.`,
+    });
+  } catch (error) {
+    console.error('Error deleting quote:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error deleting quote',
+    });
+  }
+});
+
 // Export quotes to CSV
 router.get('/export/csv', requireAdmin, async (req, res) => {
   try {
     const { status = 'all', dateFrom, dateTo } = req.query;
     
     // Build filter
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     
     if (status !== 'all') {
       filter.status = status;
@@ -553,7 +606,7 @@ router.get('/analytics', requireAdmin, async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1 } },
       ]),
       Quote.aggregate([
-        { $match: { status: 'converted' } },
+        { $match: { status: 'converted', isDeleted: { $ne: true } } },
         { $group: { _id: '$serviceType', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),
@@ -623,20 +676,23 @@ router.get('/analytics', requireAdmin, async (req, res) => {
 // Get dashboard statistics
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
-    const totalQuotes = await Quote.countDocuments();
-    const newQuotes = await Quote.countDocuments({ status: 'new' });
-    const contactedQuotes = await Quote.countDocuments({ status: 'contacted' });
-    const convertedQuotes = await Quote.countDocuments({ status: 'converted' });
-    const rejectedQuotes = await Quote.countDocuments({ status: 'rejected' });
+    const activeQuotesFilter = { isDeleted: { $ne: true } };
+    const totalQuotes = await Quote.countDocuments(activeQuotesFilter);
+    const newQuotes = await Quote.countDocuments({ ...activeQuotesFilter, status: 'new' });
+    const contactedQuotes = await Quote.countDocuments({ ...activeQuotesFilter, status: 'contacted' });
+    const convertedQuotes = await Quote.countDocuments({ ...activeQuotesFilter, status: 'converted' });
+    const rejectedQuotes = await Quote.countDocuments({ ...activeQuotesFilter, status: 'rejected' });
     
     // Get quotes from last 7 days
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentQuotes = await Quote.countDocuments({
+      ...activeQuotesFilter,
       createdAt: { $gte: sevenDaysAgo }
     });
     
     // Get most common service type
     const serviceStats = await Quote.aggregate([
+      { $match: activeQuotesFilter },
       {
         $group: {
           _id: '$serviceType',

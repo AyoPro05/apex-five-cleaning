@@ -206,7 +206,7 @@ router.get('/quotes', async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('email').lean();
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
-    const quotes = await Quote.find({ email: user.email })
+    const quotes = await Quote.find({ email: user.email, isDeleted: { $ne: true } })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
