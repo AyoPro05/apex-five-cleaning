@@ -21,6 +21,7 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import mongoose from "mongoose";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
 import authRouter from "../routes/authRoutes.js";
@@ -30,6 +31,7 @@ import adminRouter from "./routes/admin.js";
 import bookingsRouter from "./routes/bookings.js";
 import paymentsRouter from "./routes/payments.js";
 import customerRouter from "./routes/customer.js";
+import uploadsRouter from "./routes/uploads.js";
 import { getEmailConfigStatus } from "./utils/emailService.js";
 
 const app = express();
@@ -37,14 +39,14 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Security headers (HSTS added by reverse proxy/HTTPS in production)
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  next();
-});
+// Security headers baseline (HSTS added by reverse proxy/HTTPS in production)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }),
+);
 
 // CORS: localhost for dev, CLIENT_URL for production
 const corsOrigins = [
@@ -110,14 +112,6 @@ app.get("/health", (req, res) => {
   res.json(payload);
 });
 
-// Serve uploaded quote images (absolute path so it works regardless of cwd)
-const uploadsPath = path.resolve(__dirname, "..", "uploads");
-app.use("/uploads", express.static(uploadsPath));
-app.use("/api/uploads", express.static(uploadsPath));
-if (NODE_ENV === "development") {
-  console.log(`✓ Uploads served from: ${uploadsPath}`);
-}
-
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/auth", emailVerificationRouter);
@@ -126,6 +120,7 @@ app.use("/api/quotes", quotesRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/customer", customerRouter);
+app.use("/api/uploads", uploadsRouter);
 
 // Database connection
 const connectDB = async () => {

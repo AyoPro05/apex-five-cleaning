@@ -13,6 +13,7 @@ import Payment from '../../models/Payment.js';
 import Quote from '../models/Quote.js';
 import Referral from '../../models/Referral.js';
 import Address from '../../models/Address.js';
+import { signQuoteImages } from '../utils/uploadSigning.js';
 
 const router = express.Router();
 
@@ -209,7 +210,7 @@ router.get('/quotes', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    res.json({ success: true, quotes });
+    res.json({ success: true, quotes: quotes.map((quote) => signQuoteImages(quote)) });
   } catch (error) {
     console.error('Quotes error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to load quotes' });

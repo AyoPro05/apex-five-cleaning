@@ -18,8 +18,15 @@ import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
 import Quote from '../models/Quote.js';
 import QuotePayment from '../../models/QuotePayment.js';
+import {
+  guestPaymentLookupRateLimiter,
+  guestPaymentIntentRateLimiter,
+  guestPaymentConfirmRateLimiter,
+} from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+const GENERIC_GUEST_QUOTE_ERROR =
+  "Unable to locate a payable quote with the provided details.";
 
 // Initialize Stripe - required in production, optional fallback only in development
 const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -81,6 +88,12 @@ const findQuoteByRef = (quoteRef) => {
   return null;
 };
 
+const rejectGuestQuoteProbe = (res) =>
+  res.status(404).json({
+    success: false,
+    message: GENERIC_GUEST_QUOTE_ERROR,
+  });
+
 // ============================================
 // ROUTES
 // ============================================
@@ -90,7 +103,7 @@ const findQuoteByRef = (quoteRef) => {
  * GET /api/payments/guest/lookup?quoteId=xxx&email=xxx
  * quoteId can be AP12345678 (reference) or MongoDB ObjectId
  */
-router.get('/guest/lookup', async (req, res) => {
+router.get('/guest/lookup', guestPaymentLookupRateLimiter, async (req, res) => {
   try {
     const { quoteId, email } = req.query;
     if (!quoteId || !email) {
@@ -99,29 +112,27 @@ router.get('/guest/lookup', async (req, res) => {
 
     const quoteQuery = findQuoteByRef(quoteId);
     if (!quoteQuery) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Quote not found. Check your reference." });
+      return rejectGuestQuoteProbe(res);
     }
 
     const quote = await quoteQuery.lean();
     if (!quote) {
-      return res.status(404).json({ success: false, message: 'Quote not found' });
+      return rejectGuestQuoteProbe(res);
     }
     if (quote.email.toLowerCase() !== email.trim().toLowerCase()) {
-      return res.status(403).json({ success: false, message: 'Email does not match this quote' });
+      return rejectGuestQuoteProbe(res);
     }
     if (quote.status !== 'converted') {
-      return res.status(400).json({ success: false, message: 'This quote is not yet approved for payment' });
+      return rejectGuestQuoteProbe(res);
     }
     if (!quote.approvedAmount || quote.approvedAmount < 0.5) {
-      return res.status(400).json({ success: false, message: 'No payment amount set. Please contact us.' });
+      return rejectGuestQuoteProbe(res);
     }
 
     // Check if already paid
     const existingPayment = await QuotePayment.findOne({ quoteId: quote._id, status: 'succeeded' });
     if (existingPayment) {
-      return res.status(400).json({ success: false, message: 'This quote has already been paid' });
+      return rejectGuestQuoteProbe(res);
     }
 
     const amountInPence = Math.round(quote.approvedAmount * 100);
@@ -147,7 +158,7 @@ router.get('/guest/lookup', async (req, res) => {
  * GUEST: Create payment intent (no auth)
  * POST /api/payments/guest/create-intent
  */
-router.post('/guest/create-intent', async (req, res) => {
+router.post('/guest/create-intent', guestPaymentIntentRateLimiter, async (req, res) => {
   try {
     if (!stripe) {
       return res.status(503).json({ success: false, message: 'Payment system unavailable' });
@@ -160,18 +171,18 @@ router.post('/guest/create-intent', async (req, res) => {
 
     const quote = await findQuoteByRef(quoteId);
     if (!quote) {
-      return res.status(404).json({ success: false, message: 'Quote not found' });
+      return rejectGuestQuoteProbe(res);
     }
     if (quote.email.toLowerCase() !== email.trim().toLowerCase()) {
-      return res.status(403).json({ success: false, message: 'Email does not match this quote' });
+      return rejectGuestQuoteProbe(res);
     }
     if (quote.status !== 'converted' || !quote.approvedAmount || quote.approvedAmount < 0.5) {
-      return res.status(400).json({ success: false, message: 'Quote not ready for payment' });
+      return rejectGuestQuoteProbe(res);
     }
 
     const existingPayment = await QuotePayment.findOne({ quoteId: quote._id, status: 'succeeded' });
     if (existingPayment) {
-      return res.status(400).json({ success: false, message: 'Already paid' });
+      return rejectGuestQuoteProbe(res);
     }
 
     const amountInPence = Math.round(quote.approvedAmount * 100);
@@ -252,7 +263,7 @@ router.get('/guest/:paymentId', async (req, res) => {
  * GUEST: Confirm payment (no auth)
  * POST /api/payments/guest/confirm
  */
-router.post('/guest/confirm', async (req, res) => {
+router.post('/guest/confirm', guestPaymentConfirmRateLimiter, async (req, res) => {
   try {
     const { paymentIntentId, paymentId } = req.body;
     if (!paymentIntentId || !paymentId) {

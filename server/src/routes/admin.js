@@ -6,6 +6,7 @@ import Referral from '../../models/Referral.js';
 import QuotePayment from '../../models/QuotePayment.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail } from '../utils/emailService.js';
+import { signQuoteImages } from '../utils/uploadSigning.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.js';
 import { strictRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -201,9 +202,11 @@ router.get('/quotes', requireAdmin, async (req, res) => {
       .limit(limit)
       .lean();
     
+    const signedQuotes = quotes.map((quote) => signQuoteImages(quote));
+
     return res.json({
       success: true,
-      data: quotes,
+      data: signedQuotes,
       pagination: {
         total,
         page,
@@ -234,7 +237,7 @@ router.get('/quotes/:id', requireAdmin, async (req, res) => {
     
     return res.json({
       success: true,
-      quote
+      quote: signQuoteImages(quote.toObject ? quote.toObject() : quote),
     });
   } catch (error) {
     return res.status(500).json({

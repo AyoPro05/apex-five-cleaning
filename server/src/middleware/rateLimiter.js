@@ -59,9 +59,91 @@ export const strictRateLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Login: tighter controls to reduce credential stuffing
+export const authLoginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    return email ? `${req.ip}:${email}` : req.ip;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many login attempts. Please try again shortly.',
+    });
+  },
+});
+
+// Register: prevent account-creation abuse from a single source
+export const authRegisterRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many registration attempts. Please try again later.',
+    });
+  },
+});
+
+// Guest payment lookup: curb enumeration and probing
+export const guestPaymentLookupRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many payment lookup attempts. Please try again later.',
+    });
+  },
+});
+
+// Guest payment intent creation: stricter than lookup
+export const guestPaymentIntentRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const quoteRef = String(req.body?.quoteId || '').trim().toUpperCase();
+    return quoteRef ? `${req.ip}:${quoteRef}` : req.ip;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many payment attempts. Please try again shortly.',
+    });
+  },
+});
+
+export const guestPaymentConfirmRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many confirmation attempts. Please try again shortly.',
+    });
+  },
+});
+
 export default {
   quoteRateLimiter,
   emailRateLimiter,
   apiRateLimiter,
-  strictRateLimiter
+  strictRateLimiter,
+  authLoginRateLimiter,
+  authRegisterRateLimiter,
+  guestPaymentLookupRateLimiter,
+  guestPaymentIntentRateLimiter,
+  guestPaymentConfirmRateLimiter,
 };
