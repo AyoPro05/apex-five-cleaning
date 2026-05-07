@@ -47,10 +47,10 @@ const Navbar = () => {
   return (
     <nav className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-[top] ${bannerVisible ? 'top-[4vh]' : 'top-0'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 md:h-20">
+        <div className="flex justify-between items-center h-20 md:h-24">
           {/* Logo - 3 steps back from nav menus */}
           <Link to="/" className="flex items-center mr-12 lg:mr-16">
-            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-12 md:h-14 w-auto object-contain" />
+            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
