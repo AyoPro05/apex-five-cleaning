@@ -1,7 +1,29 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles, MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
 
 const Footer = () => {
+  const logoRef = useRef(null)
+
+  useEffect(() => {
+    const img = logoRef.current
+    const imgStyle = img ? window.getComputedStyle(img) : null
+    const parentStyle = img?.parentElement ? window.getComputedStyle(img.parentElement) : null
+    const footerEl = document.querySelector('footer')
+    const footerStyle = footerEl ? window.getComputedStyle(footerEl) : null
+
+    // #region agent log
+    fetch('http://127.0.0.1:7912/ingest/50857c0c-62f2-4533-aa30-c883cf01a72c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b6ae09'},body:JSON.stringify({sessionId:'b6ae09',runId:'baseline-visibility',hypothesisId:'H1-H3',location:'client/src/components/Footer.jsx:useEffect',message:'Footer logo visibility snapshot',data:{pathname:window.location.pathname,logoSrc:img?.getAttribute('src')||null,logoClientWidth:img?.clientWidth||0,logoClientHeight:img?.clientHeight||0,logoOpacity:imgStyle?.opacity||null,logoFilter:imgStyle?.filter||null,logoMixBlendMode:imgStyle?.mixBlendMode||null,parentBackgroundColor:parentStyle?.backgroundColor||null,footerBackgroundColor:footerStyle?.backgroundColor||null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [])
+
+  const handleFooterLogoLoad = (event) => {
+    const img = event.currentTarget
+    // #region agent log
+    fetch('http://127.0.0.1:7912/ingest/50857c0c-62f2-4533-aa30-c883cf01a72c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b6ae09'},body:JSON.stringify({sessionId:'b6ae09',runId:'baseline-visibility',hypothesisId:'H2-H4',location:'client/src/components/Footer.jsx:handleFooterLogoLoad',message:'Footer logo image loaded',data:{pathname:window.location.pathname,currentSrc:img.currentSrc||null,naturalWidth:img.naturalWidth||0,naturalHeight:img.naturalHeight||0,renderedWidth:img.clientWidth||0,renderedHeight:img.clientHeight||0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }
+
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -9,7 +31,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center mb-4">
-              <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
+              <img ref={logoRef} onLoad={handleFooterLogoLoad} src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Professional eco-friendly cleaning services trusted by homeowners across Kent.

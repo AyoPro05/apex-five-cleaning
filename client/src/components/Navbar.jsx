@@ -44,13 +44,22 @@ const Navbar = () => {
 
   const { visible: bannerVisible } = useAnnouncement()
 
+  const handleNavbarLogoLoad = (event) => {
+    const img = event.currentTarget
+    const nav = img.closest('nav')
+    const navStyle = nav ? window.getComputedStyle(nav) : null
+    // #region agent log
+    fetch('http://127.0.0.1:7912/ingest/50857c0c-62f2-4533-aa30-c883cf01a72c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b6ae09'},body:JSON.stringify({sessionId:'b6ae09',runId:'baseline-visibility',hypothesisId:'H4',location:'client/src/components/Navbar.jsx:handleNavbarLogoLoad',message:'Navbar logo image loaded',data:{pathname:window.location.pathname,currentSrc:img.currentSrc||null,naturalWidth:img.naturalWidth||0,naturalHeight:img.naturalHeight||0,renderedWidth:img.clientWidth||0,renderedHeight:img.clientHeight||0,navBackgroundColor:navStyle?.backgroundColor||null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }
+
   return (
     <nav className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-[top] ${bannerVisible ? 'top-[4vh]' : 'top-0'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 md:h-24">
           {/* Logo - 3 steps back from nav menus */}
           <Link to="/" className="flex items-center mr-12 lg:mr-16">
-            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
+            <img onLoad={handleNavbarLogoLoad} src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
