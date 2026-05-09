@@ -6,6 +6,10 @@ import ServiceAreaMap from "../components/ServiceAreaMap";
 import { scrollReveal } from "../utils/scrollReveal";
 import { SITE_URL } from "../config/site";
 import SEO from "../components/SEO";
+import {
+  buildBreadcrumbSchema,
+  buildLocalBusinessSchema,
+} from "../config/seoSchemas";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -389,16 +393,15 @@ const ServiceArea = () => {
   }
 
   // Local schema markup
-  const localSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+  const localSchema = buildLocalBusinessSchema({
     name: `Apex Five Cleaning - ${area.name}`,
-    image: area.image,
     description: area.localInfo,
+    image: area.image,
+    url: `${SITE_URL}/service-areas/${areaSlug}`,
     address: {
       "@type": "PostalAddress",
-      addressRegion: area.region,
       addressLocality: area.name,
+      addressRegion: area.region,
       addressCountry: "GB",
     },
     geo: {
@@ -406,40 +409,15 @@ const ServiceArea = () => {
       latitude: area.coordinates.lat,
       longitude: area.coordinates.lng,
     },
-    telephone: "+447377280558",
-    url: `${SITE_URL}/service-areas/${areaSlug}`,
-    priceRange: "£45-£250",
-    areaServed: {
-      "@type": "City",
-      name: area.name,
-    },
+    areaServed: [{ "@type": "City", name: area.name }],
     serviceType: area.servicesCovered,
-  };
+  });
 
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: SITE_URL,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Service Areas",
-        item: `${SITE_URL}/service-areas`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: area.name,
-        item: `${SITE_URL}/service-areas/${areaSlug}`,
-      },
-    ],
-  };
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: SITE_URL },
+    { name: "Service Areas", url: `${SITE_URL}/service-areas` },
+    { name: area.name, url: `${SITE_URL}/service-areas/${areaSlug}` },
+  ]);
 
   return (
     <>

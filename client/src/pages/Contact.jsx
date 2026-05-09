@@ -3,8 +3,20 @@ import { MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
+import { buildLocalBusinessSchema } from '../config/seoSchemas'
 
 const Contact = () => {
+  const contactSchemas = [
+    buildLocalBusinessSchema(),
+    {
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      name: "Contact Apex Five Cleaning",
+      url: "https://www.apexfivecleaning.co.uk/contact",
+      description: "Contact Apex Five Cleaning for quotes, bookings, and cleaning enquiries.",
+    },
+  ]
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -87,6 +99,7 @@ const Contact = () => {
         title="Contact Apex Five Cleaning"
         description="Contact Apex Five Cleaning for quotes, bookings, and cleaning service questions. Call, WhatsApp, or send a message."
         path="/contact"
+        jsonLd={contactSchemas}
       />
       <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

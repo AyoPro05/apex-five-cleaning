@@ -4,6 +4,7 @@ import { MapPin, Phone, Clock } from 'lucide-react'
 import ServiceAreaMap from '../components/ServiceAreaMap'
 import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
+import { buildBreadcrumbSchema, buildLocalBusinessSchema } from '../config/seoSchemas'
 
 const ServiceAreas = () => {
   const navigate = useNavigate()
@@ -46,12 +47,33 @@ const ServiceAreas = () => {
     }
   ]
 
+  const allAreas = regions.flatMap((region) => region.areas)
+  const serviceAreaSchemas = [
+    buildLocalBusinessSchema(),
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Apex Five Cleaning Service Areas",
+      itemListElement: allAreas.map((area, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: area.name,
+        url: `https://www.apexfivecleaning.co.uk/service-areas/${area.slug}`,
+      })),
+    },
+    buildBreadcrumbSchema([
+      { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+      { name: "Service Areas", url: "https://www.apexfivecleaning.co.uk/service-areas" },
+    ]),
+  ]
+
   return (
     <>
       <SEO
         title="Cleaning Service Areas"
         description="See all areas we cover including Canterbury, Dover, Maidstone, Tunbridge Wells, Sevenoaks, Ashford, and more."
         path="/service-areas"
+        jsonLd={serviceAreaSchemas}
       />
       <motion.section className="pt-32 pb-20 bg-white" {...scrollReveal}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

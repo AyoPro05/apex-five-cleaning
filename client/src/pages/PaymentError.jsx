@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { AlertCircle, ChevronDown } from 'lucide-react';
+import SEO from '../components/SEO';
 
 /**
  * PAYMENT ERROR PAGE
@@ -87,8 +88,15 @@ const PaymentError = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4 py-20">
-      <div className="w-full max-w-2xl">
+    <>
+      <SEO
+        title="Payment Error"
+        description="Payment error details page."
+        path="/payment-error"
+        noindex
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4 py-20">
+        <div className="w-full max-w-2xl">
         {/* Error Card */}
         <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           {/* Header with gradient */}
@@ -263,8 +271,9 @@ const PaymentError = () => {
             </Link>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

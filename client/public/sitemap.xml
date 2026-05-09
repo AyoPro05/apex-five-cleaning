@@ -111,14 +111,56 @@
 
   <url>
     <loc>https://www.apexfivecleaning.co.uk/service-areas/minster-on-sea</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-05-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.apexfivecleaning.co.uk/service-areas/axminster</loc>
-    <lastmod>2026-01-26</lastmod>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/laindon</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/langdon-hills</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/brentwood</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/basildon</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/billericay</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/wickford</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.apexfivecleaning.co.uk/service-areas/southend-on-sea</loc>
+    <lastmod>2026-05-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

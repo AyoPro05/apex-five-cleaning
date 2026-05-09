@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Lock, CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-react'
 import { post } from '../utils/apiClient'
 import { scrollReveal } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
@@ -60,8 +61,15 @@ export default function ResetPassword() {
   const showForm = status === 'form' && token
 
   return (
-    <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Reset Password"
+        description="Password reset page."
+        path="/reset-password"
+        noindex
+      />
+      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -174,7 +182,8 @@ export default function ResetPassword() {
             </div>
           )}
         </div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Clock, AlertCircle } from 'lucide-react';
+import SEO from '../components/SEO';
 
 /**
  * PAYMENT PENDING PAGE
@@ -34,8 +35,15 @@ const PaymentPending = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 p-4 py-20">
-      <div className="w-full max-w-2xl">
+    <>
+      <SEO
+        title="Payment Pending"
+        description="Payment pending status page."
+        path="/payment-pending"
+        noindex
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 p-4 py-20">
+        <div className="w-full max-w-2xl">
         {/* Pending Card */}
         <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           {/* Header with gradient */}
@@ -204,8 +212,9 @@ const PaymentPending = () => {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

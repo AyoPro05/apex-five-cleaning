@@ -1,11 +1,18 @@
 import { motion } from 'framer-motion'
 import { FileText } from 'lucide-react'
 import { scrollReveal } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 const TermsOfService = () => {
   return (
-    <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Terms of Service"
+        description="Read Apex Five Cleaning's terms of service for bookings, payments, and cancellations."
+        path="/terms-of-service"
+      />
+      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div className="mb-12" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Legal</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-4">Terms of Service</h1>
@@ -106,8 +113,9 @@ const TermsOfService = () => {
             </p>
           </div>
         </motion.div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

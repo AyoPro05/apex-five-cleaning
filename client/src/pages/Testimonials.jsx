@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -79,9 +80,35 @@ const Testimonials = () => {
     return visible
   }
 
+  const reviewSchemas = testimonials.slice(0, 5).map((testimonial) => ({
+    "@context": "https://schema.org",
+    "@type": "Review",
+    reviewBody: testimonial.text,
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: testimonial.rating,
+      bestRating: 5,
+    },
+    author: {
+      "@type": "Person",
+      name: testimonial.name,
+    },
+    itemReviewed: {
+      "@type": "LocalBusiness",
+      name: "Apex Five Cleaning",
+    },
+  }))
+
   return (
-    <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50 min-h-screen" {...scrollRevealVisible}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Customer Reviews and Testimonials"
+        description="Read verified customer testimonials for Apex Five Cleaning services across Kent, Essex, and Greater London."
+        path="/testimonials"
+        jsonLd={reviewSchemas}
+      />
+      <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50 min-h-screen" {...scrollRevealVisible}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Customer Reviews</span>
@@ -215,8 +242,9 @@ const Testimonials = () => {
             </a>
           </div>
         </div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 

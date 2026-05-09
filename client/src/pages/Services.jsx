@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
 import { scrollReveal, scrollRevealVisible, staggerContainer, staggerItem } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
+import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 // Service image paths - files in /public/images/services/ named as below
 const SERVICE_IMAGES = {
@@ -116,12 +117,31 @@ const Services = () => {
     }
   ]
 
+  const servicesPageSchemas = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Apex Five Cleaning Services",
+      itemListElement: services.map((service, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: service.title,
+        url: `https://www.apexfivecleaning.co.uk/services/${service.id}`,
+      })),
+    },
+    buildBreadcrumbSchema([
+      { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+      { name: "Services", url: "https://www.apexfivecleaning.co.uk/services" },
+    ]),
+  ]
+
   return (
     <>
       <SEO
         title="Cleaning Services in Kent"
         description="Explore our residential, end of tenancy, Airbnb turnover, and commercial cleaning services. Eco-friendly products, reliable teams, and transparent pricing."
         path="/services"
+        jsonLd={servicesPageSchemas}
       />
       <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

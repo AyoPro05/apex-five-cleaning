@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, Download, AlertCircle } from 'lucide-react';
 import { get } from '../utils/apiClient';
+import SEO from '../components/SEO';
 
 /**
  * PAYMENT SUCCESS PAGE
@@ -54,22 +55,37 @@ const PaymentSuccess = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+      <>
+        <SEO
+          title="Payment Success"
+          description="Payment confirmation page."
+          path="/payment-success"
+          noindex
+        />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="inline-block animate-spin mb-4">
             <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full" />
           </div>
           <p className="text-gray-600">Processing your payment confirmation...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     const isGuest = searchParams.get('guest') === '1';
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+      <>
+        <SEO
+          title="Payment Success"
+          description="Payment confirmation page."
+          path="/payment-success"
+          noindex
+        />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Details</h1>
           <p className="text-gray-600 mb-6">{error}</p>
@@ -79,14 +95,22 @@ const PaymentSuccess = () => {
           >
             {isGuest ? 'Back to Pay Online' : 'My Dashboard'}
           </Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 p-4 py-20">
-      <div className="w-full max-w-2xl">
+    <>
+      <SEO
+        title="Payment Success"
+        description="Payment confirmation page."
+        path="/payment-success"
+        noindex
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 p-4 py-20">
+        <div className="w-full max-w-2xl">
         {/* Success Card */}
         <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           {/* Header with gradient */}
@@ -258,8 +282,9 @@ const PaymentSuccess = () => {
             <p>Confirmation Sent</p>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

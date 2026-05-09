@@ -7,6 +7,7 @@ import { get, post } from '../utils/apiClient'
 import { scrollReveal } from '../utils/scrollReveal'
 import { CreditCard, ArrowLeft, LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import SEO from '../components/SEO'
 
 // Stripe publishable key must come from env only (no fallback – never ship secrets or placeholder keys)
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
@@ -227,8 +228,15 @@ export default function PayOnline() {
 
   if (step === 'pay' && quote && clientSecret) {
     return (
-      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+      <>
+        <SEO
+          title="Pay Online"
+          description="Secure payment portal for approved Apex Five Cleaning quotes."
+          path="/pay-online"
+          noindex
+        />
+        <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+          <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => setStep('lookup')}
             className="flex items-center gap-2 text-teal-600 hover:text-teal-700 mb-8 font-medium"
@@ -249,16 +257,24 @@ export default function PayOnline() {
               />
             </Elements>
           </div>
-        </div>
-      </motion.section>
+          </div>
+        </motion.section>
+      </>
     )
   }
 
   // Gate: not signed in — offer guest payment (quote ref + email) OR login/signup
   if (!isAuthenticated) {
     return (
-      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+      <>
+        <SEO
+          title="Pay Online"
+          description="Secure payment portal for approved Apex Five Cleaning quotes."
+          path="/pay-online"
+          noindex
+        />
+        <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+          <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Secure Payment</span>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Pay Online</h1>
@@ -347,16 +363,24 @@ export default function PayOnline() {
               Request a quote
             </button>
           </p>
-        </div>
-      </motion.section>
+          </div>
+        </motion.section>
+      </>
     )
   }
 
   // Gate: require verified email before allowing payment
   if (isAuthenticated && !isVerified) {
     return (
-      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+      <>
+        <SEO
+          title="Pay Online"
+          description="Secure payment portal for approved Apex Five Cleaning quotes."
+          path="/pay-online"
+          noindex
+        />
+        <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+          <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Secure Payment</span>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Verify Your Email</h1>
@@ -397,14 +421,22 @@ export default function PayOnline() {
               reference.
             </p>
           </div>
-        </div>
-      </motion.section>
+          </div>
+        </motion.section>
+      </>
     )
   }
 
   return (
-    <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Pay Online"
+        description="Secure payment portal for approved Apex Five Cleaning quotes."
+        path="/pay-online"
+        noindex
+      />
+      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Secure Payment</span>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Pay Online</h1>
@@ -474,7 +506,8 @@ export default function PayOnline() {
             </button>
           </p>
         </div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }

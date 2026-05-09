@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-react'
 import { post } from '../utils/apiClient'
 import { scrollReveal } from '../utils/scrollReveal'
+import SEO from '../components/SEO'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -43,8 +44,15 @@ export default function VerifyEmail() {
   const isError = status === 'error'
 
   return (
-    <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Verify Email"
+        description="Email verification page."
+        path="/verify-email"
+        noindex
+      />
+      <motion.section className="pt-32 pb-20 min-h-screen bg-gray-50" {...scrollReveal}>
+        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -98,8 +106,9 @@ export default function VerifyEmail() {
             </div>
           )}
         </div>
-      </div>
-    </motion.section>
+        </div>
+      </motion.section>
+    </>
   )
 }
 
