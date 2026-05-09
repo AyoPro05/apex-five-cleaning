@@ -48,7 +48,7 @@ const staggerItem = {
 const regions = [
   {
     name: "Kent",
-    description: "Our primary service area covering East and Central Kent",
+    description: "Our primary service area covering East and Central Kent, including Swale towns",
     areas: [
       {
         name: "Canterbury",
@@ -80,12 +80,6 @@ const regions = [
         slug: "ashford",
         coverage: "Ashford, Tenterden, Charing",
       },
-    ],
-  },
-  {
-    name: "Swale",
-    description: "Coastal and rural cleaning services across Swale",
-    areas: [
       {
         name: "Sheerness-on-Sea",
         slug: "sheerness",
@@ -101,7 +95,39 @@ const regions = [
         slug: "minster-on-sea",
         coverage: "Minster-on-Sea, Isle of Sheppey",
       },
-      { name: "Axminster", slug: "axminster", coverage: "Axminster area" },
+    ],
+  },
+  {
+    name: "Essex",
+    description: "Now serving key Essex towns and nearby communities",
+    areas: [
+      { name: "Laindon", slug: "laindon", coverage: "Laindon, Basildon" },
+      {
+        name: "Langdon Hills",
+        slug: "langdon-hills",
+        coverage: "Langdon Hills, Basildon outskirts",
+      },
+      {
+        name: "Brentwood",
+        slug: "brentwood",
+        coverage: "Brentwood, Shenfield, Hutton",
+      },
+      { name: "Basildon", slug: "basildon", coverage: "Basildon, Pitsea, Vange" },
+      {
+        name: "Billericay",
+        slug: "billericay",
+        coverage: "Billericay, Little Burstead, Great Burstead",
+      },
+      {
+        name: "Wickford",
+        slug: "wickford",
+        coverage: "Wickford, Runwell, Battlesbridge",
+      },
+      {
+        name: "Southend-on-Sea",
+        slug: "southend-on-sea",
+        coverage: "Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea",
+      },
     ],
   },
   {
@@ -222,7 +248,7 @@ const Home = () => {
         postalCode: "ME11 2BY",
         addressCountry: "GB",
       },
-      areaServed: ["Kent", "Swale", "Croydon"],
+      areaServed: ["Kent", "Essex", "Greater London"],
       sameAs: [],
     },
   ];
@@ -491,7 +517,7 @@ const Home = () => {
               Areas We Serve
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
-              Professional cleaning across Kent, Swale, and Greater London.
+              Professional cleaning across Kent, Essex, and Greater London.
               Select your area to learn more.
             </p>
             <motion.button

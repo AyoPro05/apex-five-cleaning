@@ -11,24 +11,30 @@ const ServiceAreas = () => {
   const regions = [
     {
       name: 'Kent',
-      description: 'Our primary service area covering East and Central Kent',
+      description: 'Our primary service area covering East, Central Kent, including Swale towns',
       areas: [
         { name: 'Canterbury', slug: 'canterbury', coverage: 'Canterbury, Whitstable, Herne Bay, Faversham' },
         { name: 'Dover', slug: 'dover', coverage: 'Dover, Folkestone, Deal, Walmer' },
         { name: 'Maidstone', slug: 'maidstone', coverage: 'Maidstone, Ashford, Sittingbourne' },
         { name: 'Tunbridge Wells', slug: 'tunbridge-wells', coverage: 'Tunbridge Wells, Royal Tunbridge Wells' },
         { name: 'Sevenoaks', slug: 'sevenoaks', coverage: 'Sevenoaks, Orpington, Eynsford' },
-        { name: 'Ashford', slug: 'ashford', coverage: 'Ashford, Tenterden, Charing' }
+        { name: 'Ashford', slug: 'ashford', coverage: 'Ashford, Tenterden, Charing' },
+        { name: 'Sheerness-on-Sea', slug: 'sheerness', coverage: 'Sheerness-on-Sea, Queenborough, Minster-on-Sea' },
+        { name: 'Sittingbourne', slug: 'sittingbourne', coverage: 'Sittingbourne, Faversham, Whitstable' },
+        { name: 'Minster-on-Sea', slug: 'minster-on-sea', coverage: 'Minster-on-Sea, Isle of Sheppey' }
       ]
     },
     {
-      name: 'Swale',
-      description: 'Coastal and rural cleaning services across Swale',
+      name: 'Essex',
+      description: 'Coverage across key Essex towns and commuter areas',
       areas: [
-        { name: 'Sheerness-on-Sea', slug: 'sheerness', coverage: 'Sheerness-on-Sea, Queenborough, Minster-on-Sea' },
-        { name: 'Sittingbourne', slug: 'sittingbourne', coverage: 'Sittingbourne, Faversham, Whitstable' },
-        { name: 'Minster-on-Sea', slug: 'minster-on-sea', coverage: 'Minster-on-Sea, Isle of Sheppey' },
-        { name: 'Axminster', slug: 'axminster', coverage: 'Axminster, Minster-on-Sea' }
+        { name: 'Laindon', slug: 'laindon', coverage: 'Laindon, Basildon' },
+        { name: 'Langdon Hills', slug: 'langdon-hills', coverage: 'Langdon Hills, Basildon outskirts' },
+        { name: 'Brentwood', slug: 'brentwood', coverage: 'Brentwood, Shenfield, Hutton' },
+        { name: 'Basildon', slug: 'basildon', coverage: 'Basildon, Pitsea, Vange' },
+        { name: 'Billericay', slug: 'billericay', coverage: 'Billericay, Little Burstead, Great Burstead' },
+        { name: 'Wickford', slug: 'wickford', coverage: 'Wickford, Runwell, Battlesbridge' },
+        { name: 'Southend-on-Sea', slug: 'southend-on-sea', coverage: 'Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea' }
       ]
     },
     {
@@ -56,7 +62,7 @@ const ServiceAreas = () => {
             Areas We Serve
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We provide professional cleaning services across Kent, Swale, and Greater London. 
+            We provide professional cleaning services across Kent, Essex, and Greater London. 
             Select your area to learn more about our local services and get a quote.
           </p>
         </motion.div>
@@ -94,7 +100,7 @@ const ServiceAreas = () => {
         <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16" {...scrollReveal}>
           <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">Service Map</h2>
           <p className="text-gray-600 text-center mb-6 max-w-2xl mx-auto">
-            Click on a marker to view our cleaning services in that area. We serve Kent, Swale, and Greater London.
+            Click on a marker to view our cleaning services in that area. We serve Kent, Essex, and Greater London.
           </p>
           <ServiceAreaMap height="420px" />
         </motion.div>

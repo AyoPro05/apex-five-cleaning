@@ -155,10 +155,10 @@ const ServiceArea = () => {
         "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=1200&h=600&fit=crop",
       coordinates: { lat: 51.1447, lng: 0.8738 },
     },
-    // Swale - Sheerness, Sittingbourne, etc.
+    // Kent (including Swale towns)
     sheerness: {
       name: "Sheerness-on-Sea",
-      region: "Swale, Kent",
+      region: "Kent",
       coverage: "Sheerness-on-Sea, Queenborough, Minster-on-Sea",
       responseTime: "24-48 hours",
       servicesCovered: [
@@ -180,7 +180,7 @@ const ServiceArea = () => {
     },
     sittingbourne: {
       name: "Sittingbourne",
-      region: "Swale, Kent",
+      region: "Kent",
       coverage: "Sittingbourne, Faversham, Whitstable",
       responseTime: "24-48 hours",
       servicesCovered: [
@@ -189,7 +189,7 @@ const ServiceArea = () => {
         "Airbnb Turnover",
       ],
       localInfo:
-        "Professional cleaning services across Swale including Sittingbourne and Faversham.",
+        "Professional cleaning services across Kent including Sittingbourne and Faversham.",
       highlights: [
         "Family home specialists",
         "End-of-tenancy deposit recovery focus",
@@ -200,31 +200,9 @@ const ServiceArea = () => {
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=1200&h=600&fit=crop",
       coordinates: { lat: 51.3462, lng: 0.7417 },
     },
-    axminster: {
-      name: "Axminster",
-      region: "Swale, Kent",
-      coverage: "Axminster, Minster-on-Sea",
-      responseTime: "24-48 hours",
-      servicesCovered: [
-        "Residential Cleaning",
-        "End of Tenancy",
-        "Airbnb Turnover",
-      ],
-      localInfo:
-        "Quality cleaning services serving Axminster and surrounding rural areas.",
-      highlights: [
-        "Rural property experience",
-        "Flexible appointment scheduling",
-        "Personalized service approach",
-        "Professional and trustworthy team",
-      ],
-      image:
-        "https://images.unsplash.com/photo-1507995881394-2c58d5d0d81c?w=1200&h=600&fit=crop",
-      coordinates: { lat: 51.3789, lng: 0.9147 },
-    },
     "minster-on-sea": {
       name: "Minster-on-Sea",
-      region: "Swale, Kent",
+      region: "Kent",
       coverage: "Minster-on-Sea, Sittingbourne, Isle of Sheppey",
       responseTime: "24-48 hours",
       servicesCovered: [
@@ -244,7 +222,125 @@ const ServiceArea = () => {
         "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=600&fit=crop",
       coordinates: { lat: 51.4176, lng: 0.8447 },
     },
-    // London - Croydon & Surrounding
+    laindon: {
+      name: "Laindon",
+      region: "Essex",
+      coverage: "Laindon, Basildon",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Reliable cleaning services across Laindon and nearby Basildon neighborhoods.",
+      highlights: [
+        "Fast quote turnaround for local homes",
+        "Flexible appointment slots",
+        "Trusted and insured cleaning team",
+        "Eco-friendly product options",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.5748, lng: 0.4287 },
+    },
+    "langdon-hills": {
+      name: "Langdon Hills",
+      region: "Essex",
+      coverage: "Langdon Hills, Basildon outskirts",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Professional home and tenancy cleaning for Langdon Hills households.",
+      highlights: [
+        "Hillside and suburban property expertise",
+        "Detail-focused deep cleaning",
+        "Regular and one-off service plans",
+        "Friendly local team support",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.5611, lng: 0.4106 },
+    },
+    brentwood: {
+      name: "Brentwood",
+      region: "Essex",
+      coverage: "Brentwood, Shenfield, Hutton",
+      responseTime: "24 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Premium and routine cleaning support for Brentwood and surrounding areas.",
+      highlights: [
+        "High-standard finish for busy households",
+        "Move-in and move-out cleaning specialists",
+        "Weekend availability by request",
+        "Consistent quality and punctuality",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1493666438817-866a91353ca9?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.6214, lng: 0.3057 },
+    },
+    basildon: {
+      name: "Basildon",
+      region: "Essex",
+      coverage: "Basildon, Pitsea, Vange",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Comprehensive cleaning services for families, landlords, and short-let hosts in Basildon.",
+      highlights: [
+        "Fast support for tenancy turnovers",
+        "Strong local area coverage",
+        "Affordable plans with clear pricing",
+        "Responsive customer communication",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.5724, lng: 0.4700 },
+    },
+    billericay: {
+      name: "Billericay",
+      region: "Essex",
+      coverage: "Billericay, Little Burstead, Great Burstead",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Dedicated cleaning services for Billericay homes and local rental properties.",
+      highlights: [
+        "Thorough home refresh services",
+        "End-of-tenancy quality standards",
+        "Flexible recurring cleans",
+        "Friendly and vetted professionals",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.6288, lng: 0.4184 },
+    },
+    wickford: {
+      name: "Wickford",
+      region: "Essex",
+      coverage: "Wickford, Runwell, Battlesbridge",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Reliable routine and deep cleaning solutions for Wickford and nearby communities.",
+      highlights: [
+        "Flexible scheduling around work hours",
+        "Family-safe eco cleaning options",
+        "Consistent standards across visits",
+        "Prompt booking confirmations",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1460317442991-0ec209397118?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.6112, lng: 0.5238 },
+    },
+    "southend-on-sea": {
+      name: "Southend-on-Sea",
+      region: "Essex",
+      coverage: "Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea",
+      responseTime: "24-48 hours",
+      servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
+      localInfo: "Professional cleaning support across the Southend-on-Sea coastal axis.",
+      highlights: [
+        "Coastal property cleaning experience",
+        "Holiday let and Airbnb turnaround support",
+        "Fast response across key Southend districts",
+        "Trusted and insured cleaning operatives",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1472224371017-08207f84aaae?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.5459, lng: 0.7077 },
+    },
     croydon: {
       name: "Croydon",
       region: "Greater London, Surrey",

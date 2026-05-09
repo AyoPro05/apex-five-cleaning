@@ -134,7 +134,7 @@ const Contact = () => {
                   >
                     123, Main road, Broadway, Sittingbourne plaza ME11 2BY
                   </a>
-                  <p className="text-gray-500 text-sm mt-1">Serving Kent, Swale & surrounding areas</p>
+                  <p className="text-gray-500 text-sm mt-1">Serving Kent, Essex, Greater London & surrounding areas</p>
                 </div>
               </div>
             </div>

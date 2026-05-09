@@ -20,8 +20,14 @@ const AREA_COORDINATES = {
   ashford: { lat: 51.1447, lng: 0.8738, name: 'Ashford' },
   sheerness: { lat: 51.4421, lng: 0.7491, name: "Sheerness-on-Sea" },
   sittingbourne: { lat: 51.3462, lng: 0.7417, name: 'Sittingbourne' },
-  axminster: { lat: 51.3789, lng: 0.9147, name: 'Axminster' },
   'minster-on-sea': { lat: 51.4176, lng: 0.8447, name: 'Minster-on-Sea' },
+  laindon: { lat: 51.5748, lng: 0.4287, name: 'Laindon' },
+  'langdon-hills': { lat: 51.5611, lng: 0.4106, name: 'Langdon Hills' },
+  brentwood: { lat: 51.6214, lng: 0.3057, name: 'Brentwood' },
+  basildon: { lat: 51.5724, lng: 0.4700, name: 'Basildon' },
+  billericay: { lat: 51.6288, lng: 0.4184, name: 'Billericay' },
+  wickford: { lat: 51.6112, lng: 0.5238, name: 'Wickford' },
+  'southend-on-sea': { lat: 51.5459, lng: 0.7077, name: 'Southend-on-Sea' },
   croydon: { lat: 51.3758, lng: -0.1045, name: 'Croydon' }
 }
 
@@ -34,8 +40,14 @@ const SLUG_BY_NAME = {
   'Ashford': 'ashford',
   "Sheerness-on-Sea": 'sheerness',
   'Sittingbourne': 'sittingbourne',
-  'Axminster': 'axminster',
   'Minster-on-Sea': 'minster-on-sea',
+  'Laindon': 'laindon',
+  'Langdon Hills': 'langdon-hills',
+  'Brentwood': 'brentwood',
+  'Basildon': 'basildon',
+  'Billericay': 'billericay',
+  'Wickford': 'wickford',
+  'Southend-on-Sea': 'southend-on-sea',
   'Croydon': 'croydon'
 }
 

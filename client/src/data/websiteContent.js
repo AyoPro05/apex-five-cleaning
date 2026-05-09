@@ -48,9 +48,9 @@ export const websiteKnowledge = [
     answer: 'Yes! We use plant-based, non-toxic products safe for children and pets. Biodegradable, no harsh chemicals. Fragrance-free option available. Eco option: £5 surcharge per visit.',
     link: '/services' },
   // Areas
-  { keywords: ['area', 'kent', 'swale', 'sittingbourne', 'where do you serve', 'coverage'],
+  { keywords: ['area', 'kent', 'essex', 'greater london', 'croydon', 'laindon', 'langdon hills', 'brentwood', 'basildon', 'billericay', 'wickford', 'southend', 'sittingbourne', 'where do you serve', 'coverage'],
     topic: 'Service Areas',
-    answer: 'We serve Kent, Swale, and Greater London. Including Sittingbourne, Canterbury, Maidstone, Dover and surrounding areas. Check our Service Areas page for details.',
+    answer: 'We serve Kent, Essex, and Greater London. Including Croydon, Laindon, Langdon Hills, Brentwood, Basildon, Billericay, Wickford, Southend-on-Sea, Sittingbourne, Canterbury, Maidstone, Dover and surrounding areas. Check our Service Areas page for details.',
     link: '/service-areas' },
   // Cancellation / Reschedule
   { keywords: ['cancel', 'reschedule', 'refund'],

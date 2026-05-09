@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Menu, X, Calculator, User, LogOut, Facebook, Instagram, Search } from 'lucide-react'
+import { Menu, X, Calculator, User, LogOut, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
 import SignInModal from './SignInModal'
@@ -35,6 +35,8 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/services', label: 'Services' },
+    { path: '/service-areas', label: 'Service Areas' },
+    { path: '/testimonials', label: 'Reviews' },
     { path: '/blog', label: 'Blog' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact' },
@@ -44,22 +46,13 @@ const Navbar = () => {
 
   const { visible: bannerVisible } = useAnnouncement()
 
-  const handleNavbarLogoLoad = (event) => {
-    const img = event.currentTarget
-    const nav = img.closest('nav')
-    const navStyle = nav ? window.getComputedStyle(nav) : null
-    // #region agent log
-    fetch('http://127.0.0.1:7912/ingest/50857c0c-62f2-4533-aa30-c883cf01a72c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b6ae09'},body:JSON.stringify({sessionId:'b6ae09',runId:'baseline-visibility',hypothesisId:'H4',location:'client/src/components/Navbar.jsx:handleNavbarLogoLoad',message:'Navbar logo image loaded',data:{pathname:window.location.pathname,currentSrc:img.currentSrc||null,naturalWidth:img.naturalWidth||0,naturalHeight:img.naturalHeight||0,renderedWidth:img.clientWidth||0,renderedHeight:img.clientHeight||0,navBackgroundColor:navStyle?.backgroundColor||null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }
-
   return (
     <nav className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-[top] ${bannerVisible ? 'top-[4vh]' : 'top-0'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 md:h-24">
+        <div className="flex justify-between items-center h-24 md:h-28">
           {/* Logo - 3 steps back from nav menus */}
           <Link to="/" className="flex items-center mr-12 lg:mr-16">
-            <img onLoad={handleNavbarLogoLoad} src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
+            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-16 md:h-20 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -129,27 +122,9 @@ const Navbar = () => {
                   <Calculator className="w-4 h-4 flex-shrink-0" />
                   Get a Quote
                 </Link>
-                <div className="flex items-center gap-2 ml-1">
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="Facebook" aria-label="Facebook">
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                  <a href="https://www.instagram.com/apexfive01" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="Instagram" aria-label="Instagram">
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="X (Twitter)" aria-label="X (Twitter)">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.306 21.75H-.233l7.73-8.835L0 2.25h6.676l4.959 6.56 5.848-6.56zM17.45 19.038h1.828L5.455 3.75H3.54z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="TikTok" aria-label="TikTok">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.1 1.72 2.89 2.89 0 0 1 5.1-1.72V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 9 20.1a6.34 6.34 0 0 0 5.29-2.61 6.27 6.27 0 0 0 1.19-3.63v-6.16a7.28 7.28 0 0 0 4.81 1.65c.18 0 .37 0 .56-.01v-3.4a4.9 4.9 0 0 1-.56.03z"/>
-                    </svg>
-                  </a>
-                </div>
                 <button
                   onClick={() => setShowSearch(true)}
-                  className="ml-8 p-2 text-gray-400 hover:text-teal-600 transition"
+                  className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
                   title="Search"
                   aria-label="Search"
                 >
@@ -178,27 +153,9 @@ const Navbar = () => {
                   <Calculator className="w-4 h-4 flex-shrink-0" />
                   Get a Quote
                 </Link>
-                <div className="flex items-center gap-2 ml-1">
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="Facebook" aria-label="Facebook">
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                  <a href="https://www.instagram.com/apexfive01" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="Instagram" aria-label="Instagram">
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="X (Twitter)" aria-label="X (Twitter)">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.306 21.75H-.233l7.73-8.835L0 2.25h6.676l4.959 6.56 5.848-6.56zM17.45 19.038h1.828L5.455 3.75H3.54z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="text-gray-400 hover:text-teal-600 transition p-0.5" title="TikTok" aria-label="TikTok">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.1 1.72 2.89 2.89 0 0 1 5.1-1.72V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 9 20.1a6.34 6.34 0 0 0 5.29-2.61 6.27 6.27 0 0 0 1.19-3.63v-6.16a7.28 7.28 0 0 0 4.81 1.65c.18 0 .37 0 .56-.01v-3.4a4.9 4.9 0 0 1-.56.03z"/>
-                    </svg>
-                  </a>
-                </div>
                 <button
                   onClick={() => setShowSearch(true)}
-                  className="ml-8 p-2 text-gray-400 hover:text-teal-600 transition"
+                  className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
                   title="Search"
                   aria-label="Search"
                 >
@@ -281,22 +238,6 @@ const Navbar = () => {
               Get a Quote
             </Link>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <a href="#" className="text-gray-400 hover:text-teal-600 transition p-1" title="Facebook" aria-label="Facebook">
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a href="https://www.instagram.com/apexfive01" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-600 transition p-1" title="Instagram" aria-label="Instagram">
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-teal-600 transition p-1" title="X (Twitter)" aria-label="X (Twitter)">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.306 21.75H-.233l7.73-8.835L0 2.25h6.676l4.959 6.56 5.848-6.56zM17.45 19.038h1.828L5.455 3.75H3.54z"/>
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-teal-600 transition p-1" title="TikTok" aria-label="TikTok">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.1 1.72 2.89 2.89 0 0 1 5.1-1.72V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 9 20.1a6.34 6.34 0 0 0 5.29-2.61 6.27 6.27 0 0 0 1.19-3.63v-6.16a7.28 7.28 0 0 0 4.81 1.65c.18 0 .37 0 .56-.01v-3.4a4.9 4.9 0 0 1-.56.03z"/>
-                </svg>
-              </a>
               <button
                 onClick={() => { setShowSearch(true); setIsMobileMenuOpen(false); }}
                 className="p-1.5 text-gray-400 hover:text-teal-600 transition"
