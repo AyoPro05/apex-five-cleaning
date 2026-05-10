@@ -88,6 +88,23 @@ const getSenderName = () => {
   return process.env.SMTP_FROM_NAME || 'Apex Five Cleaning';
 };
 
+/** SendGrid / nodemailer often put useful details on error.response.body */
+const formatOutboundEmailErrorDetail = (error) => {
+  const body = error?.response?.body;
+  if (body == null) return '';
+  if (typeof body === 'string') return body;
+  try {
+    return JSON.stringify(body);
+  } catch {
+    return String(body);
+  }
+};
+
+const logOutboundEmailError = (label, error) => {
+  const detail = formatOutboundEmailErrorDetail(error);
+  console.error(`❌ ${label}:`, error?.message || error, detail ? `\n   API detail: ${detail.slice(0, 1200)}` : '');
+};
+
 // ─── BRAND CONFIG (used across all email templates) ─────────────────────────
 const getBrandConfig = () => {
   const baseUrl = (process.env.CLIENT_URL || 'https://apexfivecleaning.co.uk').replace(/\/$/, '');
@@ -302,7 +319,7 @@ export const sendClientConfirmationEmail = async (toEmail, firstName, quoteId) =
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending client confirmation email:', error.message);
+    logOutboundEmailError('Error sending client confirmation email', error);
     return { success: false, error: error.message };
   }
 };
@@ -386,7 +403,7 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending quote approved email:', error.message);
+    logOutboundEmailError('Error sending quote approved email', error);
     return { success: false, error: error.message };
   }
 };
@@ -424,7 +441,7 @@ export const sendAdminNotificationEmail = async (quoteData) => {
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending admin notification email:', error.message);
+    logOutboundEmailError('Error sending admin notification email', error);
     return { success: false, error: error.message };
   }
 };
@@ -609,9 +626,7 @@ export const sendVerificationEmail = async (toEmail, firstName, verificationToke
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    const detail = error.response || error.responseCode || error.code ? ` (${error.response || error.responseCode || error.code})` : '';
-    console.error('❌ Error sending verification email:', error.message + detail);
-    if (error.response) console.error('   SMTP response:', String(error.response).slice(0, 200));
+    logOutboundEmailError('Error sending verification email', error);
     return { success: false, error: error.message };
   }
 };
@@ -652,7 +667,7 @@ export const sendVerificationSuccessEmail = async (toEmail, firstName) => {
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending verification success email:', error.message);
+    logOutboundEmailError('Error sending verification success email', error);
     return { success: false, error: error.message };
   }
 };
@@ -694,7 +709,7 @@ export const sendResendVerificationEmail = async (toEmail, firstName, verificati
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending resend verification email:', error.message);
+    logOutboundEmailError('Error sending resend verification email', error);
     return { success: false, error: error.message };
   }
 };
@@ -775,7 +790,7 @@ export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => 
       return { success: false, error: 'No email provider configured' };
     }
   } catch (error) {
-    console.error('❌ Error sending password reset email:', error.message);
+    logOutboundEmailError('Error sending password reset email', error);
     return { success: false, error: error.message };
   }
 };

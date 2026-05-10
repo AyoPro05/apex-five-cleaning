@@ -19,6 +19,13 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+if (process.env.NODE_ENV === "production" && !process.env.MONGODB_URI) {
+  console.error(
+    "FATAL: MONGODB_URI is required in production. Create a MongoDB Atlas cluster (or other hosted MongoDB) and set MONGODB_URI in Render → Environment.",
+  );
+  process.exit(1);
+}
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -35,6 +42,10 @@ import uploadsRouter from "./routes/uploads.js";
 import { getEmailConfigStatus } from "./utils/emailService.js";
 
 const app = express();
+// Render (and similar) terminate TLS and set X-Forwarded-*. Required for correct req.ip and express-rate-limit.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 // Force port to 5001 if not specified to match your logs
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -59,11 +70,26 @@ if (process.env.CLIENT_URL) {
   const url = process.env.CLIENT_URL.replace(/\/$/, "");
   if (!corsOrigins.includes(url)) corsOrigins.push(url);
 }
-// Production: allow custom domain + Render static site
+// Render injects this URL for the current web service (no need to hardcode *.onrender.com per deploy)
+if (process.env.RENDER_EXTERNAL_URL) {
+  const url = process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "");
+  if (!corsOrigins.includes(url)) corsOrigins.push(url);
+}
+// Optional: comma-separated origins (e.g. preview URLs)
+if (process.env.ADDITIONAL_CORS_ORIGINS) {
+  process.env.ADDITIONAL_CORS_ORIGINS.split(",")
+    .map((s) => s.trim().replace(/\/$/, ""))
+    .filter(Boolean)
+    .forEach((origin) => {
+      if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
+    });
+}
+// Production: allow custom domain + known Render static hostnames
 if (process.env.NODE_ENV === "production") {
   [
     "https://www.apexfivecleaning.co.uk",
     "https://apexfivecleaning.co.uk",
+    "https://apex-five-cleaning-1.onrender.com",
     "https://apex-five-cleaning-2.onrender.com",
   ].forEach((origin) => {
     if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
@@ -100,6 +126,7 @@ app.get("/health", (req, res) => {
   const payload = {
     ok: dbConnected,
     timestamp: new Date().toISOString(),
+    database: { connected: dbConnected },
     email: {
       configured: email.configured,
       provider: email.provider,
@@ -124,21 +151,42 @@ app.use("/api/uploads", uploadsRouter);
 
 // Database connection
 const connectDB = async () => {
+  const uri =
+    process.env.MONGODB_URI ||
+    (process.env.NODE_ENV === "production"
+      ? null
+      : "mongodb://localhost:27017/apex-cleaning");
+  if (!uri) {
+    dbConnected = false;
+    console.error("✗ MongoDB URI missing (MONGODB_URI).");
+    return;
+  }
   try {
-    // Uses 5001/apex-cleaning as seen in your logs
-    await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/apex-cleaning",
-    );
+    await mongoose.connect(uri);
     dbConnected = true;
     console.log("✓ Connected to MongoDB");
   } catch (error) {
     dbConnected = false;
     console.error("✗ MongoDB connection failed:", error.message);
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "FATAL: Cannot run API without MongoDB in production. Fix MONGODB_URI (Atlas IP allowlist: 0.0.0.0/0 for Render) and redeploy.",
+      );
+      process.exit(1);
+    }
   }
 };
 
 const startServer = async () => {
   await connectDB();
+  if (NODE_ENV === "production") {
+    const cu = process.env.CLIENT_URL || "";
+    if (!cu || /localhost|127\.0\.0\.1/.test(cu)) {
+      console.warn(
+        "⚠ CLIENT_URL is unset or points to localhost. Set CLIENT_URL to your live frontend (e.g. https://www.apexfivecleaning.co.uk). Verification and reset links in emails use this URL.",
+      );
+    }
+  }
   app.listen(PORT, () => {
     console.log(`\n✓ Server running on http://localhost:${PORT}`);
     console.log(`✓ Environment: ${NODE_ENV}`);
