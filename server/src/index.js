@@ -41,6 +41,9 @@ import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
 import { getEmailConfigStatus } from "./utils/emailService.js";
 
+// Fail fast instead of waiting for Mongoose operation buffering timeouts
+mongoose.set("bufferCommands", false);
+
 const app = express();
 // Render (and similar) terminate TLS and set X-Forwarded-*. Required for correct req.ip and express-rate-limit.
 if (process.env.NODE_ENV === "production") {
@@ -119,24 +122,40 @@ app.get("/", (req, res) => {
 
 let dbConnected = false;
 
+const isMongoReady = () => mongoose.connection.readyState === 1 && dbConnected;
+
 // Health check for ops/monitoring (no secrets). Email status shows if verification/quote emails can be sent.
 // Returns 503 if MongoDB is not connected so load balancers can mark instance unhealthy.
 app.get("/health", (req, res) => {
   const email = getEmailConfigStatus();
   const payload = {
-    ok: dbConnected,
+    ok: isMongoReady(),
     timestamp: new Date().toISOString(),
-    database: { connected: dbConnected },
+    database: {
+      connected: isMongoReady(),
+      readyState: mongoose.connection.readyState,
+    },
     email: {
       configured: email.configured,
       provider: email.provider,
       ...(email.hint && { hint: email.hint }),
     },
   };
-  if (!dbConnected) {
+  if (!isMongoReady()) {
     return res.status(503).json({ ...payload, error: "Database not connected" });
   }
   res.json(payload);
+});
+
+// Guard all API requests from hanging when MongoDB temporarily disconnects
+app.use("/api", (req, res, next) => {
+  if (!isMongoReady()) {
+    return res.status(503).json({
+      error: "Service unavailable",
+      message: "Database temporarily unavailable. Please retry in a few seconds.",
+    });
+  }
+  next();
 });
 
 // Routes
@@ -165,6 +184,22 @@ const connectDB = async () => {
     await mongoose.connect(uri);
     dbConnected = true;
     console.log("✓ Connected to MongoDB");
+    mongoose.connection.on("connected", () => {
+      dbConnected = true;
+      console.log("✓ MongoDB connected");
+    });
+    mongoose.connection.on("reconnected", () => {
+      dbConnected = true;
+      console.log("✓ MongoDB reconnected");
+    });
+    mongoose.connection.on("disconnected", () => {
+      dbConnected = false;
+      console.error("✗ MongoDB disconnected");
+    });
+    mongoose.connection.on("error", (err) => {
+      dbConnected = false;
+      console.error("✗ MongoDB runtime error:", err.message);
+    });
   } catch (error) {
     dbConnected = false;
     console.error("✗ MongoDB connection failed:", error.message);
