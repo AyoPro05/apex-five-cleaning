@@ -5,47 +5,21 @@ import ServiceAreaMap from '../components/ServiceAreaMap'
 import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildBreadcrumbSchema, buildLocalBusinessSchema } from '../config/seoSchemas'
+import { SITE_URL } from '../config/site'
+import {
+  getServiceAreaRegionsForNav,
+  ORDERED_AREA_SLUGS,
+  SERVICE_AREAS_BY_SLUG,
+} from '../data/serviceAreasCatalog'
+
+const regions = getServiceAreaRegionsForNav()
+
+const areaNamesPreview = ORDERED_AREA_SLUGS.slice(0, 8)
+  .map((slug) => SERVICE_AREAS_BY_SLUG[slug].name)
+  .join(', ')
 
 const ServiceAreas = () => {
   const navigate = useNavigate()
-
-  const regions = [
-    {
-      name: 'Kent',
-      description: 'Our primary service area covering East, Central Kent, including Swale towns',
-      areas: [
-        { name: 'Canterbury', slug: 'canterbury', coverage: 'Canterbury, Whitstable, Herne Bay, Faversham' },
-        { name: 'Dover', slug: 'dover', coverage: 'Dover, Folkestone, Deal, Walmer' },
-        { name: 'Maidstone', slug: 'maidstone', coverage: 'Maidstone, Ashford, Sittingbourne' },
-        { name: 'Tunbridge Wells', slug: 'tunbridge-wells', coverage: 'Tunbridge Wells, Royal Tunbridge Wells' },
-        { name: 'Sevenoaks', slug: 'sevenoaks', coverage: 'Sevenoaks, Orpington, Eynsford' },
-        { name: 'Ashford', slug: 'ashford', coverage: 'Ashford, Tenterden, Charing' },
-        { name: 'Sheerness-on-Sea', slug: 'sheerness', coverage: 'Sheerness-on-Sea, Queenborough, Minster-on-Sea' },
-        { name: 'Sittingbourne', slug: 'sittingbourne', coverage: 'Sittingbourne, Faversham, Whitstable' },
-        { name: 'Minster-on-Sea', slug: 'minster-on-sea', coverage: 'Minster-on-Sea, Isle of Sheppey' }
-      ]
-    },
-    {
-      name: 'Essex',
-      description: 'Coverage across key Essex towns and commuter areas',
-      areas: [
-        { name: 'Laindon', slug: 'laindon', coverage: 'Laindon, Basildon' },
-        { name: 'Langdon Hills', slug: 'langdon-hills', coverage: 'Langdon Hills, Basildon outskirts' },
-        { name: 'Brentwood', slug: 'brentwood', coverage: 'Brentwood, Shenfield, Hutton' },
-        { name: 'Basildon', slug: 'basildon', coverage: 'Basildon, Pitsea, Vange' },
-        { name: 'Billericay', slug: 'billericay', coverage: 'Billericay, Little Burstead, Great Burstead' },
-        { name: 'Wickford', slug: 'wickford', coverage: 'Wickford, Runwell, Battlesbridge' },
-        { name: 'Southend-on-Sea', slug: 'southend-on-sea', coverage: 'Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea' }
-      ]
-    },
-    {
-      name: 'London & South East',
-      description: 'Expanding service to Greater London and surrounding areas',
-      areas: [
-        { name: 'Croydon', slug: 'croydon', coverage: 'Croydon, Coulsdon, Sanderstead, Purley' }
-      ]
-    }
-  ]
 
   const allAreas = regions.flatMap((region) => region.areas)
   const serviceAreaSchemas = [
@@ -58,12 +32,12 @@ const ServiceAreas = () => {
         "@type": "ListItem",
         position: index + 1,
         name: area.name,
-        url: `https://www.apexfivecleaning.co.uk/service-areas/${area.slug}`,
+        url: `${SITE_URL}/service-areas/${area.slug}`,
       })),
     },
     buildBreadcrumbSchema([
-      { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
-      { name: "Service Areas", url: "https://www.apexfivecleaning.co.uk/service-areas" },
+      { name: "Home", url: `${SITE_URL}/` },
+      { name: "Service Areas", url: `${SITE_URL}/service-areas` },
     ]),
   ]
 
@@ -71,7 +45,7 @@ const ServiceAreas = () => {
     <>
       <SEO
         title="Cleaning Service Areas"
-        description="See all areas we cover including Canterbury, Dover, Maidstone, Tunbridge Wells, Sevenoaks, Ashford, and more."
+        description={`Professional cleaning across Kent, Essex & Greater London: ${areaNamesPreview}, Southend-on-Sea, Croydon, and surrounding towns. Same coverage on every area page.`}
         path="/service-areas"
         jsonLd={serviceAreaSchemas}
       />

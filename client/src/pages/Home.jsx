@@ -23,6 +23,7 @@ import {
   buildLocalBusinessSchema,
   buildWebSiteSchema,
 } from "../config/seoSchemas";
+import { getServiceAreaRegionsForNav } from "../data/serviceAreasCatalog";
 
 // Scroll reveal animation config
 const scrollReveal = {
@@ -47,104 +48,7 @@ const staggerItem = {
   viewport: { once: true },
 };
 
-// Service area regions
-const regions = [
-  {
-    name: "Kent",
-    description: "Our primary service area covering East and Central Kent, including Swale towns",
-    areas: [
-      {
-        name: "Canterbury",
-        slug: "canterbury",
-        coverage: "Canterbury, Whitstable, Herne Bay",
-      },
-      {
-        name: "Dover",
-        slug: "dover",
-        coverage: "Dover, Folkestone, Deal, Walmer",
-      },
-      {
-        name: "Maidstone",
-        slug: "maidstone",
-        coverage: "Maidstone, Ashford, Sittingbourne",
-      },
-      {
-        name: "Tunbridge Wells",
-        slug: "tunbridge-wells",
-        coverage: "Tunbridge Wells & surrounding",
-      },
-      {
-        name: "Sevenoaks",
-        slug: "sevenoaks",
-        coverage: "Sevenoaks, Orpington, Eynsford",
-      },
-      {
-        name: "Ashford",
-        slug: "ashford",
-        coverage: "Ashford, Tenterden, Charing",
-      },
-      {
-        name: "Sheerness-on-Sea",
-        slug: "sheerness",
-        coverage: "Sheerness, Queenborough, Minster",
-      },
-      {
-        name: "Sittingbourne",
-        slug: "sittingbourne",
-        coverage: "Sittingbourne, Faversham",
-      },
-      {
-        name: "Minster-on-Sea",
-        slug: "minster-on-sea",
-        coverage: "Minster-on-Sea, Isle of Sheppey",
-      },
-    ],
-  },
-  {
-    name: "Essex",
-    description: "Now serving key Essex towns and nearby communities",
-    areas: [
-      { name: "Laindon", slug: "laindon", coverage: "Laindon, Basildon" },
-      {
-        name: "Langdon Hills",
-        slug: "langdon-hills",
-        coverage: "Langdon Hills, Basildon outskirts",
-      },
-      {
-        name: "Brentwood",
-        slug: "brentwood",
-        coverage: "Brentwood, Shenfield, Hutton",
-      },
-      { name: "Basildon", slug: "basildon", coverage: "Basildon, Pitsea, Vange" },
-      {
-        name: "Billericay",
-        slug: "billericay",
-        coverage: "Billericay, Little Burstead, Great Burstead",
-      },
-      {
-        name: "Wickford",
-        slug: "wickford",
-        coverage: "Wickford, Runwell, Battlesbridge",
-      },
-      {
-        name: "Southend-on-Sea",
-        slug: "southend-on-sea",
-        coverage: "Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea",
-      },
-    ],
-  },
-  {
-    name: "London & South East",
-    description: "Expanding into Greater London",
-    areas: [
-      {
-        name: "Croydon",
-        slug: "croydon",
-        coverage: "Croydon, Coulsdon, Sanderstead, Purley",
-      },
-    ],
-  },
-];
+const regions = getServiceAreaRegionsForNav();
 
 // Testimonials
 const testimonials = [
@@ -229,8 +133,8 @@ const Home = () => {
   return (
     <>
       <SEO
-        title="Professional Eco-Friendly Cleaning Services in Kent"
-        description="Trusted residential, end of tenancy, Airbnb, and commercial cleaning services across Kent and nearby areas. Get a free quote from Apex Five Cleaning."
+        title="Professional Eco-Friendly Cleaning | Kent, Essex & Greater London"
+        description="Residential, end of tenancy, Airbnb, and commercial cleaning across Kent, Essex, and Greater London — Canterbury to Croydon. Eco-friendly products, insured team, fast quotes from Apex Five Cleaning."
         path="/"
         jsonLd={homeSchemas}
       />
