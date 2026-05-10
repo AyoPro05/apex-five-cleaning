@@ -6,7 +6,16 @@
 import axios from 'axios'
 
 // API base URL: empty in dev (Vite proxy), set in production
-export const API_URL = import.meta.env.VITE_API_URL || ''
+const envApiUrl = String(import.meta.env.VITE_API_URL || '').trim()
+const isBrowser = typeof window !== 'undefined'
+const isLocalHost =
+  isBrowser &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1')
+// Safety fallback for production when frontend env is missing/misconfigured.
+// Prevents API requests from hitting the static site origin (/api -> index.html).
+const fallbackProdApiUrl = 'https://apex-five-cleaning-1.onrender.com'
+export const API_URL = envApiUrl || (isBrowser && !isLocalHost ? fallbackProdApiUrl : '')
 
 /**
  * Resolve upload/image URL - use /api/uploads so Vite proxy forwards correctly
