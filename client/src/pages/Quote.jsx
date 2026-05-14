@@ -20,11 +20,21 @@ const ADDITIONAL_SERVICES = [
   { id: "sanitizing-high-touch", label: "Sanitizing High-Touch Points (Disinfection)" },
 ];
 
+const getFirstErrorMessage = (errorMap = {}) =>
+  Object.values(errorMap).filter(Boolean)[0] || "Please check the form for errors";
+
 // Load reCAPTCHA script
 const loadRecaptchaScript = () => {
-  if (!window.grecaptcha) {
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  if (!siteKey || window.grecaptcha) return;
+
+  const existingScript = document.querySelector("script[data-recaptcha='quote-form']");
+  if (!existingScript) {
     const script = document.createElement("script");
-    script.src = `https://www.google.com/recaptcha/api.js?render=${import.meta.env.VITE_RECAPTCHA_SITE_KEY}`;
+    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+    script.async = true;
+    script.defer = true;
+    script.dataset.recaptcha = "quote-form";
     document.head.appendChild(script);
   }
 };
@@ -164,6 +174,9 @@ const Quote = () => {
       ? current.filter((id) => id !== serviceId)
       : [...current, serviceId];
     setFormData({ ...formData, additionalServices: updated });
+    if (errors.additionalServices) {
+      setErrors({ ...errors, additionalServices: "" });
+    }
   };
 
   const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
@@ -207,15 +220,25 @@ const Quote = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError("");
+
+    if (!validateStep(3)) {
+      setSubmitError("Please check the highlighted fields");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       let token = "";
       if (window.grecaptcha && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
-        token = await window.grecaptcha.execute(
-          import.meta.env.VITE_RECAPTCHA_SITE_KEY,
-          { action: "submit" },
-        );
+        token = await new Promise((resolve, reject) => {
+          window.grecaptcha.ready(() => {
+            window.grecaptcha
+              .execute(import.meta.env.VITE_RECAPTCHA_SITE_KEY, { action: "submit" })
+              .then(resolve)
+              .catch(reject);
+          });
+        });
       }
 
       const formDataToSend = new FormData();
@@ -230,6 +253,8 @@ const Quote = () => {
       formDataToSend.append("phone", formData.phone);
       formDataToSend.append("address", formData.address);
       formDataToSend.append("postcode", String(formData.postcode).trim().toUpperCase());
+      formDataToSend.append("preferredDate", formData.preferredDate || "");
+      formDataToSend.append("preferredTime", formData.preferredTime || "");
       formDataToSend.append("additionalNotes", formData.additionalNotes || "");
       formDataToSend.append("captchaToken", token);
 
@@ -241,7 +266,7 @@ const Quote = () => {
 
       if (data.errors) {
         setErrors(data.errors);
-        setSubmitError("Please check the form for errors");
+        setSubmitError(getFirstErrorMessage(data.errors));
         setSubmitting(false);
         return;
       }
@@ -254,7 +279,7 @@ const Quote = () => {
       const res = error.response?.data;
       if (res?.errors) {
         setErrors(res.errors);
-        setSubmitError("Please check the form for errors");
+        setSubmitError(getFirstErrorMessage(res.errors));
       } else {
         setSubmitError(res?.error || error.message || "A network error occurred. Please try again.");
       }
@@ -570,6 +595,11 @@ const Quote = () => {
                       {(formData.additionalServices || []).length} add-on(s) selected
                     </p>
                   )}
+                  {errors.additionalServices && (
+                    <p className="text-red-600 text-sm mt-2">
+                      {errors.additionalServices}
+                    </p>
+                  )}
                 </div>
 
                 {/* Image Upload */}
@@ -867,6 +897,9 @@ const Quote = () => {
                     </a>{" "}
                     apply.
                   </p>
+                  {errors.captchaToken && (
+                    <p className="text-red-600 text-sm mt-2">{errors.captchaToken}</p>
+                  )}
                 </div>
 
                 <div className="flex justify-between">

@@ -145,7 +145,7 @@ const quoteValidationSchema = Joi.object({
       'cabinet-cupboard-organization',
       'sanitizing-high-touch'
     ))
-    .max(10)
+    .max(11)
     .optional()
     .default([])
     .messages({

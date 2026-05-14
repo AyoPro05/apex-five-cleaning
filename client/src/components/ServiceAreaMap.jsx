@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { ORDERED_AREA_SLUGS, SERVICE_AREAS_BY_SLUG } from '../data/serviceAreasCatalog'
 
 // Fix default marker icons (webpack/vite bundling)
 delete L.Icon.Default.prototype._getIconUrl
@@ -11,44 +12,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
 })
 
-const AREA_COORDINATES = {
-  canterbury: { lat: 51.2793, lng: 1.0832, name: 'Canterbury' },
-  dover: { lat: 51.1289, lng: 1.3127, name: 'Dover' },
-  maidstone: { lat: 51.2707, lng: 0.5197, name: 'Maidstone' },
-  'tunbridge-wells': { lat: 51.1829, lng: 0.274, name: 'Tunbridge Wells' },
-  sevenoaks: { lat: 51.1544, lng: 0.1759, name: 'Sevenoaks' },
-  ashford: { lat: 51.1447, lng: 0.8738, name: 'Ashford' },
-  sheerness: { lat: 51.4421, lng: 0.7491, name: "Sheerness-on-Sea" },
-  sittingbourne: { lat: 51.3462, lng: 0.7417, name: 'Sittingbourne' },
-  'minster-on-sea': { lat: 51.4176, lng: 0.8447, name: 'Minster-on-Sea' },
-  laindon: { lat: 51.5748, lng: 0.4287, name: 'Laindon' },
-  'langdon-hills': { lat: 51.5611, lng: 0.4106, name: 'Langdon Hills' },
-  brentwood: { lat: 51.6214, lng: 0.3057, name: 'Brentwood' },
-  basildon: { lat: 51.5724, lng: 0.4700, name: 'Basildon' },
-  billericay: { lat: 51.6288, lng: 0.4184, name: 'Billericay' },
-  wickford: { lat: 51.6112, lng: 0.5238, name: 'Wickford' },
-  'southend-on-sea': { lat: 51.5459, lng: 0.7077, name: 'Southend-on-Sea' },
-  croydon: { lat: 51.3758, lng: -0.1045, name: 'Croydon' }
-}
+const getMapAreas = (singleAreaSlug) => {
+  const slugs = singleAreaSlug ? [singleAreaSlug] : ORDERED_AREA_SLUGS
 
-const SLUG_BY_NAME = {
-  'Canterbury': 'canterbury',
-  'Dover': 'dover',
-  'Maidstone': 'maidstone',
-  'Tunbridge Wells': 'tunbridge-wells',
-  'Sevenoaks': 'sevenoaks',
-  'Ashford': 'ashford',
-  "Sheerness-on-Sea": 'sheerness',
-  'Sittingbourne': 'sittingbourne',
-  'Minster-on-Sea': 'minster-on-sea',
-  'Laindon': 'laindon',
-  'Langdon Hills': 'langdon-hills',
-  'Brentwood': 'brentwood',
-  'Basildon': 'basildon',
-  'Billericay': 'billericay',
-  'Wickford': 'wickford',
-  'Southend-on-Sea': 'southend-on-sea',
-  'Croydon': 'croydon'
+  return slugs
+    .map((slug) => {
+      const area = SERVICE_AREAS_BY_SLUG[slug]
+      if (!area?.coordinates) return null
+      return {
+        slug,
+        name: area.name,
+        lat: area.coordinates.lat,
+        lng: area.coordinates.lng,
+      }
+    })
+    .filter(Boolean)
 }
 
 export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px' }) {
@@ -62,8 +40,16 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
 
     let map = null
     let markers = []
-    let timerId
+    let timerIds = []
+    let resizeObserver
     let retries = 0
+
+    const refreshMapSize = () => {
+      if (!map) return
+      window.requestAnimationFrame(() => {
+        map?.invalidateSize({ pan: false })
+      })
+    }
 
     const init = () => {
       const el = mapRef.current
@@ -71,15 +57,11 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
       const rect = el.getBoundingClientRect()
       if ((rect.height < 50 || rect.width < 50) && retries < 20) {
         retries++
-        timerId = setTimeout(init, 100)
+        timerIds.push(setTimeout(init, 100))
         return
       }
       try {
-        const coords = singleAreaSlug
-          ? [AREA_COORDINATES[singleAreaSlug]]
-          : Object.entries(AREA_COORDINATES).map(([slug, data]) => ({ ...data, slug }))
-
-        const validCoords = coords.filter(Boolean)
+        const validCoords = getMapAreas(singleAreaSlug)
         if (validCoords.length === 0) return
 
         const center = singleAreaSlug
@@ -87,17 +69,19 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
           : [51.27, 0.52]
         const zoom = singleAreaSlug ? 12 : 9
 
-        map = L.map(el).setView(center, zoom)
+        map = L.map(el, {
+          scrollWheelZoom: false,
+          tap: true,
+        }).setView(center, zoom)
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map)
 
         validCoords.forEach(({ lat, lng, name, slug }) => {
-          const areaSlug = slug || singleAreaSlug || SLUG_BY_NAME[name]
           const marker = L.marker([lat, lng]).addTo(map)
           marker.bindPopup(`<strong>${name}</strong><br/><span class="text-teal-600">Click to view services</span>`)
-          marker.on('click', () => navigate(`/service-areas/${areaSlug}`))
+          marker.on('click', () => navigate(`/service-areas/${slug}`))
           markers.push(marker)
         })
 
@@ -106,7 +90,16 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
           map.fitBounds(group.getBounds().pad(0.1))
         }
 
-        setTimeout(() => map?.invalidateSize(), 100)
+        if (window.ResizeObserver) {
+          resizeObserver = new ResizeObserver(refreshMapSize)
+          resizeObserver.observe(el)
+        }
+        window.addEventListener('resize', refreshMapSize)
+        window.addEventListener('orientationchange', refreshMapSize)
+        ;[100, 350, 800].forEach((delay) => {
+          timerIds.push(setTimeout(refreshMapSize, delay))
+        })
+        map.whenReady(refreshMapSize)
         setReady(true)
       } catch (err) {
         console.error('Map load error:', err)
@@ -116,9 +109,12 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
 
     // Defer init so DOM is ready; extra delay for lazy-loaded pages
     const delay = singleAreaSlug ? 150 : 0
-    timerId = setTimeout(init, delay)
+    timerIds.push(setTimeout(init, delay))
     return () => {
-      clearTimeout(timerId)
+      timerIds.forEach(clearTimeout)
+      resizeObserver?.disconnect?.()
+      window.removeEventListener('resize', refreshMapSize)
+      window.removeEventListener('orientationchange', refreshMapSize)
       markers.forEach(m => m?.remove?.())
       map?.remove?.()
     }
@@ -136,7 +132,7 @@ export default function ServiceAreaMap({ singleAreaSlug = null, height = '384px'
     <div
       ref={mapRef}
       className="relative w-full rounded-lg overflow-hidden border border-gray-200 bg-gray-100"
-      style={{ height, minHeight: 200 }}
+      style={{ height: `clamp(320px, 68vh, ${height})`, minHeight: 280 }}
     >
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">

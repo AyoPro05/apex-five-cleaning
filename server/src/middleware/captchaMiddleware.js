@@ -63,7 +63,8 @@ export const verifyCaptcha = async (req, res, next) => {
       });
     }
 
-    if (score != null && score < 0.5) {
+    const minScore = Number(process.env.RECAPTCHA_SCORE_THRESHOLD || 0.5);
+    if (score != null && score < minScore) {
       return res.status(429).json({
         success: false,
         error: "Suspicious activity detected. Please try again.",
