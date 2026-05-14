@@ -31,7 +31,7 @@ import cors from "cors";
 import helmet from "helmet";
 import mongoose from "mongoose";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
-import authRouter from "../routes/authRoutes.js";
+import authRouter from "./routes/authRoutes.js";
 import emailVerificationRouter from "./routes/emailVerification.js";
 import quotesRouter from "./routes/quotes.js";
 import adminRouter from "./routes/admin.js";
