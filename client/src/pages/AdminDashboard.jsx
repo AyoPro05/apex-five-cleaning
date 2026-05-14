@@ -27,12 +27,65 @@ import {
   Clock,
   XCircle,
   LogOut,
-  Trash2,
-  BarChart3,
-} from "lucide-react";
+	  Trash2,
+	  BarChart3,
+	  Users,
+	  CalendarDays,
+	  PoundSterling,
+	  Plus,
+	  Save,
+	} from "lucide-react";
 
 const RETENTION_MONTHS = 6;
 const CHART_COLORS = ["#0d9488", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
+
+const STAFF_FORM_DEFAULT = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  role: "cleaner",
+  employmentType: "part-time",
+  hourlyRate: "",
+  serviceAreasText: "",
+  emergencyContactName: "",
+  emergencyContactPhone: "",
+  status: "active",
+  notes: "",
+};
+
+const SHIFT_FORM_DEFAULT = {
+  staffId: "",
+  date: new Date().toISOString().slice(0, 10),
+  startTime: "09:00",
+  endTime: "17:00",
+  breakMinutes: 0,
+  hourlyRateSnapshot: "",
+  location: "",
+  status: "scheduled",
+  notes: "",
+};
+
+const monthStart = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+};
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const formatCurrency = (amount = 0) => `£${Number(amount || 0).toFixed(2)}`;
+
+const formatDate = (date) =>
+  date
+    ? new Date(date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
+
+const staffName = (staff) =>
+  staff ? `${staff.firstName || ""} ${staff.lastName || ""}`.trim() : "Unassigned";
 
 const getTabFromPath = (pathname = "") => {
   if (pathname.startsWith("/admin/quotes")) return "quotes";
@@ -79,11 +132,30 @@ const AdminDashboard = () => {
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customersError, setCustomersError] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
-  const [customerPagination, setCustomerPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-  });
+	  const [customerPagination, setCustomerPagination] = useState({
+	    page: 1,
+	    limit: 20,
+	    total: 0,
+	  });
+
+	  // Staff operations
+	  const [staffList, setStaffList] = useState([]);
+	  const [staffLoading, setStaffLoading] = useState(false);
+	  const [staffError, setStaffError] = useState("");
+	  const [staffSearch, setStaffSearch] = useState("");
+	  const [staffStatusFilter, setStaffStatusFilter] = useState("active");
+	  const [staffForm, setStaffForm] = useState(STAFF_FORM_DEFAULT);
+	  const [editingStaffId, setEditingStaffId] = useState(null);
+	  const [staffSaving, setStaffSaving] = useState(false);
+	  const [shifts, setShifts] = useState([]);
+	  const [shiftForm, setShiftForm] = useState(SHIFT_FORM_DEFAULT);
+	  const [shiftSaving, setShiftSaving] = useState(false);
+	  const [payroll, setPayroll] = useState({ summaries: [], totals: {} });
+	  const [payrollLoading, setPayrollLoading] = useState(false);
+	  const [staffDateRange, setStaffDateRange] = useState({
+	    from: monthStart(),
+	    to: today(),
+	  });
 
   // Fetch quotes
   const fetchQuotes = async () => {
@@ -217,7 +289,7 @@ const AdminDashboard = () => {
   };
 
   // Fetch customers (registered users)
-  const fetchCustomers = async (options = {}) => {
+	  const fetchCustomers = async (options = {}) => {
     if (!adminToken) {
       setCustomersError("Admin token required");
       return;
@@ -253,7 +325,224 @@ const AdminDashboard = () => {
     } finally {
       setCustomersLoading(false);
     }
-  };
+	  };
+
+	  const staffPayloadFromForm = (form) => ({
+	    firstName: form.firstName.trim(),
+	    lastName: form.lastName.trim(),
+	    email: form.email.trim(),
+	    phone: form.phone.trim(),
+	    role: form.role,
+	    employmentType: form.employmentType,
+	    hourlyRate: Number(form.hourlyRate || 0),
+	    serviceAreas: form.serviceAreasText
+	      .split(",")
+	      .map((area) => area.trim())
+	      .filter(Boolean),
+	    emergencyContactName: form.emergencyContactName.trim(),
+	    emergencyContactPhone: form.emergencyContactPhone.trim(),
+	    status: form.status,
+	    notes: form.notes.trim(),
+	  });
+
+	  const fetchStaff = async () => {
+	    if (!adminToken) return;
+	    setStaffLoading(true);
+	    setStaffError("");
+	    try {
+	      const params = new URLSearchParams({
+	        search: staffSearch,
+	        status: staffStatusFilter,
+	      });
+	      const data = await get(`/api/admin/staff?${params}`);
+	      if (data.success) {
+	        setStaffList(data.data || []);
+	      } else {
+	        setStaffError(data.error || "Failed to load staff");
+	      }
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    } finally {
+	      setStaffLoading(false);
+	    }
+	  };
+
+	  const fetchShifts = async () => {
+	    if (!adminToken) return;
+	    try {
+	      const params = new URLSearchParams({
+	        from: staffDateRange.from,
+	        to: staffDateRange.to,
+	      });
+	      const data = await get(`/api/admin/staff/shifts?${params}`);
+	      if (data.success) setShifts(data.data || []);
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    }
+	  };
+
+	  const fetchPayroll = async () => {
+	    if (!adminToken) return;
+	    setPayrollLoading(true);
+	    try {
+	      const params = new URLSearchParams({
+	        from: staffDateRange.from,
+	        to: staffDateRange.to,
+	      });
+	      const data = await get(`/api/admin/staff/payroll?${params}`);
+	      if (data.success) {
+	        setPayroll({
+	          summaries: data.summaries || [],
+	          totals: data.totals || {},
+	        });
+	      }
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    } finally {
+	      setPayrollLoading(false);
+	    }
+	  };
+
+	  const refreshStaffOperations = async () => {
+	    await Promise.all([fetchStaff(), fetchShifts(), fetchPayroll()]);
+	  };
+
+	  const resetStaffForm = () => {
+	    setEditingStaffId(null);
+	    setStaffForm(STAFF_FORM_DEFAULT);
+	  };
+
+	  const handleSaveStaff = async (e) => {
+	    e.preventDefault();
+	    setStaffSaving(true);
+	    setStaffError("");
+	    try {
+	      const payload = staffPayloadFromForm(staffForm);
+	      if (editingStaffId) {
+	        await patch(`/api/admin/staff/${editingStaffId}`, payload);
+	      } else {
+	        await post("/api/admin/staff", payload);
+	      }
+	      resetStaffForm();
+	      await fetchStaff();
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    } finally {
+	      setStaffSaving(false);
+	    }
+	  };
+
+	  const startEditStaff = (staff) => {
+	    setEditingStaffId(staff._id);
+	    setStaffForm({
+	      firstName: staff.firstName || "",
+	      lastName: staff.lastName || "",
+	      email: staff.email || "",
+	      phone: staff.phone || "",
+	      role: staff.role || "cleaner",
+	      employmentType: staff.employmentType || "part-time",
+	      hourlyRate: staff.hourlyRate ?? "",
+	      serviceAreasText: (staff.serviceAreas || []).join(", "),
+	      emergencyContactName: staff.emergencyContactName || "",
+	      emergencyContactPhone: staff.emergencyContactPhone || "",
+	      status: staff.status || "active",
+	      notes: staff.notes || "",
+	    });
+	  };
+
+	  const handleStaffStatus = async (staff, status) => {
+	    setStaffError("");
+	    try {
+	      await patch(`/api/admin/staff/${staff._id}`, { ...staffPayloadFromForm({
+	        firstName: staff.firstName || "",
+	        lastName: staff.lastName || "",
+	        email: staff.email || "",
+	        phone: staff.phone || "",
+	        role: staff.role || "cleaner",
+	        employmentType: staff.employmentType || "part-time",
+	        hourlyRate: staff.hourlyRate || 0,
+	        serviceAreasText: (staff.serviceAreas || []).join(", "),
+	        emergencyContactName: staff.emergencyContactName || "",
+	        emergencyContactPhone: staff.emergencyContactPhone || "",
+	        status,
+	        notes: staff.notes || "",
+	      }), status });
+	      await fetchStaff();
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    }
+	  };
+
+	  const handleShiftStaffChange = (staffId) => {
+	    const selected = staffList.find((staff) => staff._id === staffId);
+	    setShiftForm({
+	      ...shiftForm,
+	      staffId,
+	      hourlyRateSnapshot: selected?.hourlyRate ?? "",
+	    });
+	  };
+
+	  const handleSaveShift = async (e) => {
+	    e.preventDefault();
+	    setShiftSaving(true);
+	    setStaffError("");
+	    try {
+	      await post("/api/admin/staff/shifts", {
+	        ...shiftForm,
+	        breakMinutes: Number(shiftForm.breakMinutes || 0),
+	        hourlyRateSnapshot: Number(shiftForm.hourlyRateSnapshot || 0),
+	      });
+	      setShiftForm({
+	        ...SHIFT_FORM_DEFAULT,
+	        staffId: shiftForm.staffId,
+	        hourlyRateSnapshot: shiftForm.hourlyRateSnapshot,
+	      });
+	      await Promise.all([fetchShifts(), fetchPayroll()]);
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    } finally {
+	      setShiftSaving(false);
+	    }
+	  };
+
+	  const updateShiftStatus = async (shift, status) => {
+	    setStaffError("");
+	    try {
+	      await patch(`/api/admin/staff/shifts/${shift._id}`, {
+	        status,
+	        date: new Date(shift.date).toISOString().slice(0, 10),
+	        startTime: shift.startTime,
+	        endTime: shift.endTime,
+	        breakMinutes: shift.breakMinutes || 0,
+	        hourlyRateSnapshot: shift.hourlyRateSnapshot || 0,
+	        location: shift.location || "",
+	        notes: shift.notes || "",
+	      });
+	      await Promise.all([fetchShifts(), fetchPayroll()]);
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    }
+	  };
+
+	  const exportStaffPayroll = async () => {
+	    try {
+	      const params = new URLSearchParams({
+	        from: staffDateRange.from,
+	        to: staffDateRange.to,
+	      });
+	      const blob = await getBlob(`/api/admin/export/staff-payroll-csv?${params}`);
+	      const url = window.URL.createObjectURL(blob);
+	      const a = document.createElement("a");
+	      a.href = url;
+	      a.download = `staff_payroll_${staffDateRange.from}_to_${staffDateRange.to}.csv`;
+	      document.body.appendChild(a);
+	      a.click();
+	      window.URL.revokeObjectURL(url);
+	      document.body.removeChild(a);
+	    } catch (err) {
+	      setStaffError(err.response?.data?.error || err.message);
+	    }
+	  };
 
   // Update quote
   const updateQuote = async (quoteId, status, notes, amount) => {
@@ -327,12 +616,19 @@ const AdminDashboard = () => {
     }
   }, [activeTab, adminToken, showTokenInput]);
 
-  // Load analytics when switching to the Dashboard tab
-  useEffect(() => {
-    if (adminToken && !showTokenInput && activeTab === "dashboard") {
-      fetchAnalytics();
-    }
-  }, [activeTab, adminToken, showTokenInput]);
+	  // Load analytics when switching to the Dashboard tab
+	  useEffect(() => {
+	    if (adminToken && !showTokenInput && activeTab === "dashboard") {
+	      fetchAnalytics();
+	    }
+	  }, [activeTab, adminToken, showTokenInput]);
+
+	  // Load staff operations when switching to Staff
+	  useEffect(() => {
+	    if (adminToken && !showTokenInput && activeTab === "staff") {
+	      refreshStaffOperations();
+	    }
+	  }, [activeTab, adminToken, showTokenInput, staffStatusFilter, staffDateRange.from, staffDateRange.to]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -1151,19 +1447,585 @@ const AdminDashboard = () => {
               </>
             )}
 
-            {activeTab === "staff" && (
-              <>
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900">Staff</h1>
-                  <p className="text-gray-600 mt-1">
-                    Staff management features will be added here soon.
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-8 text-gray-600">
-                  This section is ready for upcoming staff tools (roles, shifts, and permissions).
-                </div>
-              </>
-            )}
+	            {activeTab === "staff" && (
+	              <>
+	                <div className="mb-8">
+	                  <h1 className="text-3xl font-bold text-gray-900">Staff Operations</h1>
+	                  <p className="text-gray-600 mt-1">
+	                    Register staff, schedule shifts, approve worked hours, and prepare payroll.
+	                  </p>
+	                </div>
+	                {staffError && (
+	                  <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+	                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+	                    <p className="text-sm text-red-700">{staffError}</p>
+	                  </div>
+	                )}
+
+	                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+	                  <div className="bg-white rounded-lg shadow p-6">
+	                    <div className="flex items-center justify-between mb-4">
+	                      <div>
+	                        <p className="text-sm font-semibold text-gray-500 uppercase">
+	                          Staff Registration
+	                        </p>
+	                        <h2 className="text-xl font-bold text-gray-900">
+	                          {editingStaffId ? "Edit Staff" : "Add Staff"}
+	                        </h2>
+	                      </div>
+	                      <Users className="w-6 h-6 text-teal-600" />
+	                    </div>
+	                    <form onSubmit={handleSaveStaff} className="space-y-3">
+	                      <div className="grid grid-cols-2 gap-3">
+	                        <input
+	                          value={staffForm.firstName}
+	                          onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })}
+	                          placeholder="First name"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                        <input
+	                          value={staffForm.lastName}
+	                          onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })}
+	                          placeholder="Last name"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                      </div>
+	                      <div className="grid grid-cols-2 gap-3">
+	                        <input
+	                          type="email"
+	                          value={staffForm.email}
+	                          onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+	                          placeholder="Email"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                        <input
+	                          value={staffForm.phone}
+	                          onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+	                          placeholder="Phone"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                      </div>
+	                      <div className="grid grid-cols-3 gap-3">
+	                        <select
+	                          value={staffForm.role}
+	                          onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        >
+	                          <option value="cleaner">Cleaner</option>
+	                          <option value="supervisor">Supervisor</option>
+	                          <option value="admin">Admin</option>
+	                        </select>
+	                        <select
+	                          value={staffForm.employmentType}
+	                          onChange={(e) => setStaffForm({ ...staffForm, employmentType: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        >
+	                          <option value="full-time">Full-time</option>
+	                          <option value="part-time">Part-time</option>
+	                          <option value="contractor">Contractor</option>
+	                        </select>
+	                        <input
+	                          type="number"
+	                          min="0"
+	                          step="0.01"
+	                          value={staffForm.hourlyRate}
+	                          onChange={(e) => setStaffForm({ ...staffForm, hourlyRate: e.target.value })}
+	                          placeholder="£/hr"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                      </div>
+	                      <input
+	                        value={staffForm.serviceAreasText}
+	                        onChange={(e) => setStaffForm({ ...staffForm, serviceAreasText: e.target.value })}
+	                        placeholder="Service areas, comma separated"
+	                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                      <div className="grid grid-cols-2 gap-3">
+	                        <input
+	                          value={staffForm.emergencyContactName}
+	                          onChange={(e) => setStaffForm({ ...staffForm, emergencyContactName: e.target.value })}
+	                          placeholder="Emergency contact"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                        <input
+	                          value={staffForm.emergencyContactPhone}
+	                          onChange={(e) => setStaffForm({ ...staffForm, emergencyContactPhone: e.target.value })}
+	                          placeholder="Emergency phone"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                      </div>
+	                      <div className="grid grid-cols-2 gap-3">
+	                        <select
+	                          value={staffForm.status}
+	                          onChange={(e) => setStaffForm({ ...staffForm, status: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        >
+	                          <option value="active">Active</option>
+	                          <option value="inactive">Inactive</option>
+	                          <option value="suspended">Suspended</option>
+	                        </select>
+	                        <button
+	                          type="button"
+	                          onClick={resetStaffForm}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+	                        >
+	                          Clear
+	                        </button>
+	                      </div>
+	                      <textarea
+	                        value={staffForm.notes}
+	                        onChange={(e) => setStaffForm({ ...staffForm, notes: e.target.value })}
+	                        placeholder="Internal notes"
+	                        rows="2"
+	                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                      <button
+	                        type="submit"
+	                        disabled={staffSaving}
+	                        className="w-full inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-semibold"
+	                      >
+	                        {editingStaffId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+	                        {staffSaving ? "Saving..." : editingStaffId ? "Save Staff" : "Add Staff"}
+	                      </button>
+	                    </form>
+	                  </div>
+
+	                  <div className="bg-white rounded-lg shadow p-6">
+	                    <div className="flex items-center justify-between mb-4">
+	                      <div>
+	                        <p className="text-sm font-semibold text-gray-500 uppercase">
+	                          Shift Scheduling
+	                        </p>
+	                        <h2 className="text-xl font-bold text-gray-900">Create Shift</h2>
+	                      </div>
+	                      <CalendarDays className="w-6 h-6 text-teal-600" />
+	                    </div>
+	                    <form onSubmit={handleSaveShift} className="space-y-3">
+	                      <select
+	                        value={shiftForm.staffId}
+	                        onChange={(e) => handleShiftStaffChange(e.target.value)}
+	                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        required
+	                      >
+	                        <option value="">Select active staff</option>
+	                        {staffList
+	                          .filter((staff) => staff.status === "active")
+	                          .map((staff) => (
+	                            <option key={staff._id} value={staff._id}>
+	                              {staffName(staff)} · {formatCurrency(staff.hourlyRate)}/hr
+	                            </option>
+	                          ))}
+	                      </select>
+	                      <div className="grid grid-cols-3 gap-3">
+	                        <input
+	                          type="date"
+	                          value={shiftForm.date}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, date: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                        <input
+	                          type="time"
+	                          value={shiftForm.startTime}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                        <input
+	                          type="time"
+	                          value={shiftForm.endTime}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          required
+	                        />
+	                      </div>
+	                      <div className="grid grid-cols-3 gap-3">
+	                        <input
+	                          type="number"
+	                          min="0"
+	                          value={shiftForm.breakMinutes}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, breakMinutes: e.target.value })}
+	                          placeholder="Break mins"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                        <input
+	                          type="number"
+	                          min="0"
+	                          step="0.01"
+	                          value={shiftForm.hourlyRateSnapshot}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, hourlyRateSnapshot: e.target.value })}
+	                          placeholder="Rate"
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        />
+	                        <select
+	                          value={shiftForm.status}
+	                          onChange={(e) => setShiftForm({ ...shiftForm, status: e.target.value })}
+	                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                        >
+	                          <option value="scheduled">Scheduled</option>
+	                          <option value="completed">Completed</option>
+	                          <option value="approved">Approved</option>
+	                          <option value="paid">Paid</option>
+	                        </select>
+	                      </div>
+	                      <input
+	                        value={shiftForm.location}
+	                        onChange={(e) => setShiftForm({ ...shiftForm, location: e.target.value })}
+	                        placeholder="Location or job address"
+	                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                      <textarea
+	                        value={shiftForm.notes}
+	                        onChange={(e) => setShiftForm({ ...shiftForm, notes: e.target.value })}
+	                        placeholder="Shift notes"
+	                        rows="2"
+	                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                      <button
+	                        type="submit"
+	                        disabled={shiftSaving}
+	                        className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-semibold"
+	                      >
+	                        <Plus className="w-4 h-4" />
+	                        {shiftSaving ? "Creating..." : "Create Shift"}
+	                      </button>
+	                    </form>
+	                  </div>
+
+	                  <div className="bg-white rounded-lg shadow p-6">
+	                    <div className="flex items-center justify-between mb-4">
+	                      <div>
+	                        <p className="text-sm font-semibold text-gray-500 uppercase">
+	                          Payroll Window
+	                        </p>
+	                        <h2 className="text-xl font-bold text-gray-900">Summary</h2>
+	                      </div>
+	                      <PoundSterling className="w-6 h-6 text-teal-600" />
+	                    </div>
+	                    <div className="grid grid-cols-2 gap-3 mb-4">
+	                      <input
+	                        type="date"
+	                        value={staffDateRange.from}
+	                        onChange={(e) => setStaffDateRange({ ...staffDateRange, from: e.target.value })}
+	                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                      <input
+	                        type="date"
+	                        value={staffDateRange.to}
+	                        onChange={(e) => setStaffDateRange({ ...staffDateRange, to: e.target.value })}
+	                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                      />
+	                    </div>
+	                    <div className="grid grid-cols-2 gap-3">
+	                      <div className="bg-gray-50 rounded-lg p-4">
+	                        <p className="text-xs text-gray-500">Approved Pay</p>
+	                        <p className="text-2xl font-bold text-gray-900">
+	                          {formatCurrency(payroll.totals?.approvedPay)}
+	                        </p>
+	                      </div>
+	                      <div className="bg-amber-50 rounded-lg p-4">
+	                        <p className="text-xs text-amber-700">Pending Payment</p>
+	                        <p className="text-2xl font-bold text-amber-900">
+	                          {formatCurrency(payroll.totals?.pendingPay)}
+	                        </p>
+	                      </div>
+	                      <div className="bg-gray-50 rounded-lg p-4">
+	                        <p className="text-xs text-gray-500">Approved Hours</p>
+	                        <p className="text-2xl font-bold text-gray-900">
+	                          {Number(payroll.totals?.approvedHours || 0).toFixed(2)}
+	                        </p>
+	                      </div>
+	                      <div className="bg-gray-50 rounded-lg p-4">
+	                        <p className="text-xs text-gray-500">Paid</p>
+	                        <p className="text-2xl font-bold text-gray-900">
+	                          {formatCurrency(payroll.totals?.paidPay)}
+	                        </p>
+	                      </div>
+	                    </div>
+	                    <button
+	                      type="button"
+	                      onClick={exportStaffPayroll}
+	                      className="mt-4 w-full inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50"
+	                    >
+	                      <Download className="w-4 h-4" />
+	                      Export Payroll CSV
+	                    </button>
+	                  </div>
+	                </div>
+
+	                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+	                  <div className="bg-white rounded-lg shadow">
+	                    <div className="p-6 border-b">
+	                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+	                        <div>
+	                          <h2 className="text-xl font-bold text-gray-900">Staff Register</h2>
+	                          <p className="text-sm text-gray-600">
+	                            Keep active staff ready for scheduling and payroll.
+	                          </p>
+	                        </div>
+	                        <div className="flex gap-2">
+	                          <input
+	                            value={staffSearch}
+	                            onChange={(e) => setStaffSearch(e.target.value)}
+	                            onKeyDown={(e) => e.key === "Enter" && fetchStaff()}
+	                            placeholder="Search staff"
+	                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          />
+	                          <select
+	                            value={staffStatusFilter}
+	                            onChange={(e) => setStaffStatusFilter(e.target.value)}
+	                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+	                          >
+	                            <option value="active">Active</option>
+	                            <option value="inactive">Inactive</option>
+	                            <option value="suspended">Suspended</option>
+	                            <option value="all">All</option>
+	                          </select>
+	                          <button
+	                            type="button"
+	                            onClick={fetchStaff}
+	                            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold"
+	                          >
+	                            Search
+	                          </button>
+	                        </div>
+	                      </div>
+	                    </div>
+	                    <div className="overflow-x-auto">
+	                      <table className="w-full">
+	                        <thead className="bg-gray-50">
+	                          <tr>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Staff</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Role</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Rate</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+	                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
+	                          </tr>
+	                        </thead>
+	                        <tbody className="divide-y divide-gray-100">
+	                          {staffLoading ? (
+	                            <tr>
+	                              <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+	                                Loading staff...
+	                              </td>
+	                            </tr>
+	                          ) : staffList.length === 0 ? (
+	                            <tr>
+	                              <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+	                                No staff found.
+	                              </td>
+	                            </tr>
+	                          ) : (
+	                            staffList.map((staff) => (
+	                              <tr key={staff._id} className="hover:bg-gray-50">
+	                                <td className="px-4 py-3">
+	                                  <p className="font-semibold text-gray-900">{staffName(staff)}</p>
+	                                  <p className="text-xs text-gray-500">{staff.phone} {staff.email ? `· ${staff.email}` : ""}</p>
+	                                  {(staff.serviceAreas || []).length > 0 && (
+	                                    <p className="text-xs text-gray-500 mt-1">{staff.serviceAreas.join(", ")}</p>
+	                                  )}
+	                                </td>
+	                                <td className="px-4 py-3 text-sm text-gray-700 capitalize">
+	                                  {staff.role?.replace("-", " ")}
+	                                  <p className="text-xs text-gray-500">{staff.employmentType?.replace("-", " ")}</p>
+	                                </td>
+	                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+	                                  {formatCurrency(staff.hourlyRate)}/hr
+	                                </td>
+	                                <td className="px-4 py-3">
+	                                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+	                                    staff.status === "active"
+	                                      ? "bg-green-100 text-green-800"
+	                                      : staff.status === "suspended"
+	                                        ? "bg-red-100 text-red-800"
+	                                        : "bg-gray-100 text-gray-700"
+	                                  }`}>
+	                                    {staff.status}
+	                                  </span>
+	                                </td>
+	                                <td className="px-4 py-3 text-right">
+	                                  <div className="flex justify-end gap-2">
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => startEditStaff(staff)}
+	                                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+	                                    >
+	                                      Edit
+	                                    </button>
+	                                    {staff.status === "active" ? (
+	                                      <button
+	                                        type="button"
+	                                        onClick={() => handleStaffStatus(staff, "inactive")}
+	                                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+	                                      >
+	                                        Deactivate
+	                                      </button>
+	                                    ) : (
+	                                      <button
+	                                        type="button"
+	                                        onClick={() => handleStaffStatus(staff, "active")}
+	                                        className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm"
+	                                      >
+	                                        Activate
+	                                      </button>
+	                                    )}
+	                                  </div>
+	                                </td>
+	                              </tr>
+	                            ))
+	                          )}
+	                        </tbody>
+	                      </table>
+	                    </div>
+	                  </div>
+
+	                  <div className="bg-white rounded-lg shadow">
+	                    <div className="p-6 border-b">
+	                      <h2 className="text-xl font-bold text-gray-900">Shift Ledger</h2>
+	                      <p className="text-sm text-gray-600">
+	                        Complete shifts, approve worked hours, then mark approved shifts as paid.
+	                      </p>
+	                    </div>
+	                    <div className="overflow-x-auto">
+	                      <table className="w-full">
+	                        <thead className="bg-gray-50">
+	                          <tr>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Staff</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Pay</th>
+	                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+	                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
+	                          </tr>
+	                        </thead>
+	                        <tbody className="divide-y divide-gray-100">
+	                          {shifts.length === 0 ? (
+	                            <tr>
+	                              <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+	                                No shifts in this payroll window.
+	                              </td>
+	                            </tr>
+	                          ) : (
+	                            shifts.map((shift) => (
+	                              <tr key={shift._id} className="hover:bg-gray-50">
+	                                <td className="px-4 py-3 text-sm text-gray-700">
+	                                  {formatDate(shift.date)}
+	                                  <p className="text-xs text-gray-500">{shift.startTime}-{shift.endTime}</p>
+	                                </td>
+	                                <td className="px-4 py-3 text-sm">
+	                                  <p className="font-semibold text-gray-900">{staffName(shift.staffId)}</p>
+	                                  <p className="text-xs text-gray-500">{shift.location || "No location"}</p>
+	                                </td>
+	                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+	                                  {Number(shift.hoursWorked || 0).toFixed(2)}
+	                                </td>
+	                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+	                                  {formatCurrency(shift.payAmount)}
+	                                  <p className="text-xs text-gray-500">@ {formatCurrency(shift.hourlyRateSnapshot)}/hr</p>
+	                                </td>
+	                                <td className="px-4 py-3">
+	                                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+	                                    shift.status === "paid"
+	                                      ? "bg-green-100 text-green-800"
+	                                      : shift.status === "approved"
+	                                        ? "bg-blue-100 text-blue-800"
+	                                        : shift.status === "completed"
+	                                          ? "bg-amber-100 text-amber-800"
+	                                          : "bg-gray-100 text-gray-700"
+	                                  }`}>
+	                                    {shift.status}
+	                                  </span>
+	                                </td>
+	                                <td className="px-4 py-3 text-right">
+	                                  <div className="flex justify-end gap-2">
+	                                    {shift.status === "scheduled" && (
+	                                      <button
+	                                        type="button"
+	                                        onClick={() => updateShiftStatus(shift, "completed")}
+	                                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+	                                      >
+	                                        Complete
+	                                      </button>
+	                                    )}
+	                                    {shift.status === "completed" && (
+	                                      <button
+	                                        type="button"
+	                                        onClick={() => updateShiftStatus(shift, "approved")}
+	                                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm"
+	                                      >
+	                                        Approve
+	                                      </button>
+	                                    )}
+	                                    {shift.status === "approved" && (
+	                                      <button
+	                                        type="button"
+	                                        onClick={() => updateShiftStatus(shift, "paid")}
+	                                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm"
+	                                      >
+	                                        Mark Paid
+	                                      </button>
+	                                    )}
+	                                  </div>
+	                                </td>
+	                              </tr>
+	                            ))
+	                          )}
+	                        </tbody>
+	                      </table>
+	                    </div>
+	                  </div>
+	                </div>
+
+	                <div className="bg-white rounded-lg shadow mt-6">
+	                  <div className="p-6 border-b flex items-center justify-between">
+	                    <div>
+	                      <h2 className="text-xl font-bold text-gray-900">Payroll by Staff</h2>
+	                      <p className="text-sm text-gray-600">
+	                        Payroll uses completed, approved, and paid shifts. Pending payment is approved minus paid.
+	                      </p>
+	                    </div>
+	                    {payrollLoading && <p className="text-sm text-gray-500">Refreshing...</p>}
+	                  </div>
+	                  <div className="overflow-x-auto">
+	                    <table className="w-full">
+	                      <thead className="bg-gray-50">
+	                        <tr>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Staff</th>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Shifts</th>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours</th>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Approved</th>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Paid</th>
+	                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Pending</th>
+	                        </tr>
+	                      </thead>
+	                      <tbody className="divide-y divide-gray-100">
+	                        {(payroll.summaries || []).length === 0 ? (
+	                          <tr>
+	                            <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+	                              No payroll activity yet.
+	                            </td>
+	                          </tr>
+	                        ) : (
+	                          payroll.summaries.map((row) => (
+	                            <tr key={row.staffId} className="hover:bg-gray-50">
+	                              <td className="px-4 py-3 font-semibold text-gray-900">{row.staffName}</td>
+	                              <td className="px-4 py-3 text-sm text-gray-700">{row.shiftCount}</td>
+	                              <td className="px-4 py-3 text-sm text-gray-700">{Number(row.hours || 0).toFixed(2)}</td>
+	                              <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(row.approvedPay)}</td>
+	                              <td className="px-4 py-3 text-sm text-gray-700">{formatCurrency(row.paidPay)}</td>
+	                              <td className="px-4 py-3 text-sm font-semibold text-amber-700">{formatCurrency(row.pendingPay)}</td>
+	                            </tr>
+	                          ))
+	                        )}
+	                      </tbody>
+	                    </table>
+	                  </div>
+	                </div>
+	              </>
+	            )}
           </div>
         </div>
       </div>

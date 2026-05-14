@@ -4,6 +4,8 @@ import Quote from '../models/Quote.js';
 import User from '../../models/User.js';
 import Referral from '../../models/Referral.js';
 import QuotePayment from '../../models/QuotePayment.js';
+import Staff from '../../models/Staff.js';
+import StaffShift from '../../models/StaffShift.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail } from '../utils/emailService.js';
 import { signQuoteImages } from '../utils/uploadSigning.js';
@@ -25,10 +27,97 @@ const QUOTE_RETENTION_DAYS = 30;
 const USER_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'role', 'lastLogin'];
 /** Allowed sort fields for quotes list */
 const QUOTE_SORT_WHITELIST = ['createdAt', 'reference', 'firstName', 'lastName', 'email', 'status', 'approvedAmount'];
+const STAFF_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'role', 'status', 'hourlyRate'];
+const STAFF_ROLES = ['cleaner', 'supervisor', 'admin'];
+const STAFF_EMPLOYMENT_TYPES = ['full-time', 'part-time', 'contractor'];
+const STAFF_STATUSES = ['active', 'inactive', 'suspended'];
+const SHIFT_STATUSES = ['scheduled', 'completed', 'approved', 'paid', 'cancelled'];
 
 /** Escape a string for safe use in RegExp (prevents ReDoS / injection) */
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseMoney(value, fallback = 0) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return fallback;
+  return Math.round(amount * 100) / 100;
+}
+
+function parseDateOnly(value) {
+  if (!value) return null;
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isValidTime(value) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ''));
+}
+
+function minutesFromTime(value) {
+  const [hours, minutes] = String(value).split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function calculateShiftHours(startTime, endTime, breakMinutes = 0) {
+  if (!isValidTime(startTime) || !isValidTime(endTime)) return null;
+  const start = minutesFromTime(startTime);
+  const end = minutesFromTime(endTime);
+  const breakMins = Math.max(0, Number(breakMinutes) || 0);
+  const workedMinutes = end - start - breakMins;
+  if (workedMinutes <= 0) return null;
+  return Math.round((workedMinutes / 60) * 100) / 100;
+}
+
+function getDateRange(query = {}) {
+  const now = new Date();
+  const from = parseDateOnly(query.from) || new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const toBase = parseDateOnly(query.to) || new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  const to = new Date(toBase);
+  to.setUTCHours(23, 59, 59, 999);
+  return { from, to };
+}
+
+function normalizeStaffPayload(body = {}, existing = {}) {
+  const firstName = String(body.firstName ?? existing.firstName ?? '').trim();
+  const lastName = String(body.lastName ?? existing.lastName ?? '').trim();
+  const phone = String(body.phone ?? existing.phone ?? '').trim();
+  const email = String(body.email ?? existing.email ?? '').trim().toLowerCase();
+  const role = STAFF_ROLES.includes(body.role) ? body.role : existing.role || 'cleaner';
+  const employmentType = STAFF_EMPLOYMENT_TYPES.includes(body.employmentType)
+    ? body.employmentType
+    : existing.employmentType || 'part-time';
+  const status = STAFF_STATUSES.includes(body.status) ? body.status : existing.status || 'active';
+  const hourlyRate = parseMoney(body.hourlyRate ?? existing.hourlyRate, existing.hourlyRate ?? 0);
+  const serviceAreas = Array.isArray(body.serviceAreas)
+    ? body.serviceAreas.map((area) => String(area).trim()).filter(Boolean).slice(0, 20)
+    : existing.serviceAreas || [];
+  const availability = Array.isArray(body.availability)
+    ? body.availability
+        .filter((slot) => slot && slot.day)
+        .map((slot) => ({
+          day: String(slot.day).toLowerCase(),
+          startTime: String(slot.startTime || '').trim(),
+          endTime: String(slot.endTime || '').trim(),
+        }))
+        .slice(0, 14)
+    : existing.availability || [];
+
+  return {
+    firstName,
+    lastName,
+    email: email || undefined,
+    phone,
+    role,
+    employmentType,
+    hourlyRate,
+    serviceAreas,
+    availability,
+    emergencyContactName: String(body.emergencyContactName ?? existing.emergencyContactName ?? '').trim(),
+    emergencyContactPhone: String(body.emergencyContactPhone ?? existing.emergencyContactPhone ?? '').trim(),
+    status,
+    notes: String(body.notes ?? existing.notes ?? '').trim(),
+  };
 }
 
 /** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
@@ -566,6 +655,371 @@ router.get('/export/users-csv', requireAdmin, async (req, res) => {
       success: false,
       error: 'Error exporting users',
     });
+  }
+});
+
+// ================================
+// STAFF, SHIFTS, PAYROLL
+// ================================
+
+router.get('/staff', requireAdmin, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const status = STAFF_STATUSES.includes(req.query.status) ? req.query.status : 'all';
+    const sortBy = STAFF_SORT_WHITELIST.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const filter = {};
+
+    if (status !== 'all') filter.status = status;
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), 'i');
+      filter.$or = [
+        { firstName: { $regex: regex } },
+        { lastName: { $regex: regex } },
+        { email: { $regex: regex } },
+        { phone: { $regex: regex } },
+        { serviceAreas: { $regex: regex } },
+      ];
+    }
+
+    const staff = await Staff.find(filter).sort({ [sortBy]: sortOrder }).lean({ virtuals: true });
+    return res.json({ success: true, data: staff });
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    return res.status(500).json({ success: false, error: 'Error fetching staff' });
+  }
+});
+
+router.post('/staff', requireAdmin, async (req, res) => {
+  try {
+    const payload = normalizeStaffPayload(req.body);
+    if (!payload.firstName || !payload.lastName || !payload.phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'First name, last name, and phone are required',
+      });
+    }
+    const staff = await Staff.create(payload);
+    return res.status(201).json({ success: true, staff });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, error: 'A staff member with this email already exists' });
+    }
+    console.error('Error creating staff:', error);
+    return res.status(500).json({ success: false, error: 'Error creating staff member' });
+  }
+});
+
+router.patch('/staff/:id', requireAdmin, async (req, res) => {
+  try {
+    const existing = await Staff.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+    const payload = normalizeStaffPayload(req.body, existing.toObject());
+    if (!payload.firstName || !payload.lastName || !payload.phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'First name, last name, and phone are required',
+      });
+    }
+    Object.assign(existing, payload);
+    await existing.save();
+    return res.json({ success: true, staff: existing });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, error: 'A staff member with this email already exists' });
+    }
+    console.error('Error updating staff:', error);
+    return res.status(500).json({ success: false, error: 'Error updating staff member' });
+  }
+});
+
+router.get('/staff/shifts', requireAdmin, async (req, res) => {
+  try {
+    const { from, to } = getDateRange(req.query);
+    const filter = { date: { $gte: from, $lte: to } };
+    if (req.query.staffId) filter.staffId = req.query.staffId;
+    if (SHIFT_STATUSES.includes(req.query.status)) filter.status = req.query.status;
+
+    const shifts = await StaffShift.find(filter)
+      .sort({ date: -1, startTime: -1 })
+      .populate('staffId', 'firstName lastName role hourlyRate status')
+      .populate('quoteId', 'reference firstName lastName serviceType address postcode approvedAmount')
+      .lean();
+
+    return res.json({ success: true, data: shifts });
+  } catch (error) {
+    console.error('Error fetching staff shifts:', error);
+    return res.status(500).json({ success: false, error: 'Error fetching shifts' });
+  }
+});
+
+router.post('/staff/shifts', requireAdmin, async (req, res) => {
+  try {
+    const staff = await Staff.findById(req.body.staffId).lean();
+    if (!staff) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+    if (staff.status !== 'active') {
+      return res.status(400).json({ success: false, error: 'Only active staff can be assigned shifts' });
+    }
+
+    const date = parseDateOnly(req.body.date);
+    const startTime = String(req.body.startTime || '').trim();
+    const endTime = String(req.body.endTime || '').trim();
+    const breakMinutes = Math.max(0, Number(req.body.breakMinutes) || 0);
+    const hoursWorked = calculateShiftHours(startTime, endTime, breakMinutes);
+    const status = SHIFT_STATUSES.includes(req.body.status) ? req.body.status : 'scheduled';
+    const hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, staff.hourlyRate || 0);
+
+    if (!date || !hoursWorked) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid date, start time, end time, and break duration are required',
+      });
+    }
+
+    const shift = await StaffShift.create({
+      staffId: staff._id,
+      quoteId: req.body.quoteId || undefined,
+      date,
+      startTime,
+      endTime,
+      breakMinutes,
+      hoursWorked,
+      hourlyRateSnapshot,
+      payAmount: Math.round(hoursWorked * hourlyRateSnapshot * 100) / 100,
+      location: String(req.body.location || '').trim(),
+      notes: String(req.body.notes || '').trim(),
+      status,
+      approvedAt: ['approved', 'paid'].includes(status) ? new Date() : undefined,
+      paidAt: status === 'paid' ? new Date() : undefined,
+      createdBy: req.user?.id || 'admin',
+      updatedBy: req.user?.id || 'admin',
+    });
+
+    return res.status(201).json({ success: true, shift });
+  } catch (error) {
+    console.error('Error creating staff shift:', error);
+    return res.status(500).json({ success: false, error: 'Error creating shift' });
+  }
+});
+
+router.patch('/staff/shifts/:id', requireAdmin, async (req, res) => {
+  try {
+    const shift = await StaffShift.findById(req.params.id);
+    if (!shift) {
+      return res.status(404).json({ success: false, error: 'Shift not found' });
+    }
+    if (shift.status === 'paid' && req.body.status !== 'paid') {
+      return res.status(400).json({ success: false, error: 'Paid shifts cannot be moved back to unpaid status' });
+    }
+
+    const startTime = req.body.startTime !== undefined ? String(req.body.startTime).trim() : shift.startTime;
+    const endTime = req.body.endTime !== undefined ? String(req.body.endTime).trim() : shift.endTime;
+    const breakMinutes = req.body.breakMinutes !== undefined
+      ? Math.max(0, Number(req.body.breakMinutes) || 0)
+      : shift.breakMinutes;
+    const hoursWorked = calculateShiftHours(startTime, endTime, breakMinutes);
+    if (!hoursWorked) {
+      return res.status(400).json({ success: false, error: 'Shift end time must be after start time and break' });
+    }
+
+    if (req.body.date !== undefined) {
+      const date = parseDateOnly(req.body.date);
+      if (!date) return res.status(400).json({ success: false, error: 'Valid shift date is required' });
+      shift.date = date;
+    }
+    if (req.body.staffId !== undefined && String(req.body.staffId) !== String(shift.staffId)) {
+      const staff = await Staff.findById(req.body.staffId).lean();
+      if (!staff || staff.status !== 'active') {
+        return res.status(400).json({ success: false, error: 'Replacement staff member must be active' });
+      }
+      shift.staffId = staff._id;
+      shift.hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, staff.hourlyRate || 0);
+    } else if (req.body.hourlyRateSnapshot !== undefined) {
+      shift.hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, shift.hourlyRateSnapshot);
+    }
+
+    shift.startTime = startTime;
+    shift.endTime = endTime;
+    shift.breakMinutes = breakMinutes;
+    shift.hoursWorked = hoursWorked;
+    shift.payAmount = Math.round(hoursWorked * shift.hourlyRateSnapshot * 100) / 100;
+    if (req.body.quoteId !== undefined) shift.quoteId = req.body.quoteId || undefined;
+    if (req.body.location !== undefined) shift.location = String(req.body.location || '').trim();
+    if (req.body.notes !== undefined) shift.notes = String(req.body.notes || '').trim();
+
+    if (req.body.status !== undefined) {
+      if (!SHIFT_STATUSES.includes(req.body.status)) {
+        return res.status(400).json({ success: false, error: 'Invalid shift status' });
+      }
+      shift.status = req.body.status;
+      if (['approved', 'paid'].includes(req.body.status) && !shift.approvedAt) {
+        shift.approvedAt = new Date();
+      }
+      if (req.body.status === 'paid' && !shift.paidAt) {
+        shift.paidAt = new Date();
+      }
+    }
+    shift.updatedBy = req.user?.id || 'admin';
+    await shift.save();
+
+    return res.json({ success: true, shift });
+  } catch (error) {
+    console.error('Error updating staff shift:', error);
+    return res.status(500).json({ success: false, error: 'Error updating shift' });
+  }
+});
+
+router.get('/staff/payroll', requireAdmin, async (req, res) => {
+  try {
+    const { from, to } = getDateRange(req.query);
+    const filter = {
+      date: { $gte: from, $lte: to },
+      status: { $in: ['completed', 'approved', 'paid'] },
+    };
+    if (req.query.staffId) filter.staffId = req.query.staffId;
+
+    const shifts = await StaffShift.find(filter)
+      .sort({ date: -1, startTime: -1 })
+      .populate('staffId', 'firstName lastName role hourlyRate status')
+      .lean();
+
+    const byStaff = new Map();
+    for (const shift of shifts) {
+      const staff = shift.staffId || {};
+      const staffId = String(staff._id || shift.staffId);
+      if (!byStaff.has(staffId)) {
+        byStaff.set(staffId, {
+          staffId,
+          staffName: `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || 'Unknown staff',
+          role: staff.role || 'cleaner',
+          shiftCount: 0,
+          hours: 0,
+          approvedHours: 0,
+          paidHours: 0,
+          grossPay: 0,
+          approvedPay: 0,
+          paidPay: 0,
+          pendingPay: 0,
+          shifts: [],
+        });
+      }
+      const row = byStaff.get(staffId);
+      row.shiftCount += 1;
+      row.hours += shift.hoursWorked || 0;
+      row.grossPay += shift.payAmount || 0;
+      if (['approved', 'paid'].includes(shift.status)) {
+        row.approvedHours += shift.hoursWorked || 0;
+        row.approvedPay += shift.payAmount || 0;
+      }
+      if (shift.status === 'paid') {
+        row.paidHours += shift.hoursWorked || 0;
+        row.paidPay += shift.payAmount || 0;
+      }
+      row.pendingPay = row.approvedPay - row.paidPay;
+      row.shifts.push(shift);
+    }
+
+    const summaries = Array.from(byStaff.values()).map((row) => ({
+      ...row,
+      hours: Math.round(row.hours * 100) / 100,
+      approvedHours: Math.round(row.approvedHours * 100) / 100,
+      paidHours: Math.round(row.paidHours * 100) / 100,
+      grossPay: Math.round(row.grossPay * 100) / 100,
+      approvedPay: Math.round(row.approvedPay * 100) / 100,
+      paidPay: Math.round(row.paidPay * 100) / 100,
+      pendingPay: Math.round(row.pendingPay * 100) / 100,
+    }));
+
+    return res.json({
+      success: true,
+      range: { from, to },
+      summaries,
+      totals: summaries.reduce(
+        (acc, row) => ({
+          shiftCount: acc.shiftCount + row.shiftCount,
+          hours: Math.round((acc.hours + row.hours) * 100) / 100,
+          approvedHours: Math.round((acc.approvedHours + row.approvedHours) * 100) / 100,
+          grossPay: Math.round((acc.grossPay + row.grossPay) * 100) / 100,
+          approvedPay: Math.round((acc.approvedPay + row.approvedPay) * 100) / 100,
+          paidPay: Math.round((acc.paidPay + row.paidPay) * 100) / 100,
+          pendingPay: Math.round((acc.pendingPay + row.pendingPay) * 100) / 100,
+        }),
+        { shiftCount: 0, hours: 0, approvedHours: 0, grossPay: 0, approvedPay: 0, paidPay: 0, pendingPay: 0 },
+      ),
+    });
+  } catch (error) {
+    console.error('Error fetching payroll:', error);
+    return res.status(500).json({ success: false, error: 'Error fetching payroll' });
+  }
+});
+
+router.get('/export/staff-payroll-csv', requireAdmin, async (req, res) => {
+  try {
+    const { from, to } = getDateRange(req.query);
+    const filter = {
+      date: { $gte: from, $lte: to },
+      status: { $in: ['completed', 'approved', 'paid'] },
+    };
+    if (req.query.staffId) filter.staffId = req.query.staffId;
+
+    const shifts = await StaffShift.find(filter)
+      .sort({ date: 1, startTime: 1 })
+      .populate('staffId', 'firstName lastName role')
+      .populate('quoteId', 'reference serviceType')
+      .lean();
+
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'Date', title: 'Date' },
+        { id: 'Staff', title: 'Staff' },
+        { id: 'Role', title: 'Role' },
+        { id: 'Reference', title: 'Job Reference' },
+        { id: 'Status', title: 'Status' },
+        { id: 'Start', title: 'Start' },
+        { id: 'End', title: 'End' },
+        { id: 'Break', title: 'Break Minutes' },
+        { id: 'Hours', title: 'Hours' },
+        { id: 'Rate', title: 'Hourly Rate' },
+        { id: 'Pay', title: 'Pay Amount' },
+        { id: 'Location', title: 'Location' },
+        { id: 'Notes', title: 'Notes' },
+      ],
+    });
+
+    const rows = shifts.map((shift) => ({
+      Date: new Date(shift.date).toLocaleDateString('en-GB'),
+      Staff: `${shift.staffId?.firstName || ''} ${shift.staffId?.lastName || ''}`.trim(),
+      Role: shift.staffId?.role || '',
+      Reference: shift.quoteId?.reference || '',
+      Status: shift.status,
+      Start: shift.startTime,
+      End: shift.endTime,
+      Break: shift.breakMinutes || 0,
+      Hours: shift.hoursWorked || 0,
+      Rate: Number(shift.hourlyRateSnapshot || 0).toFixed(2),
+      Pay: Number(shift.payAmount || 0).toFixed(2),
+      Location: shift.location || '',
+      Notes: (shift.notes || '').replace(/\n/g, ' '),
+    }));
+
+    const headerBlock = [
+      'Apex Five Cleaning - Staff Payroll Export',
+      `From: ${from.toLocaleDateString('en-GB')}`,
+      `To: ${to.toLocaleDateString('en-GB')}`,
+      `Total Shifts: ${rows.length}`,
+      '',
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=staff_payroll_export.csv');
+    return res.send(headerBlock + csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(rows));
+  } catch (error) {
+    console.error('Error exporting staff payroll:', error);
+    return res.status(500).json({ success: false, error: 'Error exporting staff payroll' });
   }
 });
 
