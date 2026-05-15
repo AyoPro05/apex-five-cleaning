@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Menu, X, Calculator, User, LogOut, Search, LogIn } from 'lucide-react'
+import { Menu, X, User, LogOut, Search, LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
 import SignInModal from './SignInModal'
@@ -115,13 +115,6 @@ const Navbar = () => {
                 >
                   Pay Online
                 </Link>
-                <Link
-                  to="/request-a-quote"
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-lg shadow-teal-600/25 flex items-center gap-2 whitespace-nowrap"
-                >
-                  <Calculator className="w-4 h-4 flex-shrink-0" />
-                  Get a Quote
-                </Link>
                 <button
                   onClick={() => setShowSearch(true)}
                   className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
@@ -139,23 +132,14 @@ const Navbar = () => {
                 >
                   Pay Online
                 </Link>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSignIn(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-800 transition whitespace-nowrap"
-                  >
-                    <LogIn className="w-4 h-4 flex-shrink-0" />
-                    Login
-                  </button>
-                  <Link
-                    to="/request-a-quote"
-                    className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg font-medium transition shadow-lg shadow-teal-600/25 flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Calculator className="w-4 h-4 flex-shrink-0" />
-                    Get a Quote
-                  </Link>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSignIn(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-800 transition whitespace-nowrap"
+                >
+                  <LogIn className="w-4 h-4 flex-shrink-0" />
+                  Login
+                </button>
                 <button
                   onClick={() => setShowSearch(true)}
                   className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
@@ -223,14 +207,6 @@ const Navbar = () => {
                 >
                   Pay Online
                 </Link>
-                <Link
-                  to="/request-a-quote"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full bg-teal-600 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 whitespace-nowrap"
-                >
-                  <Calculator className="w-4 h-4 flex-shrink-0" />
-                  Get a Quote
-                </Link>
               </>
             ) : (
               <>
@@ -241,27 +217,17 @@ const Navbar = () => {
                 >
                   Pay Online
                 </Link>
-                <div className="flex flex-col gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSignIn(true)
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Login
-                  </button>
-                  <Link
-                    to="/request-a-quote"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full bg-teal-600 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 whitespace-nowrap"
-                  >
-                    <Calculator className="w-4 h-4 flex-shrink-0" />
-                    Get a Quote
-                  </Link>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSignIn(true)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login
+                </button>
               </>
             )}
             <div className="flex items-center justify-center gap-3 pt-2">

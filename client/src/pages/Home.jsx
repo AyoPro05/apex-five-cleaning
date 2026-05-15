@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import {
   Calculator,
-  Sparkles,
   Crown,
   Calendar,
   Gift,
@@ -176,29 +175,26 @@ const Home = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => navigate("/request-a-quote")}
-                  className="bg-white text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-teal-50 transition shadow-xl flex items-center justify-center gap-2"
-                >
-                  <Calculator className="w-5 h-5" />
-                  Get Your Free Quote
-                </button>
-                <button
-                  onClick={() => navigate("/services")}
-                  className="border-2 border-white/30 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  View Services
-                </button>
-                {!isAuthenticated && (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
                   <button
-                    onClick={openSignIn}
-                    className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={() => navigate("/request-a-quote")}
+                    className="bg-white text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-teal-50 transition shadow-xl flex items-center justify-center gap-2 sm:flex-1"
                   >
-                    Login
+                    <Calculator className="w-5 h-5" />
+                    Get Your Free Quote
                   </button>
-                )}
+                  {!isAuthenticated && (
+                    <button
+                      type="button"
+                      onClick={openSignIn}
+                      className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2 sm:flex-1"
+                    >
+                      Login
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="mt-10 flex items-center gap-6">
                 <div className="flex -space-x-3">
@@ -323,66 +319,6 @@ const Home = () => {
         </div>
       </motion.section>
 
-      {/* Services Preview - Scroll Reveal */}
-      <motion.section className="py-20 bg-white" {...scrollReveal}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div className="text-center mb-12" {...scrollReveal}>
-            <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
-              Our Services
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
-              What We Offer
-            </h2>
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Professional cleaning services tailored to your needs
-            </p>
-          </motion.div>
-          <motion.div
-            className="grid md:grid-cols-3 gap-8"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="whileInView"
-            viewport={{ once: true, amount: 0.1 }}
-          >
-            {[
-              {
-                title: "Residential Cleaning",
-                desc: "Regular cleaning for your home",
-                price: "From £45 per visit",
-              },
-              {
-                title: "End of Tenancy",
-                desc: "Professional deep cleaning for move-out",
-                price: "From £150",
-              },
-              {
-                title: "Airbnb Turnover",
-                desc: "Quick turnaround for short-term rentals",
-                price: "From £60",
-              },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                variants={staggerItem}
-                className="bg-gray-50 rounded-2xl p-8 hover:shadow-xl transition"
-              >
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  {s.title}
-                </h3>
-                <p className="text-gray-600 mb-4">{s.desc}</p>
-                <p className="text-teal-600 font-semibold mb-4">{s.price}</p>
-                <button
-                  onClick={() => navigate("/services")}
-                  className="text-teal-600 hover:text-teal-700 font-medium"
-                >
-                  Learn More →
-                </button>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.section>
-
       {/* Service Areas Section - Scroll Reveal */}
       <motion.section className="py-20 bg-gray-50" {...scrollReveal}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -496,15 +432,9 @@ const Home = () => {
               Ready to Book?
             </h3>
             <p className="text-teal-50 text-lg mb-8">
-              Get a free, no-obligation quote for your area.
+              Request a free quote from the hero on our home page, or call us for your area.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => navigate("/request-a-quote")}
-                className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition"
-              >
-                Get Free Quote
-              </button>
+            <div className="flex justify-center">
               <a
                 href="tel:+447377280558"
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
@@ -671,15 +601,9 @@ const Home = () => {
             </h3>
             <p className="text-teal-50 text-lg mb-8">
               Experience the Apex Five difference. Professional, eco-friendly
-              cleaning you can trust.
+              cleaning you can trust. Use <strong className="text-white">Get Your Free Quote</strong> at the top of this page to book.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => navigate("/request-a-quote")}
-                className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition"
-              >
-                Book Now
-              </button>
+            <div className="flex justify-center">
               <a
                 href="tel:+447377280558"
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
