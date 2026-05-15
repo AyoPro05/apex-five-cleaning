@@ -87,26 +87,35 @@ const submitQuoteHandler = async (req, res) => {
       }
     }
 
-    try {
-      await sendClientConfirmationEmail(
-        quote.email,
-        quote.firstName,
-        quote.reference,
-      );
-      await sendAdminNotificationEmail(quote);
-      quote.confirmationEmailSent = true;
-      quote.adminEmailSent = true;
-      await quote.save();
-    } catch (emailErr) {
-      console.warn("✓ Quote saved, but Email Service skipped");
-    }
-
-    return res.status(201).json({
+    // Respond immediately after persist — SMTP can be slow; awaiting it here caused
+    // client timeouts (axios 30s) and "quote not submitting" when mail providers stall.
+    const payload = {
       success: true,
       message: "Quote request submitted successfully!",
       quoteId: quote._id,
       reference: quote.reference,
+    };
+    res.status(201).json(payload);
+
+    setImmediate(() => {
+      (async () => {
+        try {
+          await sendClientConfirmationEmail(
+            quote.email,
+            quote.firstName,
+            quote.reference,
+          );
+          await sendAdminNotificationEmail(quote);
+          await Quote.updateOne(
+            { _id: quote._id },
+            { confirmationEmailSent: true, adminEmailSent: true },
+          );
+        } catch (emailErr) {
+          console.warn("Quote saved but outbound email failed:", emailErr?.message || emailErr);
+        }
+      })();
     });
+    return;
   } catch (error) {
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {

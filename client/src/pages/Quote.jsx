@@ -230,15 +230,31 @@ const Quote = () => {
 
     try {
       let token = "";
-      if (window.grecaptcha && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
-        token = await new Promise((resolve, reject) => {
-          window.grecaptcha.ready(() => {
-            window.grecaptcha
-              .execute(import.meta.env.VITE_RECAPTCHA_SITE_KEY, { action: "submit" })
-              .then(resolve)
-              .catch(reject);
+      if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
+        if (!window.grecaptcha) {
+          setSubmitError(
+            "Security check is still loading. Please wait a few seconds and try again.",
+          );
+          setSubmitting(false);
+          return;
+        }
+        try {
+          token = await new Promise((resolve, reject) => {
+            window.grecaptcha.ready(() => {
+              window.grecaptcha
+                .execute(import.meta.env.VITE_RECAPTCHA_SITE_KEY, { action: "submit" })
+                .then(resolve)
+                .catch(reject);
+            });
           });
-        });
+        } catch (captchaErr) {
+          console.error("reCAPTCHA execute failed:", captchaErr);
+          setSubmitError(
+            "Could not verify the form (reCAPTCHA). Refresh the page and try again, or check that this site’s domain is allowed in your Google reCAPTCHA admin settings.",
+          );
+          setSubmitting(false);
+          return;
+        }
       }
 
       const formDataToSend = new FormData();
@@ -274,6 +290,7 @@ const Quote = () => {
       setQuoteReference(data.reference || data.quoteId);
       setSuccessMessage(data.message);
       setStep(4);
+      setSubmitting(false);
     } catch (error) {
       console.error("Submission error:", error);
       const res = error.response?.data;
