@@ -15,6 +15,8 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  LogIn,
 } from "lucide-react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
 import SEO from "../components/SEO";
@@ -176,21 +178,30 @@ const Home = () => {
                 </div>
               </div>
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:items-stretch">
                   <button
                     type="button"
                     onClick={() => navigate("/request-a-quote")}
-                    className="bg-white text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-teal-50 transition shadow-xl flex items-center justify-center gap-2 sm:flex-1"
+                    className="bg-white text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-teal-50 transition shadow-xl flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
                   >
                     <Calculator className="w-5 h-5" />
                     Get Your Free Quote
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pay-online")}
+                    className="bg-amber-400 text-gray-900 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-300 transition shadow-lg flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    Pay Online
                   </button>
                   {!isAuthenticated && (
                     <button
                       type="button"
                       onClick={openSignIn}
-                      className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2 sm:flex-1"
+                      className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
                     >
+                      <LogIn className="w-5 h-5" />
                       Login
                     </button>
                   )}

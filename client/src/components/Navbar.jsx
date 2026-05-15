@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Menu, X, User, LogOut, Search, LogIn } from 'lucide-react'
+import { Menu, X, User, LogOut, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
 import SignInModal from './SignInModal'
@@ -109,12 +109,6 @@ const Navbar = () => {
                     </>
                   )}
                 </div>
-                <Link
-                  to="/pay-online"
-                  className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap"
-                >
-                  Pay Online
-                </Link>
                 <button
                   onClick={() => setShowSearch(true)}
                   className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
@@ -125,30 +119,14 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <>
-                <Link
-                  to="/pay-online"
-                  className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap"
-                >
-                  Pay Online
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowSignIn(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-800 transition whitespace-nowrap"
-                >
-                  <LogIn className="w-4 h-4 flex-shrink-0" />
-                  Login
-                </button>
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
-                  title="Search"
-                  aria-label="Search"
-                >
-                  <Search className="w-6 h-6" />
-                </button>
-              </>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="p-2 text-gray-400 hover:text-teal-600 transition"
+                title="Search"
+                aria-label="Search"
+              >
+                <Search className="w-6 h-6" />
+              </button>
             )}
           </div>
 
@@ -200,36 +178,8 @@ const Navbar = () => {
                 >
                   Sign Out
                 </button>
-                <Link
-                  to="/pay-online"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 font-medium text-amber-600 w-full text-left whitespace-nowrap"
-                >
-                  Pay Online
-                </Link>
               </>
-            ) : (
-              <>
-                <Link
-                  to="/pay-online"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 font-medium text-amber-600 w-full text-left whitespace-nowrap"
-                >
-                  Pay Online
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSignIn(true)
-                    setIsMobileMenuOpen(false)
-                  }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-teal-400 hover:bg-teal-50"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Login
-                </button>
-              </>
-            )}
+            ) : null}
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => { setShowSearch(true); setIsMobileMenuOpen(false); }}
