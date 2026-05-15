@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Mail, Lock, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { X, Mail, Lock, Loader2, Calculator } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { post } from '../utils/apiClient'
 
@@ -176,7 +177,19 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
           <X className="w-5 h-5" />
         </button>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Login</h2>
-        <p className="text-gray-600 mb-6">Welcome back to Apex Five Cleaning</p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+          <p className="text-gray-600 text-sm sm:text-base flex-1">
+            Welcome back to Apex Five Cleaning
+          </p>
+          <Link
+            to="/request-a-quote"
+            onClick={onClose}
+            className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-100 hover:border-teal-300 transition whitespace-nowrap"
+          >
+            <Calculator className="w-4 h-4" />
+            Get a quote
+          </Link>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
