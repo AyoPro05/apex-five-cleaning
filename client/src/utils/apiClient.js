@@ -23,12 +23,20 @@ export const API_URL = envApiUrl || (isBrowser && !isLocalHost ? fallbackProdApi
 export function getImageUrl(imgPath) {
   if (!imgPath || typeof imgPath !== 'string') return imgPath
   if (imgPath.startsWith('http')) return imgPath
-  // Use /api/uploads route so proxy forwards to backend (more reliable than /uploads)
+
   const normalized = imgPath.startsWith('/') ? imgPath : `/${imgPath}`
-  if (normalized.startsWith('/uploads/')) {
-    return normalized.replace(/^\/uploads/, '/api/uploads')
-  }
   const base = API_URL.replace(/\/$/, '')
+
+  // Signed admin URLs already point at the protected uploads API route
+  if (normalized.startsWith('/api/uploads/')) {
+    return base ? `${base}${normalized}` : normalized
+  }
+
+  if (normalized.startsWith('/uploads/')) {
+    const apiPath = normalized.replace(/^\/uploads/, '/api/uploads')
+    return base ? `${base}${apiPath}` : apiPath
+  }
+
   return base ? `${base}${normalized}` : normalized
 }
 

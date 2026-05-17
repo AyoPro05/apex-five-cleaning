@@ -1168,10 +1168,19 @@ const AdminDashboard = () => {
                               <td className="px-6 py-4 text-center">
                                 <div className="inline-flex items-center gap-3">
                                   <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                       setSelectedQuote(quote);
                                       setAdminNote(quote.adminNotes || "");
                                       setShowDetails(true);
+                                      try {
+                                        const data = await get(`/api/admin/quotes/${quote._id}`);
+                                        if (data.success && data.quote) {
+                                          setSelectedQuote(data.quote);
+                                          setAdminNote(data.quote.adminNotes || "");
+                                        }
+                                      } catch (err) {
+                                        console.error("Failed to load quote details:", err);
+                                      }
                                     }}
                                     className="text-teal-600 hover:text-teal-700 font-semibold"
                                   >

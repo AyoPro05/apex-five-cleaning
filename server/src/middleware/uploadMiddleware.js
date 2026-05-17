@@ -6,9 +6,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Use path relative to server root so uploads work regardless of cwd
-const serverRoot = path.join(__dirname, "..");
-const uploadDir = path.join(serverRoot, "uploads", "quotes");
+// Resolve to server/uploads/quotes (same path as routes/uploads.js serves from)
+const serverRoot = path.resolve(__dirname, "..", "..");
+export const quotesUploadDir = path.join(serverRoot, "uploads", "quotes");
+const uploadDir = quotesUploadDir;
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -27,7 +28,7 @@ const storage = multer.diskStorage({
 
 // Filter: only allow image files
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp/i;
+  const allowed = /jpeg|jpg|png|gif|webp|heic|heif/i;
   const ext = path.extname(file.originalname)?.slice(1) || "";
   const mimetype = file.mimetype;
   if (allowed.test(ext) || mimetype.startsWith("image/")) {

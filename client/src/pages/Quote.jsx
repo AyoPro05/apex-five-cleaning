@@ -67,6 +67,7 @@ const Quote = () => {
     additionalNotes: "",
   });
   const [selectedImages, setSelectedImages] = useState([]);
+  const [imageUploadWarning, setImageUploadWarning] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
   const [errors, setErrors] = useState({});
@@ -179,14 +180,50 @@ const Quote = () => {
     }
   };
 
-  const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  const validImageTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+  ];
+  const validImageExtension = /\.(jpe?g|png|gif|webp|heic|heif)$/i;
   const maxSize = 3 * 1024 * 1024;
 
+  const isAcceptedImage = (file) => {
+    if (!file || file.size > maxSize) return false;
+    if (validImageTypes.includes(file.type)) return true;
+    const name = file.name || "";
+    if (validImageExtension.test(name)) {
+      return !file.type || file.type.startsWith("image/");
+    }
+    return false;
+  };
+
   const processFiles = (files) => {
-    const valid = Array.from(files || []).filter(
-      (f) => validImageTypes.includes(f.type) && f.size <= maxSize
-    );
-    return [...selectedImages, ...valid].slice(0, 5);
+    const incoming = Array.from(files || []);
+    const accepted = [];
+    let skipped = 0;
+
+    incoming.forEach((file) => {
+      if (isAcceptedImage(file)) {
+        accepted.push(file);
+      } else {
+        skipped += 1;
+      }
+    });
+
+    if (skipped > 0) {
+      setImageUploadWarning(
+        `${skipped} file${skipped === 1 ? "" : "s"} skipped. Use JPG, PNG, GIF, WebP, or HEIC under 3MB each.`,
+      );
+    } else {
+      setImageUploadWarning("");
+    }
+
+    return [...selectedImages, ...accepted].slice(0, 5);
   };
 
   const handleImageChange = (e) => {
@@ -336,6 +373,7 @@ const Quote = () => {
       additionalNotes: "",
     });
     setSelectedImages([]);
+    setImageUploadWarning("");
     setErrors({});
     setSubmitError("");
     setSuccessMessage("");
@@ -645,7 +683,7 @@ const Quote = () => {
                         </span>
                         <input
                           type="file"
-                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
                           multiple
                           onChange={handleImageChange}
                           className="hidden"
@@ -677,8 +715,11 @@ const Quote = () => {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    JPG, PNG, GIF or WebP. Max 3MB per image.
+                    JPG, PNG, GIF, WebP, or HEIC (iPhone). Max 3MB per image.
                   </p>
+                  {imageUploadWarning && (
+                    <p className="text-sm text-amber-700 mt-2">{imageUploadWarning}</p>
+                  )}
                 </div>
 
                 <div>

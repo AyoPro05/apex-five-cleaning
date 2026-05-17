@@ -1,5 +1,7 @@
 import express from "express";
 import multer from "multer";
+import fs from "fs/promises";
+import path from "path";
 import Quote from "../models/Quote.js";
 import {
   validateQuoteData,
@@ -14,7 +16,7 @@ import {
   quoteRateLimiter,
   emailRateLimiter,
 } from "../middleware/rateLimiter.js";
-import { quoteImageUpload } from "../middleware/uploadMiddleware.js";
+import { quoteImageUpload, quotesUploadDir } from "../middleware/uploadMiddleware.js";
 import { verifyCaptcha } from "../middleware/captchaMiddleware.js";
 
 const router = express.Router();
@@ -54,14 +56,23 @@ const submitQuoteHandler = async (req, res) => {
     value.phone = sanitizePhoneNumber(value.phone);
     if (value.postcode) value.postcode = value.postcode.trim().toUpperCase();
 
-    // Build images array from uploaded files
+    // Build images array from uploaded files (persist base64 for ephemeral hosts like Render)
     const images = [];
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
-        images.push({
+        const entry = {
           url: `/uploads/quotes/${file.filename}`,
           filename: file.originalname,
-        });
+          mimeType: file.mimetype || "image/jpeg",
+        };
+        try {
+          const filePath = path.join(quotesUploadDir, file.filename);
+          const buffer = await fs.readFile(filePath);
+          entry.data = buffer.toString("base64");
+        } catch (readErr) {
+          console.warn("Quote image read for persistence failed:", readErr?.message || readErr);
+        }
+        images.push(entry);
       }
     }
     value.images = images;

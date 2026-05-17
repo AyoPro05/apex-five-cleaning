@@ -96,8 +96,15 @@ const quoteSchema = new mongoose.Schema(
     // Additional services (customer can select multiple)
     additionalServices: [{ type: String, trim: true }],
 
-    // Property images (max 5) - URLs or paths from upload
-    images: [{ url: String, filename: String }],
+    // Property images (max 5) - disk path + optional base64 for hosted ephemeral disks
+    images: [
+      {
+        url: String,
+        filename: String,
+        mimeType: String,
+        data: String, // base64 payload when disk storage is unavailable
+      },
+    ],
 
     // CAPTCHA Verification
     captchaScore: {
