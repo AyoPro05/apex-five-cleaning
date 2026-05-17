@@ -102,7 +102,12 @@ const submitQuoteHandler = async (req, res) => {
         try {
           const filePath = path.join(quotesUploadDir, file.filename);
           const buffer = await fs.readFile(filePath);
-          entry.data = buffer.toString("base64");
+          // Cap stored size for MongoDB (16MB doc limit); disk copy still used when available
+          if (buffer.length <= 2.5 * 1024 * 1024) {
+            entry.data = buffer.toString("base64");
+          } else {
+            console.warn(`Quote image ${file.filename} too large to store in DB; disk only`);
+          }
         } catch (readErr) {
           console.warn("Quote image read for persistence failed:", readErr?.message || readErr);
         }

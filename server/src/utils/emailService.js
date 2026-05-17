@@ -31,16 +31,23 @@ function initializeEmailProvider() {
   }
 
   if (EMAIL_PROVIDER === 'smtp' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+    const secure = port === 465;
     smtpTransport = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT, 10) || 587,
-      secure: parseInt(process.env.SMTP_PORT, 10) === 465,
+      port,
+      secure,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // IONOS and most providers on 587 use STARTTLS (not implicit SSL)
+      requireTLS: !secure,
+      tls: {
+        minVersion: 'TLSv1.2',
+      },
     });
-    console.log(`✓ SMTP configured: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+    console.log(`✓ SMTP configured: ${process.env.SMTP_HOST}:${port} (secure=${secure})`);
   } else if (EMAIL_PROVIDER === 'smtp') {
     const missing = [];
     if (!process.env.SMTP_HOST) missing.push('SMTP_HOST');
@@ -63,6 +70,26 @@ export function isEmailConfigured() {
  * Safe status for health checks and ops. No secrets.
  * @returns {{ configured: boolean, provider: string|null, hint?: string }}
  */
+/** Verify SMTP connection at startup (logs IONOS/auth issues early). */
+export async function verifyEmailTransport() {
+  initializeEmailProvider();
+  const provider = process.env.EMAIL_PROVIDER || 'smtp';
+  if (provider === 'smtp' && smtpTransport) {
+    try {
+      await smtpTransport.verify();
+      console.log('✓ SMTP connection verified');
+      return { ok: true };
+    } catch (error) {
+      console.error('❌ SMTP verify failed:', error.message);
+      return { ok: false, error: error.message };
+    }
+  }
+  if (provider === 'sendgrid' && sendGridReady) {
+    return { ok: true };
+  }
+  return { ok: false, error: 'Email not configured' };
+}
+
 export function getEmailConfigStatus() {
   initializeEmailProvider();
   const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
@@ -756,6 +783,34 @@ function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
 /**
  * Send password reset email
  */
+export const sendTestEmail = async (toEmail) => {
+  initializeEmailProvider();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+
+  if (!smtpTransport && !(EMAIL_PROVIDER === 'sendgrid' && sendGridReady)) {
+    return { success: false, error: 'No email provider configured' };
+  }
+
+  try {
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject: 'Apex Five Cleaning — SMTP test',
+        text: 'If you received this, outbound email from your API is working.',
+        html: '<p>If you received this, outbound email from your API is working.</p>',
+      });
+      console.log(`✓ Test email sent to ${toEmail}`);
+      return { success: true };
+    }
+    return { success: false, error: 'SMTP transport not available' };
+  } catch (error) {
+    logOutboundEmailError('Test email failed', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => {
   initializeEmailProvider();
   const resetLink = `${(process.env.CLIENT_URL || 'https://apexfivecleaning.co.uk').replace(/\/$/, '')}/reset-password?token=${resetToken}`;

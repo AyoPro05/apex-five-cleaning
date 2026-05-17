@@ -14,7 +14,7 @@ const isLocalHost =
     window.location.hostname === '127.0.0.1')
 // Safety fallback for production when frontend env is missing/misconfigured.
 // Prevents API requests from hitting the static site origin (/api -> index.html).
-const fallbackProdApiUrl = 'https://apex-five-cleaning-1.onrender.com'
+const fallbackProdApiUrl = 'https://apex-five-cleaning-api.onrender.com'
 export const API_URL = envApiUrl || (isBrowser && !isLocalHost ? fallbackProdApiUrl : '')
 
 /**

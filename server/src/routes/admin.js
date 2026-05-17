@@ -7,8 +7,8 @@ import QuotePayment from '../../models/QuotePayment.js';
 import Staff from '../../models/Staff.js';
 import StaffShift from '../../models/StaffShift.js';
 import { createObjectCsvStringifier } from 'csv-writer';
-import { sendQuoteApprovedEmail } from '../utils/emailService.js';
-import { signQuoteImages } from '../utils/uploadSigning.js';
+import { sendQuoteApprovedEmail, sendTestEmail, isEmailConfigured } from '../utils/emailService.js';
+import { sanitizeQuoteImagesForApi, resolveQuoteImageBuffer } from '../utils/quoteImages.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.js';
 import { strictRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -302,11 +302,11 @@ router.get('/quotes', requireAdmin, async (req, res) => {
       .limit(limit)
       .lean();
     
-    const signedQuotes = quotes.map((quote) => signQuoteImages(quote));
+    const safeQuotes = quotes.map((quote) => sanitizeQuoteImagesForApi(quote));
 
     return res.json({
       success: true,
-      data: signedQuotes,
+      data: safeQuotes,
       pagination: {
         total,
         page,
@@ -320,6 +320,38 @@ router.get('/quotes', requireAdmin, async (req, res) => {
       success: false,
       error: 'Error fetching quotes'
     });
+  }
+});
+
+// Serve quote property image (admin auth — used by dashboard blob fetch)
+router.get('/quotes/:id/images/:index', requireAdmin, async (req, res) => {
+  try {
+    const quote = await Quote.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+    }).select('images');
+
+    if (!quote) {
+      return res.status(404).json({ success: false, error: 'Quote not found' });
+    }
+
+    const index = parseInt(req.params.index, 10);
+    const image = quote.images?.[index];
+    if (!image) {
+      return res.status(404).json({ success: false, error: 'Image not found' });
+    }
+
+    const resolved = resolveQuoteImageBuffer(image);
+    if (!resolved?.buffer) {
+      return res.status(404).json({ success: false, error: 'Image file not available' });
+    }
+
+    res.setHeader('Content-Type', resolved.mimeType);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.send(resolved.buffer);
+  } catch (error) {
+    console.error('Error serving quote image:', error);
+    return res.status(500).json({ success: false, error: 'Failed to load image' });
   }
 });
 
@@ -340,13 +372,38 @@ router.get('/quotes/:id', requireAdmin, async (req, res) => {
     
     return res.json({
       success: true,
-      quote: signQuoteImages(quote.toObject ? quote.toObject() : quote),
+      quote: sanitizeQuoteImagesForApi(quote),
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       error: 'Error fetching quote'
     });
+  }
+});
+
+// Send test email (verify IONOS / SMTP from production)
+router.post('/test-email', requireAdmin, strictRateLimiter, async (req, res) => {
+  try {
+    const { to } = req.body;
+    const target = to || process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
+    if (!target) {
+      return res.status(400).json({ success: false, error: 'Provide `to` or set NOTIFY_EMAIL on the server' });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({ success: false, error: 'Email not configured on server' });
+    }
+
+    const result = await sendTestEmail(target);
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error || 'Test email failed' });
+    }
+
+    return res.json({ success: true, message: `Test email sent to ${target}` });
+  } catch (error) {
+    console.error('Test email failed:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Test email failed' });
   }
 });
 

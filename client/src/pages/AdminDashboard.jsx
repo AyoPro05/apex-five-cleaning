@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { get, post, patch, getBlob, getImageUrl, del } from "../utils/apiClient";
+import { get, post, patch, getBlob, del } from "../utils/apiClient";
 import {
   LineChart,
   Line,
@@ -114,6 +114,7 @@ const AdminDashboard = () => {
   const [loginLoading, setLoginLoading] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [quoteImageUrls, setQuoteImageUrls] = useState({});
 
   // Filters
   const [filters, setFilters] = useState({
@@ -156,6 +157,36 @@ const AdminDashboard = () => {
 	    from: monthStart(),
 	    to: today(),
 	  });
+
+  useEffect(() => {
+    if (!showDetails || !selectedQuote?._id || !selectedQuote.images?.length || !adminToken) {
+      setQuoteImageUrls({});
+      return undefined;
+    }
+
+    let cancelled = false;
+    const objectUrls = [];
+
+    (async () => {
+      const next = {};
+      for (let i = 0; i < selectedQuote.images.length; i += 1) {
+        try {
+          const blob = await getBlob(`/api/admin/quotes/${selectedQuote._id}/images/${i}`);
+          const objectUrl = URL.createObjectURL(blob);
+          objectUrls.push(objectUrl);
+          next[i] = objectUrl;
+        } catch (err) {
+          console.error("Failed to load quote image:", err);
+        }
+      }
+      if (!cancelled) setQuoteImageUrls(next);
+    })();
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [showDetails, selectedQuote?._id, selectedQuote?.images?.length, adminToken]);
 
   // Fetch quotes
   const fetchQuotes = async () => {
@@ -2238,26 +2269,31 @@ const AdminDashboard = () => {
                   {(selectedQuote.images && selectedQuote.images.length > 0) ? (
                     <div className="flex flex-wrap gap-2">
                       {selectedQuote.images.map((img, i) => {
-                        const url = typeof img === "string" ? img : img?.url;
-                        if (!url) return null;
-                        const imageUrl = getImageUrl(url);
+                        const imageUrl = quoteImageUrls[i];
+                        const label =
+                          typeof img === "object" && img.filename ? img.filename : `Property ${i + 1}`;
                         return (
                           <a
                             key={i}
-                            href={imageUrl}
+                            href={imageUrl || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:border-teal-500"
+                            className="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:border-teal-500 bg-gray-100"
+                            onClick={(e) => {
+                              if (!imageUrl) e.preventDefault();
+                            }}
                           >
-                            <img
-                              src={imageUrl}
-                              alt={typeof img === "object" && img.filename ? img.filename : `Property ${i + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='%239ca3af'%3E%3Crect width='80' height='80' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='10'%3EImage%3C/text%3E%3C/svg%3E";
-                              }}
-                            />
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={label}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex items-center justify-center w-full h-full text-xs text-gray-400 px-1 text-center">
+                                Loading…
+                              </span>
+                            )}
                           </a>
                         );
                       })}

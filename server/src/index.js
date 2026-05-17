@@ -39,7 +39,7 @@ import bookingsRouter from "./routes/bookings.js";
 import paymentsRouter from "./routes/payments.js";
 import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
-import { getEmailConfigStatus } from "./utils/emailService.js";
+import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService.js";
 
 // Fail fast instead of waiting for Mongoose operation buffering timeouts
 mongoose.set("bufferCommands", false);
@@ -92,6 +92,7 @@ if (process.env.NODE_ENV === "production") {
   [
     "https://www.apexfivecleaning.co.uk",
     "https://apexfivecleaning.co.uk",
+    "https://apex-five-cleaning-api.onrender.com",
     "https://apex-five-cleaning-1.onrender.com",
     "https://apex-five-cleaning-2.onrender.com",
   ].forEach((origin) => {
@@ -184,6 +185,7 @@ const connectDB = async () => {
     await mongoose.connect(uri);
     dbConnected = true;
     console.log("✓ Connected to MongoDB");
+    verifyEmailTransport().catch(() => {});
     mongoose.connection.on("connected", () => {
       dbConnected = true;
       console.log("✓ MongoDB connected");
