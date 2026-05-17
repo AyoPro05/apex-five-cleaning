@@ -49,34 +49,6 @@ const loadRecaptchaScript = () => {
 };
 
 const Quote = () => {
-  useEffect(() => {
-    loadRecaptchaScript();
-  }, []);
-
-  useEffect(() => {
-    const draft = loadQuoteDraft();
-    if (!draft) return;
-    setFormData((prev) => ({
-      ...prev,
-      ...(draft.propertyType && { propertyType: draft.propertyType }),
-      ...(draft.bedrooms && { bedrooms: draft.bedrooms }),
-      ...(draft.bathrooms && { bathrooms: draft.bathrooms }),
-      ...(draft.serviceType && { serviceType: draft.serviceType }),
-      ...(draft.additionalServices && { additionalServices: draft.additionalServices }),
-    }));
-    if (draft.step && draft.step >= 1 && draft.step <= 3) {
-      setStep(draft.step);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (formData.serviceType) setServiceInterest(formData.serviceType);
-  }, [formData.serviceType]);
-
-  useEffect(() => {
-    saveQuoteDraft({ ...formData, step });
-  }, [formData, step]);
-
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -104,6 +76,34 @@ const Quote = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    loadRecaptchaScript();
+  }, []);
+
+  useEffect(() => {
+    const draft = loadQuoteDraft();
+    if (!draft) return;
+    setFormData((prev) => ({
+      ...prev,
+      ...(draft.propertyType && { propertyType: draft.propertyType }),
+      ...(draft.bedrooms && { bedrooms: draft.bedrooms }),
+      ...(draft.bathrooms && { bathrooms: draft.bathrooms }),
+      ...(draft.serviceType && { serviceType: draft.serviceType }),
+      ...(draft.additionalServices && { additionalServices: draft.additionalServices }),
+    }));
+    if (draft.step && draft.step >= 1 && draft.step <= 3) {
+      setStep(draft.step);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (formData.serviceType) setServiceInterest(formData.serviceType);
+  }, [formData.serviceType]);
+
+  useEffect(() => {
+    saveQuoteDraft({ ...formData, step });
+  }, [formData, step]);
 
   // Client-side validation
   const validateStep = (stepNum) => {
