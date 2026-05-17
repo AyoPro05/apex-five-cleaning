@@ -4,8 +4,8 @@ import { useSearchParams } from 'react-router-dom'
 import { X, Mail, Lock, User, Phone, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { post } from '../utils/apiClient'
-
-const REF_STORAGE_KEY = 'apex_referral_code'
+import { COOKIE_NAMES, getCookie } from '../utils/cookies'
+import { getAttributionPayload } from '../utils/attribution'
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
   const { register } = useAuth()
@@ -14,8 +14,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
 
   useEffect(() => {
     const fromUrl = searchParams.get('ref')
-    const fromStorage = typeof window !== 'undefined' ? sessionStorage.getItem(REF_STORAGE_KEY) : null
-    setRefCode(fromUrl || fromStorage || '')
+    const fromCookie = typeof window !== 'undefined' ? getCookie(COOKIE_NAMES.REFERRAL) : null
+    setRefCode(fromUrl || fromCookie || '')
   }, [searchParams, isOpen])
   const [formData, setFormData] = useState({
     firstName: '',
@@ -64,6 +64,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }) {
         ...formData,
         phone: phoneClean,
         referralCode: refCode || undefined,
+        attribution: getAttributionPayload(),
       })
       setRegisteredEmail(formData.email)
       setSuccess(true)

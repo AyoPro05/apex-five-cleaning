@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
-import { Sparkles, MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
+import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
+import { useCookieConsent } from '../context/CookieConsentContext'
 
 const Footer = () => {
+  const { openPreferences } = useCookieConsent()
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -12,7 +14,7 @@ const Footer = () => {
               <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
-              Professional eco-friendly cleaning services trusted by homeowners across Kent.
+              Professional eco-friendly cleaning services across Kent, London, and Essex.
               We bring clarity, trust, and exceptional service to every clean.
             </p>
             <div className="flex gap-4">
@@ -108,9 +110,17 @@ const Footer = () => {
           <p className="text-gray-500 text-sm">
             &copy; 2024 Apex Five Cleaning. All rights reserved.
           </p>
-          <div className="flex gap-6 text-sm">
+          <div className="flex flex-wrap gap-4 sm:gap-6 text-sm justify-center md:justify-end">
             <Link to="/privacy-policy" className="text-gray-500 hover:text-teal-500 transition">Privacy Policy</Link>
+            <Link to="/cookie-policy" className="text-gray-500 hover:text-teal-500 transition">Cookie Policy</Link>
             <Link to="/terms-of-service" className="text-gray-500 hover:text-teal-500 transition">Terms of Service</Link>
+            <button
+              type="button"
+              onClick={openPreferences}
+              className="text-gray-500 hover:text-teal-500 transition"
+            >
+              Cookie settings
+            </button>
           </div>
         </div>
       </div>

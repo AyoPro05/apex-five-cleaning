@@ -96,6 +96,26 @@ const quoteSchema = new mongoose.Schema(
     // Additional services (customer can select multiple)
     additionalServices: [{ type: String, trim: true }],
 
+    // Marketing attribution (first-party cookies / UTM at submit)
+    attribution: {
+      visitorId: { type: String, trim: true },
+      referralCode: { type: String, trim: true, uppercase: true },
+      utmSource: { type: String, trim: true },
+      utmMedium: { type: String, trim: true },
+      utmCampaign: { type: String, trim: true },
+      utmTerm: { type: String, trim: true },
+      utmContent: { type: String, trim: true },
+      landingPage: { type: String, trim: true },
+      firstVisitAt: { type: String, trim: true },
+      visitCount: { type: Number, min: 0 },
+      serviceInterest: { type: String, trim: true },
+      serviceRegion: {
+        type: String,
+        enum: ["Kent", "London", "Essex", "Other"],
+      },
+      leadSource: { type: String, trim: true },
+    },
+
     // Property images (max 5) - disk path + optional base64 for hosted ephemeral disks
     images: [
       {

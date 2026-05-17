@@ -8,6 +8,8 @@ import Footer from "./components/Footer";
 import { useAnnouncement } from "./context/AnnouncementContext";
 import ChatWidget from "./components/ChatWidget";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CookieConsent from "./components/CookieConsent";
+import AttributionCapture from "./components/AttributionCapture";
 
 // Eager load – above-the-fold / high-traffic
 import Home from "./pages/Home";
@@ -33,6 +35,7 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentError = lazy(() => import("./pages/PaymentError"));
 const PaymentPending = lazy(() => import("./pages/PaymentPending"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
 function PageLoader() {
@@ -49,6 +52,8 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <ScrollToTop />
+      <AttributionCapture />
+      <CookieConsent />
       <AnnouncementBanner />
       <Navbar />
       <main className={bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'}>
@@ -73,6 +78,7 @@ function App() {
           <Route path="/payment-pending" element={<PaymentPending />} />
           <Route path="/request-a-quote" element={<Quote />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route
             path="/dashboard"

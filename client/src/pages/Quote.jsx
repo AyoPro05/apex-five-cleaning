@@ -4,6 +4,15 @@ import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-
 import { post } from "../utils/apiClient";
 import { scrollReveal } from "../utils/scrollReveal";
 import SEO from "../components/SEO";
+import {
+  getAttributionPayload,
+  loadQuoteDraft,
+  saveQuoteDraft,
+  clearQuoteDraft,
+  setServiceInterest,
+  setServiceRegionFromPostcode,
+} from "../utils/attribution";
+import { trackEvent } from "../utils/analytics";
 
 // Additional services customers can add to their quote
 const ADDITIONAL_SERVICES = [
@@ -43,6 +52,30 @@ const Quote = () => {
   useEffect(() => {
     loadRecaptchaScript();
   }, []);
+
+  useEffect(() => {
+    const draft = loadQuoteDraft();
+    if (!draft) return;
+    setFormData((prev) => ({
+      ...prev,
+      ...(draft.propertyType && { propertyType: draft.propertyType }),
+      ...(draft.bedrooms && { bedrooms: draft.bedrooms }),
+      ...(draft.bathrooms && { bathrooms: draft.bathrooms }),
+      ...(draft.serviceType && { serviceType: draft.serviceType }),
+      ...(draft.additionalServices && { additionalServices: draft.additionalServices }),
+    }));
+    if (draft.step && draft.step >= 1 && draft.step <= 3) {
+      setStep(draft.step);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (formData.serviceType) setServiceInterest(formData.serviceType);
+  }, [formData.serviceType]);
+
+  useEffect(() => {
+    saveQuoteDraft({ ...formData, step });
+  }, [formData, step]);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -121,6 +154,8 @@ const Quote = () => {
       }
       if (!formData.postcode || !isValidUKPostcode(formData.postcode)) {
         newErrors.postcode = "Please enter a valid UK postcode (e.g. ME11 2BY)";
+      } else {
+        setServiceRegionFromPostcode(formData.postcode);
       }
     }
 
@@ -315,6 +350,16 @@ const Quote = () => {
         formDataToSend.append("images", file);
       });
 
+      const attribution = getAttributionPayload();
+      if (formData.postcode) {
+        attribution.serviceRegion =
+          setServiceRegionFromPostcode(formData.postcode) || attribution.serviceRegion;
+      }
+      if (formData.serviceType) {
+        attribution.serviceInterest = formData.serviceType;
+      }
+      formDataToSend.append("attribution", JSON.stringify(attribution));
+
       const data = await post("/api/quotes/submit", formDataToSend);
 
       if (data.errors) {
@@ -326,6 +371,12 @@ const Quote = () => {
 
       setQuoteReference(data.reference || data.quoteId);
       setSuccessMessage(data.message);
+      clearQuoteDraft();
+      trackEvent("quote_submit", {
+        service_type: formData.serviceType,
+        region: attribution.serviceRegion || "unknown",
+        has_photos: selectedImages.length > 0,
+      });
       setStep(4);
       setSubmitting(false);
     } catch (error) {

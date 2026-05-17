@@ -157,7 +157,23 @@ const quoteValidationSchema = Joi.object({
     .messages({
       'string.empty': 'CAPTCHA verification failed',
       'any.required': 'CAPTCHA verification is required'
-    })
+    }),
+
+  attribution: Joi.object({
+    visitorId: Joi.string().max(80).allow('', null),
+    referralCode: Joi.string().max(32).allow('', null),
+    utmSource: Joi.string().max(120).allow('', null),
+    utmMedium: Joi.string().max(120).allow('', null),
+    utmCampaign: Joi.string().max(120).allow('', null),
+    utmTerm: Joi.string().max(120).allow('', null),
+    utmContent: Joi.string().max(120).allow('', null),
+    landingPage: Joi.string().max(300).allow('', null),
+    firstVisitAt: Joi.string().max(40).allow('', null),
+    visitCount: Joi.number().integer().min(0).allow(null),
+    serviceInterest: Joi.string().max(80).allow('', null),
+    serviceRegion: Joi.string().valid('Kent', 'London', 'Essex', 'Other').allow('', null),
+    leadSource: Joi.string().max(200).allow('', null),
+  }).optional(),
 });
 
 export const validateQuoteData = (data) => {

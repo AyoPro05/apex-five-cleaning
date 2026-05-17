@@ -40,7 +40,41 @@ const normalizeQuoteBody = (body) => {
   if (!Array.isArray(normalized.additionalServices)) {
     normalized.additionalServices = [];
   }
+  if (typeof normalized.attribution === "string") {
+    try {
+      normalized.attribution = JSON.parse(normalized.attribution) || undefined;
+    } catch {
+      normalized.attribution = undefined;
+    }
+  }
   return normalized;
+};
+
+const cleanAttribution = (attribution) => {
+  if (!attribution || typeof attribution !== "object") return undefined;
+  const cleaned = {};
+  const fields = [
+    "visitorId",
+    "referralCode",
+    "utmSource",
+    "utmMedium",
+    "utmCampaign",
+    "utmTerm",
+    "utmContent",
+    "landingPage",
+    "firstVisitAt",
+    "visitCount",
+    "serviceInterest",
+    "serviceRegion",
+    "leadSource",
+  ];
+  for (const key of fields) {
+    const val = attribution[key];
+    if (val !== undefined && val !== null && val !== "") {
+      cleaned[key] = key === "referralCode" ? String(val).trim().toUpperCase() : val;
+    }
+  }
+  return Object.keys(cleaned).length ? cleaned : undefined;
 };
 
 const submitQuoteHandler = async (req, res) => {
@@ -76,6 +110,9 @@ const submitQuoteHandler = async (req, res) => {
       }
     }
     value.images = images;
+    const attribution = cleanAttribution(value.attribution);
+    if (attribution) value.attribution = attribution;
+    else delete value.attribution;
 
     const quote = new Quote({
       ...value,

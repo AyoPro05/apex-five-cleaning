@@ -21,10 +21,6 @@ const Navbar = () => {
   }, [registerAuthModals])
 
   const [searchParams] = useSearchParams()
-  useEffect(() => {
-    const ref = searchParams.get('ref')
-    if (ref) sessionStorage.setItem('apex_referral_code', ref)
-  }, [searchParams])
 
   useEffect(() => {
     if (searchParams.get('signup') === '1' && !isAuthenticated) {

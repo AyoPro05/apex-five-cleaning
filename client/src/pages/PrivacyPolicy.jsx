@@ -102,8 +102,14 @@ const PrivacyPolicy = () => {
 
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-3">Cookies and Tracking</h2>
-            <p className="text-gray-600">
-              Our website uses essential cookies for functionality (e.g. authentication, session management) and may use analytics cookies to understand how visitors use our site. You can manage cookie preferences in your browser settings.
+            <p className="text-gray-600 mb-4">
+              We use essential cookies for login, quote drafts, referral tracking, and campaign attribution
+              across Kent, London, and Essex. Analytics and marketing cookies are optional and only used
+              with your consent. See our{' '}
+              <a href="/cookie-policy" className="text-teal-600 hover:underline">
+                Cookie Policy
+              </a>{' '}
+              for details, or use Cookie settings in the site footer to change your choices.
             </p>
           </div>
 
