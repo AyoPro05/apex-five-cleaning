@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, Download, AlertCircle } from 'lucide-react';
 import { get } from '../utils/apiClient';
 import SEO from '../components/SEO';
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
 
 /**
  * PAYMENT SUCCESS PAGE
@@ -259,8 +260,8 @@ const PaymentSuccess = () => {
                   support@apexfivecleaning.co.uk
                 </a>
                 {' '}|{' '}
-                📞 <a href="tel:+447377280558" className="text-emerald-600 hover:underline">
-                  +44 7377 280558
+                📞 <a href={PHONE_MAIN_HREF} className="text-emerald-600 hover:underline">
+                  {PHONE_MAIN_DISPLAY}
                 </a>
               </p>
             </div>

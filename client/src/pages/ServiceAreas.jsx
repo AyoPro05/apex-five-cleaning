@@ -5,7 +5,7 @@ import ServiceAreaMap from '../components/ServiceAreaMap'
 import { scrollReveal, staggerContainer, staggerItem } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildBreadcrumbSchema, buildLocalBusinessSchema } from '../config/seoSchemas'
-import { SITE_URL } from '../config/site'
+import { SITE_URL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 import {
   getServiceAreaRegionsForNav,
   ORDERED_AREA_SLUGS,
@@ -111,7 +111,7 @@ const ServiceAreas = () => {
           <motion.div variants={staggerItem} className="bg-white border border-gray-200 rounded-xl p-6">
             <Phone className="w-8 h-8 text-teal-600 mb-3" />
             <h3 className="font-bold text-gray-900 mb-2">Direct Contact</h3>
-            <p className="text-gray-600">Call us on +44 7377 280558 to discuss your specific area and requirements.</p>
+            <p className="text-gray-600">Call us on {PHONE_MAIN_DISPLAY} to discuss your specific area and requirements.</p>
           </motion.div>
           <motion.div variants={staggerItem} className="bg-white border border-gray-200 rounded-xl p-6">
             <MapPin className="w-8 h-8 text-teal-600 mb-3" />
@@ -134,7 +134,7 @@ const ServiceAreas = () => {
               Get Free Quote
             </button>
             <a
-              href="tel:+447377280558"
+              href={PHONE_MAIN_HREF}
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
               Call Now

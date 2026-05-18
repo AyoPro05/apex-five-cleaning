@@ -24,6 +24,7 @@ import {
   buildLocalBusinessSchema,
   buildWebSiteSchema,
 } from "../config/seoSchemas";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
 import { getServiceAreaRegionsForNav } from "../data/serviceAreasCatalog";
 
 // Scroll reveal animation config
@@ -418,7 +419,7 @@ const Home = () => {
               <Phone className="w-8 h-8 text-teal-600 mb-3" />
               <h3 className="font-bold text-gray-900 mb-2">Direct Contact</h3>
               <p className="text-gray-600">
-                Call +44 7377 280558 for your area.
+                Call {PHONE_MAIN_DISPLAY} for your area.
               </p>
             </motion.div>
             <motion.div
@@ -447,7 +448,7 @@ const Home = () => {
             </p>
             <div className="flex justify-center">
               <a
-                href="tel:+447377280558"
+                href={PHONE_MAIN_HREF}
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
               >
                 Call Now
@@ -616,10 +617,10 @@ const Home = () => {
             </p>
             <div className="flex justify-center">
               <a
-                href="tel:+447377280558"
+                href={PHONE_MAIN_HREF}
                 className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
               >
-                Call +44 7377 280558
+                Call {PHONE_MAIN_DISPLAY}
               </a>
             </div>
           </motion.div>

@@ -143,7 +143,8 @@ const getBrandConfig = () => {
     website: process.env.COMPANY_WEBSITE || 'https://apexfivecleaning.co.uk',
     websiteDisplay: process.env.COMPANY_WEBSITE_DISPLAY || 'apexfivecleaning.co.uk',
     email: process.env.COMPANY_EMAIL || process.env.NOTIFY_EMAIL || 'hello@apexfivecleaning.co.uk',
-    phone: process.env.COMPANY_PHONE || '+44 7377 280558',
+    phone: process.env.COMPANY_PHONE || '020 3535 6331',
+    phoneTel: process.env.COMPANY_PHONE_TEL || '+442035356331',
     address: process.env.COMPANY_ADDRESS || 'Canterbury, Kent, UK',
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'
@@ -169,7 +170,7 @@ const getEmailFooter = (brand, extraNote = '') => {
       <p class="email-footer-tagline">${brand.tagline}</p>
       <p class="email-footer-contact">
         <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 
-        <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a> &nbsp;|&nbsp;
+        <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp;
         <a href="${brand.website}">${brand.websiteDisplay}</a>
       </p>
       <p class="email-footer-address">${brand.address}</p>
@@ -229,7 +230,7 @@ export const getClientConfirmationTemplate = (firstName, quoteId) => {
               </ul>
               <div class="divider"></div>
               <p>If you have any urgent questions, feel free to contact us:</p>
-              <p>📞 <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a><br><small>Monday–Friday, 8am–6pm</small></p>
+              <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a><br><small>Monday–Friday, 8am–6pm</small></p>
               <div style="text-align: center;">
                 <a href="${brand.website}" class="cta-button">View Our Services</a>
               </div>
@@ -387,7 +388,7 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
               </div>
               <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">
                 Questions? Contact us:<br/>
-                📧 <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 📞 <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a>
+                📧 <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a>
               </p>
             </div>
             ${getEmailFooter(brand)}
@@ -516,7 +517,7 @@ export const getVerificationEmailTemplate = (firstName, verificationLink, expiry
               <div class="security-badge">
                 <p style="margin: 0;">🔒 <strong>Security:</strong> We will never ask for your password via email.</p>
               </div>
-              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a> or <a href="tel:${brand.phone.replace(/\s/g, '')}">${brand.phone}</a>.</p>
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a> or <a href="tel:${brand.phoneTel}">${brand.phone}</a>.</p>
             </div>
             ${getEmailFooter(brand, `Sent because you registered at ${brand.websiteDisplay}`)}
           </div>

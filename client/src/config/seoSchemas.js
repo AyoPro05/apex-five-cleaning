@@ -3,7 +3,7 @@ import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
 
 const BUSINESS_NAME = SITE_NAME;
 export const MAIN_BUSINESS_ID = `${SITE_URL}#localbusiness`;
-const BUSINESS_PHONE = "+447377280558";
+const BUSINESS_PHONE = "+442035356331";
 const BUSINESS_EMAIL = "info@apexfivecleaning.co.uk";
 const BUSINESS_ADDRESS = {
   "@type": "PostalAddress",

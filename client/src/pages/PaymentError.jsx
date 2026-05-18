@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { AlertCircle, ChevronDown } from 'lucide-react';
 import SEO from '../components/SEO';
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
 
 /**
  * PAYMENT ERROR PAGE
@@ -219,8 +220,8 @@ const PaymentError = () => {
                 </div>
                 <div>
                   📞{' '}
-                  <a href="tel:+447377280558" className="text-blue-600 hover:underline font-semibold">
-                    +44 7377 280558
+                  <a href={PHONE_MAIN_HREF} className="text-blue-600 hover:underline font-semibold">
+                    {PHONE_MAIN_DISPLAY}
                   </a>
                 </div>
                 <div>

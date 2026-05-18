@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Clock, AlertCircle } from 'lucide-react';
 import SEO from '../components/SEO';
+import { PHONE_MAIN_HREF } from '../config/site';
 
 /**
  * PAYMENT PENDING PAGE
@@ -178,7 +179,7 @@ const PaymentPending = () => {
                 If your payment is still processing after 2 minutes, please contact support immediately.
               </p>
               <a
-                href="tel:+447377280558"
+                href={PHONE_MAIN_HREF}
                 className="inline-block bg-red-600 text-white px-4 py-2 rounded font-semibold hover:bg-red-700 transition"
               >
                 📞 Call Support Now

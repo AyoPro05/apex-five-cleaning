@@ -4,6 +4,7 @@ import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Sta
 import { scrollReveal, scrollRevealVisible, staggerContainer, staggerItem } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildBreadcrumbSchema } from '../config/seoSchemas'
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 
 // Service image paths - files in /public/images/services/ named as below
 const SERVICE_IMAGES = {
@@ -296,10 +297,10 @@ const Services = () => {
               Get a Free Quote
             </button>
             <a
-              href="tel:+447377280558"
+              href={PHONE_MAIN_HREF}
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
-              Call Now: +44 7377 280558
+              Call Now: {PHONE_MAIN_DISPLAY}
             </a>
           </div>
         </motion.div>

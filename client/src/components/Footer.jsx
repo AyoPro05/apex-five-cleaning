@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
 import { useCookieConsent } from '../context/CookieConsentContext'
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
 
 const Footer = () => {
   const { openPreferences } = useCookieConsent()
@@ -85,11 +86,11 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-teal-500" />
-                <a href="tel:+447377280558" className="hover:text-teal-500 transition">+44 7377 280558</a>
+                <a href={PHONE_MAIN_HREF} className="hover:text-teal-500 transition">{PHONE_MAIN_DISPLAY}</a>
               </li>
               <li className="flex items-center gap-2">
                 <a
-                  href="https://wa.me/447377280558?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20to%20enquire%20about%20your%20services."
+                  href={whatsappHref()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-teal-500 transition flex items-center gap-2"

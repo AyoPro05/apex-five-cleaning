@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import BlogImage from '../components/BlogImage'
 import SEO from '../components/SEO'
+import { PHONE_MAIN_HREF } from '../config/site'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -255,7 +256,7 @@ const Blog = () => {
               Contact Us
             </button>
             <a
-              href="tel:+447377280558"
+              href={PHONE_MAIN_HREF}
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
               Call Now

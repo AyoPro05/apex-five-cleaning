@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildLocalBusinessSchema } from '../config/seoSchemas'
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
 
 const Contact = () => {
   const contactSchemas = [
@@ -119,8 +120,8 @@ const Contact = () => {
                 <Phone className="w-6 h-6 text-teal-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Phone</h3>
-                  <a href="tel:+447377280558" className="text-teal-600 hover:text-teal-700 font-semibold">
-                    +44 7377 280558
+                  <a href={PHONE_MAIN_HREF} className="text-teal-600 hover:text-teal-700 font-semibold">
+                    {PHONE_MAIN_DISPLAY}
                   </a>
                   <p className="text-gray-500 text-sm">Monday - Friday, 8am - 6pm</p>
                 </div>
@@ -157,13 +158,13 @@ const Contact = () => {
               <h3 className="font-semibold text-gray-900 mb-4">Need a quick response?</h3>
               <div className="space-y-3">
                 <a
-                  href="tel:+447377280558"
+                  href={PHONE_MAIN_HREF}
                   className="block w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg font-semibold text-center transition"
                 >
                   Call Now
                 </a>
                 <a
-                  href="https://wa.me/447377280558?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20to%20enquire%20about%20your%20services."
+                  href={whatsappHref()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-semibold text-center transition"

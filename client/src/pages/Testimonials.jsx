@@ -3,6 +3,7 @@ import { Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -235,10 +236,10 @@ const Testimonials = () => {
               Book Now
             </button>
             <a
-              href="tel:+447377280558"
+              href={PHONE_MAIN_HREF}
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
-              Call +44 7377 280558
+              Call {PHONE_MAIN_DISPLAY}
             </a>
           </div>
         </div>
