@@ -10,6 +10,7 @@ import {
   strictRateLimiter,
   authLoginRateLimiter,
   authRegisterRateLimiter,
+  refreshTokenRateLimiter,
 } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
@@ -33,7 +34,7 @@ router.post('/login', authLoginRateLimiter, authController.login);
  * @desc    Refresh access token
  * @access  Public
  */
-router.post('/refresh-token', authController.refreshToken);
+router.post('/refresh-token', refreshTokenRateLimiter, authController.refreshToken);
 
 /**
  * @route   GET /api/auth/me

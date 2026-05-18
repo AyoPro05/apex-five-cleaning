@@ -41,6 +41,7 @@ import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
 import contactRouter from "./routes/contact.js";
 import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService.js";
+import { handleStripeWebhook } from "./routes/payments.js";
 
 // Fail fast instead of waiting for Mongoose operation buffering timeouts
 mongoose.set("bufferCommands", false);
@@ -105,6 +106,21 @@ app.use(
     origin: corsOrigins,
     credentials: true,
   }),
+);
+
+// Stripe webhooks require the raw body for signature verification (must run before express.json)
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: "Database temporarily unavailable",
+      });
+    }
+    return handleStripeWebhook(req, res);
+  },
 );
 
 app.use(express.json({ limit: "10kb" }));

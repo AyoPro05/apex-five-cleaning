@@ -27,7 +27,13 @@ const PaymentSuccess = () => {
         }
 
         if (isGuest) {
-          const data = await get(`/api/payments/guest/${paymentId}`);
+          const email = searchParams.get('email')?.trim()
+          if (!email) {
+            throw new Error('Missing email for payment confirmation')
+          }
+          const data = await get(
+            `/api/payments/guest/${paymentId}?email=${encodeURIComponent(email)}`
+          );
           if (data.success && data.payment) {
             setPaymentDetails(data.payment);
           } else {

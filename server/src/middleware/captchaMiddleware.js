@@ -22,21 +22,25 @@ function captchaErrorMessage(errorCodes = []) {
 
 export const verifyCaptcha = async (req, res, next) => {
   try {
+    const secret = process.env.RECAPTCHA_SECRET_KEY;
+    if (!secret) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("CAPTCHA: RECAPTCHA_SECRET_KEY is not set");
+        return res.status(500).json({
+          success: false,
+          error: "CAPTCHA is not configured. Please contact support.",
+        });
+      }
+      req.captcha = { verified: false, score: 1, action: "dev-skip" };
+      return next();
+    }
+
     const token = req.body?.captchaToken;
 
     if (!token || typeof token !== "string" || !token.trim()) {
       return res
         .status(400)
         .json({ success: false, error: "CAPTCHA token is required" });
-    }
-
-    const secret = process.env.RECAPTCHA_SECRET_KEY;
-    if (!secret) {
-      console.error("CAPTCHA: RECAPTCHA_SECRET_KEY is not set");
-      return res.status(500).json({
-        success: false,
-        error: "CAPTCHA is not configured. Please contact support.",
-      });
     }
 
     const params = new URLSearchParams();
@@ -52,8 +56,6 @@ export const verifyCaptcha = async (req, res, next) => {
     );
 
     const { success, score, action, "error-codes": errorCodes = [] } = response.data;
-
-    console.log(`reCAPTCHA - success: ${success}, score: ${score}, action: ${action}`);
 
     if (!success) {
       console.warn("reCAPTCHA verify failed, error-codes:", errorCodes);

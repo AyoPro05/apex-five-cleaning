@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
 import Referral from '../../models/Referral.js';
 import { sendVerificationEmail, isEmailConfigured, sendPasswordResetEmail } from '../utils/emailService.js';
+import { sanitizeUserForClient } from '../utils/userSanitize.js';
 import crypto from 'crypto';
 
 /**
@@ -14,7 +15,7 @@ import crypto from 'crypto';
  */
 const generateToken = (userId, role) => {
   return jwt.sign(
-    { id: userId, role },
+    { id: userId, role, type: 'access' },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '1h' }
   );
@@ -25,7 +26,7 @@ const generateToken = (userId, role) => {
  */
 const generateRefreshToken = (userId, role) => {
   return jwt.sign(
-    { id: userId, role },
+    { id: userId, role, type: 'refresh' },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
   );
@@ -220,19 +221,15 @@ export const login = async (req, res) => {
     // Generate tokens
     const expiresIn = rememberMe ? '30d' : (process.env.JWT_EXPIRE || '1h');
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, type: 'access' },
       process.env.JWT_SECRET,
       { expiresIn }
     );
     const refreshToken = generateRefreshToken(user._id, user.role);
 
-    // Remove sensitive fields from response
-    const userResponse = user.toObject();
-    delete userResponse.password;
-
     res.status(200).json({
       message: 'Login successful',
-      user: userResponse,
+      user: sanitizeUserForClient(user),
       tokens: {
         accessToken: token,
         refreshToken: refreshToken,
@@ -265,6 +262,13 @@ export const refreshToken = async (req, res) => {
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+    if (decoded.type === 'access') {
+      return res.status(401).json({
+        error: 'Token refresh failed',
+        message: 'Invalid refresh token',
+      });
+    }
 
     // Get user
     const user = await User.findById(decoded.id);
@@ -299,13 +303,11 @@ export const refreshToken = async (req, res) => {
  */
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .select('-password -verificationToken -passwordResetToken')
-      .lean();
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ success: true, user });
+    res.json({ success: true, user: sanitizeUserForClient(user) });
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });

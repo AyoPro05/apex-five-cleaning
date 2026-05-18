@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import User from '../../models/User.js';
 import { sendVerificationEmail, sendVerificationSuccessEmail, sendResendVerificationEmail } from '../utils/emailService.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { resendVerificationRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -148,7 +149,7 @@ router.post('/verify-email-token', async (req, res) => {
  * @desc    Resend verification email
  * @access  Public
  */
-router.post('/resend-verification-email', async (req, res) => {
+router.post('/resend-verification-email', resendVerificationRateLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -171,12 +172,11 @@ router.post('/resend-verification-email', async (req, res) => {
       });
     }
 
-    // Check if already verified
+    // Do not reveal verification status (same response as success path)
     if (user.isVerified) {
-      return res.status(400).json({
-        success: false,
-        error: 'Already verified',
-        message: 'This email is already verified.'
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email, a verification link has been sent.',
       });
     }
 

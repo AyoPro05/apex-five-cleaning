@@ -25,6 +25,14 @@ export const authMiddleware = async (req, res, next) => {
 
     // Verify token signature and expiry
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.type === 'refresh') {
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'Refresh tokens cannot be used for API access. Please sign in again.',
+      });
+    }
+
     const userId = decoded.id;
 
     if (!userId) {

@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
 import { MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildLocalBusinessSchema } from '../config/seoSchemas'
 import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
 import { post } from '../utils/apiClient'
+import { getRecaptchaSiteKey, getRecaptchaToken, loadRecaptchaScript } from '../utils/recaptcha'
 
 const Contact = () => {
   const contactSchemas = [
@@ -29,6 +30,10 @@ const Contact = () => {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    loadRecaptchaScript('contact-form')
+  }, [])
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -78,12 +83,26 @@ const Contact = () => {
 
     setLoading(true)
     try {
+      let captchaToken = ''
+      if (getRecaptchaSiteKey()) {
+        try {
+          captchaToken = await getRecaptchaToken('contact')
+        } catch (captchaErr) {
+          setError(
+            captchaErr.message ||
+              'Could not verify the form. Refresh the page and try again.',
+          )
+          return
+        }
+      }
+
       const response = await post('/api/contact', {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         subject: formData.subject,
         message: formData.message.trim(),
+        captchaToken,
         _website: '',
       })
 
@@ -277,6 +296,14 @@ const Contact = () => {
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
                 ></textarea>
               </div>
+              {getRecaptchaSiteKey() && (
+                <p className="text-xs text-gray-500">
+                  Protected by reCAPTCHA.{' '}
+                  <a href="https://policies.google.com/privacy" className="underline" target="_blank" rel="noopener noreferrer">Privacy</a>
+                  {' · '}
+                  <a href="https://policies.google.com/terms" className="underline" target="_blank" rel="noopener noreferrer">Terms</a>
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={loading}

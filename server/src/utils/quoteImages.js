@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { quotesUploadDir } from "../middleware/uploadMiddleware.js";
+import { safeImageContentType } from "./imageValidation.js";
 
 /** Strip base64 payloads from API JSON; use /api/admin/quotes/:id/images/:index to view. */
 export function sanitizeQuoteImagesForApi(quote) {
@@ -24,7 +25,7 @@ export function resolveQuoteImageBuffer(image) {
     try {
       return {
         buffer: Buffer.from(image.data, "base64"),
-        mimeType: image.mimeType || "image/jpeg",
+        mimeType: safeImageContentType(image.mimeType),
       };
     } catch {
       return null;
@@ -41,6 +42,6 @@ export function resolveQuoteImageBuffer(image) {
 
   return {
     buffer: fs.readFileSync(filePath),
-    mimeType: image.mimeType || "image/jpeg",
+    mimeType: safeImageContentType(image.mimeType),
   };
 }

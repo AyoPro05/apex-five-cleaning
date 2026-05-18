@@ -143,7 +143,7 @@ router.post('/login', strictRateLimiter, (req, res) => {
     return res.status(401).json({ success: false, error: 'Invalid admin token' });
   }
   const jwtToken = jwt.sign(
-    { id: 'admin', role: 'admin' },
+    { id: 'admin', role: 'admin', type: 'access' },
     process.env.JWT_SECRET,
     { expiresIn: ADMIN_JWT_EXPIRE }
   );
@@ -222,6 +222,13 @@ router.get('/users', requireAdmin, async (req, res) => {
 router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
     const force = req.query.force === 'true';
+    if (force && process.env.ALLOW_FORCE_USER_DELETE !== 'true') {
+      return res.status(403).json({
+        success: false,
+        error:
+          'Force delete is disabled in production. Accounts must meet the retention period, or set ALLOW_FORCE_USER_DELETE=true only in a non-production environment.',
+      });
+    }
     const retentionMonths = parseInt(req.query.olderThanMonths, 10) || DEFAULT_RETENTION_MONTHS;
     const userId = req.params.id;
 

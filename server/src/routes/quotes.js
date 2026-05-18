@@ -17,6 +17,7 @@ import {
   emailRateLimiter,
 } from "../middleware/rateLimiter.js";
 import { quoteImageUpload, quotesUploadDir } from "../middleware/uploadMiddleware.js";
+import { validateQuoteImageBuffer } from "../utils/imageValidation.js";
 import { verifyCaptcha } from "../middleware/captchaMiddleware.js";
 
 const router = express.Router();
@@ -102,6 +103,15 @@ const submitQuoteHandler = async (req, res) => {
         try {
           const filePath = path.join(quotesUploadDir, file.filename);
           const buffer = await fs.readFile(filePath);
+          const imageCheck = validateQuoteImageBuffer(buffer);
+          if (!imageCheck.ok) {
+            await fs.unlink(filePath).catch(() => {});
+            return res.status(400).json({
+              success: false,
+              error: "Invalid image file. Please upload JPEG, PNG, GIF, WebP, or HEIC only.",
+            });
+          }
+          entry.mimeType = imageCheck.mimeType;
           // Cap stored size for MongoDB (16MB doc limit); disk copy still used when available
           if (buffer.length <= 2.5 * 1024 * 1024) {
             entry.data = buffer.toString("base64");

@@ -205,7 +205,9 @@ export default function PayOnline() {
   }
 
   const handleSuccess = () => {
-    navigate(`/payment-success?payment_id=${paymentId}&guest=1`)
+    const payerEmail = (isAuthenticated && user?.email) ? user.email : email.trim()
+    const emailParam = payerEmail ? `&email=${encodeURIComponent(payerEmail)}` : ''
+    navigate(`/payment-success?payment_id=${paymentId}&guest=1${emailParam}`)
   }
 
   const handleSendVerification = async () => {

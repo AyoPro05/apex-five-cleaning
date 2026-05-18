@@ -14,6 +14,7 @@ import Quote from '../models/Quote.js';
 import Referral from '../../models/Referral.js';
 import Address from '../../models/Address.js';
 import { signQuoteImages } from '../utils/uploadSigning.js';
+import { sanitizeUserForClient } from '../utils/userSanitize.js';
 
 const router = express.Router();
 
@@ -189,9 +190,7 @@ router.patch('/preferences', async (req, res) => {
       user.emailNotifications = { ...user.emailNotifications, ...emailNotifications };
     }
     await user.save();
-    const sanitized = user.toObject();
-    delete sanitized.password;
-    res.json({ success: true, user: sanitized });
+    res.json({ success: true, user: sanitizeUserForClient(user) });
   } catch (error) {
     console.error('Preferences error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to update preferences' });

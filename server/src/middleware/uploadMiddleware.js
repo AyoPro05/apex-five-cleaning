@@ -26,15 +26,14 @@ const storage = multer.diskStorage({
   },
 });
 
-// Filter: only allow image files
+// Filter: allowlisted extensions only (no image/* wildcard — blocks SVG etc.)
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp|heic|heif/i;
-  const ext = path.extname(file.originalname)?.slice(1) || "";
-  const mimetype = file.mimetype;
-  if (allowed.test(ext) || mimetype.startsWith("image/")) {
+  const ext = path.extname(file.originalname || "").toLowerCase();
+  const allowed = /^\.(jpe?g|png|gif|webp|heic|heif)$/i;
+  if (allowed.test(ext)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image files (jpeg, jpg, png, gif, webp) are allowed"));
+    cb(new Error("Only JPEG, PNG, GIF, WebP, and HEIC images are allowed"));
   }
 };
 

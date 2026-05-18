@@ -22,6 +22,7 @@ import {
   guestPaymentLookupRateLimiter,
   guestPaymentIntentRateLimiter,
   guestPaymentConfirmRateLimiter,
+  guestPaymentDetailsRateLimiter,
 } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
@@ -225,15 +226,27 @@ router.post('/guest/create-intent', guestPaymentIntentRateLimiter, async (req, r
 
 /**
  * GUEST: Get payment success details (no auth)
- * GET /api/payments/guest/:paymentId
+ * GET /api/payments/guest/:paymentId?email=
  */
-router.get('/guest/:paymentId', async (req, res) => {
+router.get('/guest/:paymentId', guestPaymentDetailsRateLimiter, async (req, res) => {
   try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
     const quotePayment = await QuotePayment.findById(req.params.paymentId)
-      .populate('quoteId', 'firstName lastName serviceType');
+      .populate('quoteId', 'firstName lastName serviceType email');
     if (!quotePayment || quotePayment.status !== 'succeeded') {
       return res.status(404).json({ success: false, message: 'Payment not found' });
     }
+
+    const paymentEmail = String(quotePayment.email || '').trim().toLowerCase();
+    const quoteEmail = String(quotePayment.quoteId?.email || '').trim().toLowerCase();
+    if (email !== paymentEmail && email !== quoteEmail) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
     const q = quotePayment.quoteId;
     res.json({
       success: true,
@@ -739,12 +752,31 @@ router.post('/:paymentId/refund', authMiddleware, async (req, res) => {
 });
 
 /**
+ * Apply succeeded PaymentIntent state to a guest quote payment record.
+ */
+async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
+  quotePayment.status = 'succeeded';
+  quotePayment.processedAt = new Date();
+
+  const charge = paymentIntent.charges?.data?.[0];
+  if (charge) {
+    quotePayment.stripeChargeId = charge.id;
+    const card = charge.payment_method_details?.card;
+    if (card) {
+      quotePayment.cardLast4 = card.last4;
+      quotePayment.cardBrand = card.brand?.toUpperCase();
+    }
+  }
+
+  await quotePayment.save();
+}
+
+/**
  * WEBHOOK - STRIPE EVENTS
  * POST /api/payments/webhook
- * Handles Stripe webhook events. Signature verification is mandatory; in production
- * STRIPE_WEBHOOK_SECRET must be set or the webhook will reject all events.
+ * Registered in index.js with express.raw() BEFORE express.json().
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+export async function handleStripeWebhook(req, res) {
   try {
     if (!stripe) {
       return res.status(503).json({ success: false, message: 'Payment system unavailable' });
@@ -807,13 +839,25 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       error: error.message
     });
   }
-});
+}
 
 /**
  * Webhook handler: Payment Intent succeeded
  */
 async function handlePaymentIntentSucceeded(paymentIntent) {
   try {
+    const quotePayment = await QuotePayment.findOne({
+      stripePaymentIntentId: paymentIntent.id,
+    });
+
+    if (quotePayment) {
+      if (quotePayment.status !== 'succeeded') {
+        await applyQuotePaymentSuccess(quotePayment, paymentIntent);
+      }
+      console.log(`✓ Quote payment succeeded (webhook): ${quotePayment._id}`);
+      return;
+    }
+
     const payment = await Payment.findOne({
       stripePaymentIntentId: paymentIntent.id
     });
@@ -858,6 +902,18 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
  */
 async function handlePaymentIntentFailed(paymentIntent) {
   try {
+    const quotePayment = await QuotePayment.findOne({
+      stripePaymentIntentId: paymentIntent.id,
+    });
+
+    if (quotePayment) {
+      quotePayment.status = 'failed';
+      quotePayment.failureReason = paymentIntent.last_payment_error?.message;
+      await quotePayment.save();
+      console.log(`✗ Quote payment failed (webhook): ${quotePayment._id}`);
+      return;
+    }
+
     const payment = await Payment.findOne({
       stripePaymentIntentId: paymentIntent.id
     });

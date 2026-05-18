@@ -9,6 +9,7 @@ import {
   contactRateLimiter,
   contactEmailRateLimiter,
 } from '../middleware/rateLimiter.js';
+import { verifyCaptcha } from '../middleware/captchaMiddleware.js';
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.post(
   '/',
   contactRateLimiter,
   contactEmailRateLimiter,
+  verifyCaptcha,
   async (req, res) => {
     try {
       // Honeypot — bots often fill hidden fields

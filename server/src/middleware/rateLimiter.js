@@ -149,6 +149,50 @@ export const contactEmailRateLimiter = rateLimit({
   },
 });
 
+/** Public resend-verification — limit email bombing */
+export const resendVerificationRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) =>
+    String(req.body?.email || '')
+      .trim()
+      .toLowerCase() || req.ip,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many verification emails requested. Please try again later.',
+    });
+  },
+});
+
+export const refreshTokenRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many token refresh attempts. Please sign in again.',
+    });
+  },
+});
+
+export const guestPaymentDetailsRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+    });
+  },
+});
+
 export const guestPaymentConfirmRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -167,6 +211,8 @@ export default {
   emailRateLimiter,
   contactRateLimiter,
   contactEmailRateLimiter,
+  resendVerificationRateLimiter,
+  refreshTokenRateLimiter,
   apiRateLimiter,
   strictRateLimiter,
   authLoginRateLimiter,

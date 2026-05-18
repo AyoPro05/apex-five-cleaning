@@ -206,7 +206,23 @@ const getEmailBaseStyles = () => `
   .cta-button:hover { background: #0d9488; }
 `;
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+/** Prevent SMTP header injection in subjects */
+const sanitizeEmailHeader = (value) =>
+  String(value ?? '')
+    .replace(/[\r\n]+/g, ' ')
+    .trim()
+    .slice(0, 200);
+
 export const getClientConfirmationTemplate = (firstName, quoteId) => {
+  const safeName = escapeHtml(firstName);
+  const safeQuoteId = escapeHtml(quoteId);
   const brand = getBrandConfig();
   return {
     subject: `Quote Request Received - ${brand.companyName}`,
@@ -222,11 +238,11 @@ export const getClientConfirmationTemplate = (firstName, quoteId) => {
           <div class="email-container">
             ${getEmailHeader(brand, '✓ Quote Request Received', 'We\'ve got your details and will be in touch soon')}
             <div class="email-content">
-              <p>Hi ${firstName},</p>
+              <p>Hi ${safeName},</p>
               <p>Thank you for requesting a quote from <strong>${brand.companyName}</strong>! We've received your quote request and our team will review it shortly.</p>
               <div style="margin: 20px 0;">
                 <div class="label">Your Quote Reference</div>
-                <div class="quote-id">${quoteId}</div>
+                <div class="quote-id">${safeQuoteId}</div>
               </div>
               <p><strong>What happens next:</strong></p>
               <ul>
@@ -266,8 +282,16 @@ export const getAdminNotificationTemplate = (quoteData) => {
   };
   const brand = getBrandConfig();
   const adminUrl = `${brand.website.replace(/\/?$/, '')}/admin/quotes/${quoteData._id}`;
+  const safeFirst = escapeHtml(quoteData.firstName);
+  const safeLast = escapeHtml(quoteData.lastName);
+  const safeEmail = escapeHtml(quoteData.email);
+  const safePhone = escapeHtml(quoteData.phone);
+  const safeAddress = escapeHtml(quoteData.address);
+  const safePostcode = quoteData.postcode ? escapeHtml(quoteData.postcode) : '';
+  const safeNotes = quoteData.additionalNotes ? escapeHtml(quoteData.additionalNotes) : '';
+  const safeIp = escapeHtml(quoteData.ipAddress);
   return {
-    subject: `New Quote Request - ${quoteData.firstName} ${quoteData.lastName}`,
+    subject: `New Quote Request - ${sanitizeEmailHeader(quoteData.firstName)} ${sanitizeEmailHeader(quoteData.lastName)}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -286,28 +310,28 @@ export const getAdminNotificationTemplate = (quoteData) => {
               <p><strong>A new quote request has been submitted. Details below:</strong></p>
               <div class="section-title">Customer Information</div>
               <table class="admin-table">
-                <tr><td>Name</td><td>${quoteData.firstName} ${quoteData.lastName}</td></tr>
-                <tr><td>Email</td><td><a href="mailto:${quoteData.email}">${quoteData.email}</a></td></tr>
-                <tr><td>Phone</td><td><a href="tel:${quoteData.phone}">${quoteData.phone}</a></td></tr>
-                <tr><td>Address</td><td>${quoteData.address}</td></tr>
-                ${quoteData.postcode ? `<tr><td>Postcode</td><td>${quoteData.postcode}</td></tr>` : ''}
+                <tr><td>Name</td><td>${safeFirst} ${safeLast}</td></tr>
+                <tr><td>Email</td><td><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>
+                <tr><td>Phone</td><td><a href="tel:${safePhone}">${safePhone}</a></td></tr>
+                <tr><td>Address</td><td>${safeAddress}</td></tr>
+                ${safePostcode ? `<tr><td>Postcode</td><td>${safePostcode}</td></tr>` : ''}
               </table>
               <div class="section-title">Property Details</div>
               <table class="admin-table">
-                <tr><td>Property Type</td><td>${propertyMap[quoteData.propertyType] || quoteData.propertyType}</td></tr>
-                <tr><td>Bedrooms</td><td>${quoteData.bedrooms}</td></tr>
-                <tr><td>Bathrooms</td><td>${quoteData.bathrooms}</td></tr>
+                <tr><td>Property Type</td><td>${escapeHtml(propertyMap[quoteData.propertyType] || quoteData.propertyType)}</td></tr>
+                <tr><td>Bedrooms</td><td>${escapeHtml(quoteData.bedrooms)}</td></tr>
+                <tr><td>Bathrooms</td><td>${escapeHtml(quoteData.bathrooms)}</td></tr>
               </table>
               <div class="section-title">Service Requirements</div>
               <table class="admin-table">
-                <tr><td>Service Type</td><td>${serviceMap[quoteData.serviceType] || quoteData.serviceType}</td></tr>
-                ${quoteData.additionalNotes ? `<tr><td>Additional Notes</td><td>${quoteData.additionalNotes}</td></tr>` : ''}
+                <tr><td>Service Type</td><td>${escapeHtml(serviceMap[quoteData.serviceType] || quoteData.serviceType)}</td></tr>
+                ${safeNotes ? `<tr><td>Additional Notes</td><td>${safeNotes}</td></tr>` : ''}
               </table>
               <div class="section-title">Security</div>
               <table class="admin-table">
                 <tr><td>CAPTCHA Score</td><td>${(quoteData.captchaScore * 100).toFixed(0)}%</td></tr>
                 <tr><td>CAPTCHA Verified</td><td>${quoteData.captchaVerified ? '✓ Yes' : '✗ No'}</td></tr>
-                <tr><td>IP Address</td><td><code>${quoteData.ipAddress}</code></td></tr>
+                <tr><td>IP Address</td><td><code>${safeIp}</code></td></tr>
               </table>
               <div style="text-align: center; margin-top: 24px;">
                 <a href="${adminUrl}" class="cta-button">View in Admin Dashboard</a>
@@ -366,6 +390,8 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
   const brand = getBrandConfig();
   const clientUrl = (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
   const signupUrl = `${clientUrl}/?signup=1`;
+  const safeName = escapeHtml(firstName);
+  const safeQuoteId = escapeHtml(quoteId);
 
   return {
     subject: `✓ Your Quote Was Approved – Create Your Account | ${brand.companyName}`,
@@ -379,7 +405,7 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
           <div class="email-container">
             ${getEmailHeader(brand, '✓ Your Quote Was Approved', 'Create your account to manage your booking')}
             <div class="email-content">
-              <p>Hi ${firstName},</p>
+              <p>Hi ${safeName},</p>
               <p>Great news! Your quote request has been approved by our team. We're ready to help you with your cleaning needs.</p>
               <p><strong>Create your free account</strong> to:</p>
               <ul>
@@ -388,7 +414,7 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
                 <li>Track payments and history</li>
                 <li>Request new quotes if things change</li>
               </ul>
-              <div class="quote-ref">Quote ref: ${quoteId}</div>
+              <div class="quote-ref">Quote ref: ${safeQuoteId}</div>
               <div style="text-align: center;">
                 <a href="${signupUrl}" class="cta-button">Create My Account</a>
               </div>
@@ -442,13 +468,6 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
   }
 };
 
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-
 const CONTACT_SUBJECT_LABELS = {
   residential: 'Residential Cleaning',
   'end-of-tenancy': 'End of Tenancy',
@@ -466,7 +485,7 @@ export const getContactEnquiryTemplate = (enquiry) => {
     : '';
 
   return {
-    subject: `Website enquiry — ${enquiry.name}${enquiry.subject ? ` (${subjectLabel})` : ''}`,
+    subject: `Website enquiry — ${sanitizeEmailHeader(enquiry.name)}${enquiry.subject ? ` (${sanitizeEmailHeader(subjectLabel)})` : ''}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -586,6 +605,7 @@ export const sendAdminNotificationEmail = async (quoteData) => {
 
 export const getVerificationEmailTemplate = (firstName, verificationLink, expiryHours = 24) => {
   const brand = getBrandConfig();
+  const safeName = escapeHtml(firstName);
   return {
     subject: `🔐 Verify Your Email - ${brand.companyName}`,
     html: `
@@ -602,7 +622,7 @@ export const getVerificationEmailTemplate = (firstName, verificationLink, expiry
           <div class="email-container">
             ${getEmailHeader(brand, 'Verify Your Email', `Welcome to ${brand.companyName}`)}
             <div class="email-content">
-              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Hello <strong>${safeName}</strong>,</p>
               <p>Thank you for registering with <strong>${brand.companyName}</strong>! We're excited to help you with all your cleaning needs.</p>
               <div class="verification-box">
                 <p style="margin: 0 0 12px 0;"><strong>To get started, please verify your email address:</strong></p>
@@ -636,6 +656,7 @@ export const getVerificationEmailTemplate = (firstName, verificationLink, expiry
 
 export const getVerificationSuccessTemplate = (firstName) => {
   const brand = getBrandConfig();
+  const safeName = escapeHtml(firstName);
   const dashboardUrl = `${(process.env.CLIENT_URL || brand.website).replace(/\/$/, '')}/dashboard`;
   return {
     subject: `✅ Email Verified - Welcome to ${brand.companyName}!`,
@@ -655,7 +676,7 @@ export const getVerificationSuccessTemplate = (firstName) => {
           <div class="email-container">
             ${getEmailHeader(brand, '✅ Email Verified!', 'Your account is now active')}
             <div class="email-content">
-              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Hello <strong>${safeName}</strong>,</p>
               <p>Congratulations! Your email has been verified. Your <strong>${brand.companyName}</strong> account is now fully activated.</p>
               <div class="action-box">
                 <h3>You can now:</h3>
@@ -684,6 +705,7 @@ export const getVerificationSuccessTemplate = (firstName) => {
 
 export const getResendVerificationTemplate = (firstName, verificationLink, expiryHours = 24) => {
   const brand = getBrandConfig();
+  const safeName = escapeHtml(firstName);
   return {
     subject: `📧 New Verification Link - ${brand.companyName}`,
     html: `
@@ -698,7 +720,7 @@ export const getResendVerificationTemplate = (firstName, verificationLink, expir
           <div class="email-container">
             ${getEmailHeader(brand, '📧 New Verification Link', 'Use this link to verify your email')}
             <div class="email-content">
-              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Hello <strong>${safeName}</strong>,</p>
               <p>We've generated a new email verification link for you:</p>
               <div class="verification-box">
                 <a href="${verificationLink}" class="cta-button">✓ Verify Email</a>
@@ -853,6 +875,7 @@ export const sendResendVerificationEmail = async (toEmail, firstName, verificati
  */
 function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
   const brand = getBrandConfig();
+  const safeName = escapeHtml(firstName);
   return {
     subject: `🔐 Reset Your Password - ${brand.companyName}`,
     html: `
@@ -867,7 +890,7 @@ function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
           <div class="email-container">
             ${getEmailHeader(brand, '🔐 Reset Your Password', 'Use the link below to set a new password')}
             <div class="email-content">
-              <p>Hello <strong>${firstName}</strong>,</p>
+              <p>Hello <strong>${safeName}</strong>,</p>
               <p>We received a request to reset the password for your ${brand.companyName} account.</p>
               <div class="reset-box">
                 <a href="${resetLink}" class="cta-button">Reset Password</a>
