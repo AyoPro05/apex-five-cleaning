@@ -8,6 +8,12 @@ import nodemailer from 'nodemailer';
  * domain (SPF/DKIM/DMARC), not the recipient's domain.
  */
 
+/** Only active mailbox — all defaults and fallbacks use this address */
+const DEFAULT_MAILBOX = 'info@apexfivecleaning.co.uk';
+
+const getNotificationInbox = () =>
+  process.env.NOTIFY_EMAIL || process.env.COMPANY_EMAIL || DEFAULT_MAILBOX;
+
 // Provider for send functions (evaluated when module loads, after dotenv in index.js)
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp';
 
@@ -105,9 +111,9 @@ export function getEmailConfigStatus() {
 const getSenderEmail = () => {
   const provider = process.env.EMAIL_PROVIDER || 'smtp';
   if (provider === 'sendgrid') {
-    return process.env.SENDGRID_FROM_EMAIL || 'no-reply@apexfivecleaning.co.uk';
+    return process.env.SENDGRID_FROM_EMAIL || DEFAULT_MAILBOX;
   }
-  return process.env.SMTP_FROM_EMAIL || 'no-reply@apexfivecleaning.co.uk';
+  return process.env.SMTP_FROM_EMAIL || DEFAULT_MAILBOX;
 };
 
 // Get sender name
@@ -139,13 +145,13 @@ const getBrandConfig = () => {
     logoUrl: process.env.COMPANY_LOGO_URL || `${baseUrl}/apex-five-logo.png`,
     companyName: process.env.COMPANY_NAME || 'Apex Five Cleaning',
     legalName: process.env.COMPANY_LEGAL_NAME || 'Apex Five Capital Ltd',
-    tagline: process.env.COMPANY_TAGLINE || 'Professional Eco-Friendly Cleaning Services in Kent',
+    tagline: process.env.COMPANY_TAGLINE || 'Professional Eco-Friendly Cleaning Services in UK',
     website: process.env.COMPANY_WEBSITE || 'https://apexfivecleaning.co.uk',
     websiteDisplay: process.env.COMPANY_WEBSITE_DISPLAY || 'apexfivecleaning.co.uk',
-    email: process.env.COMPANY_EMAIL || process.env.NOTIFY_EMAIL || 'hello@apexfivecleaning.co.uk',
+    email: process.env.COMPANY_EMAIL || DEFAULT_MAILBOX,
     phone: process.env.COMPANY_PHONE || '020 3535 6331',
     phoneTel: process.env.COMPANY_PHONE_TEL || '+442035356331',
-    address: process.env.COMPANY_ADDRESS || 'Canterbury, Kent, UK',
+    address: process.env.COMPANY_ADDRESS || 'Wallington, Surrey, UK',
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'
   };
@@ -441,7 +447,7 @@ export const sendAdminNotificationEmail = async (quoteData) => {
   const template = getAdminNotificationTemplate(quoteData);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
-  const notifyEmail = process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'admin@apexfivecleaning.co.uk';
+  const notifyEmail = getNotificationInbox();
 
   try {
     if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {

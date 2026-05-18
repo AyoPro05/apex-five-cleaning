@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, Download, AlertCircle } from 'lucide-react';
 import { get } from '../utils/apiClient';
 import SEO from '../components/SEO';
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
+import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
 
 /**
  * PAYMENT SUCCESS PAGE
@@ -256,8 +256,8 @@ const PaymentSuccess = () => {
             <div className="mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-600">
               <p className="mb-2">Questions about your booking?</p>
               <p>
-                📧 <a href="mailto:support@apexfivecleaning.co.uk" className="text-emerald-600 hover:underline">
-                  support@apexfivecleaning.co.uk
+                📧 <a href={`mailto:${CONTACT_EMAIL}`} className="text-emerald-600 hover:underline">
+                  {CONTACT_EMAIL}
                 </a>
                 {' '}|{' '}
                 📞 <a href={PHONE_MAIN_HREF} className="text-emerald-600 hover:underline">

@@ -82,7 +82,7 @@ export const websiteKnowledge = [
   // About
   { keywords: ['about', 'who', 'company', 'mission', 'family'],
     topic: 'About Us',
-    answer: 'Apex Five Cleaning is a professional cleaning company based in Kent, part of Apex Five Capital Ltd. Built on trust, clarity, and exceptional service. We serve the South East.',
+    answer: 'Apex Five Cleaning is a professional cleaning company based in Wallington, Surrey, UK, part of Apex Five Capital Ltd. Built on trust, clarity, and exceptional service. We serve the South East and beyond.',
     link: '/about' },
   // FAQ
   { keywords: ['faq', 'questions', 'common'],

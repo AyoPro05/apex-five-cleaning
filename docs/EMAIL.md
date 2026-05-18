@@ -16,7 +16,14 @@ Set these on your **API** service (Render → Environment):
 | `SMTP_FROM_EMAIL` | `info@apexfivecleaning.co.uk` | **Must match** an existing IONOS mailbox (or approved alias) |
 | `SMTP_FROM_NAME` | `Apex Five Cleaning` | Display name |
 | `CLIENT_URL` | `https://www.apexfivecleaning.co.uk` | Used in verification links (no trailing slash) |
-| `NOTIFY_EMAIL` | `info@apexfivecleaning.co.uk` | Admin quote notifications |
+| `NOTIFY_EMAIL` | `info@apexfivecleaning.co.uk` | Admin quote notifications (inbox only — not shown to customers) |
+| `COMPANY_EMAIL` | `info@apexfivecleaning.co.uk` | Contact email in verification and other customer emails |
+| `COMPANY_TAGLINE` | `Professional Eco-Friendly Cleaning Services in UK` | Email footer tagline |
+| `COMPANY_ADDRESS` | `Wallington, Surrey, UK` | Email footer address |
+
+**Single mailbox:** Use `info@apexfivecleaning.co.uk` for `SMTP_USER`, `SMTP_FROM_EMAIL`, `COMPANY_EMAIL`, `NOTIFY_EMAIL`, and `CUSTOMER_FROM_EMAIL`. Do not use `admin@` or other addresses — only `info@` is active on IONOS.
+
+Customer-facing emails display `COMPANY_EMAIL` only (not `NOTIFY_EMAIL`).
 
 ### Port settings
 
@@ -49,7 +56,7 @@ If `configured: false`, SMTP env vars are missing on the API service.
 
 - `EMAIL_PROVIDER=sendgrid`
 - `SENDGRID_API_KEY=...`
-- `SENDGRID_FROM_EMAIL=hello@apexfivecleaning.co.uk`
+- `SENDGRID_FROM_EMAIL=info@apexfivecleaning.co.uk`
 
 ## General
 

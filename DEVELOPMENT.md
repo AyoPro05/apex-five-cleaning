@@ -64,7 +64,9 @@ ADMIN_TOKEN=admin_bearer_token_here
 STRIPE_SECRET_KEY=sk_test_xxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 SENDGRID_API_KEY=SG.xxxxx
-ADMIN_EMAIL=admin@apexfivecleaning.co.uk
+NOTIFY_EMAIL=info@apexfivecleaning.co.uk
+COMPANY_EMAIL=info@apexfivecleaning.co.uk
+SMTP_FROM_EMAIL=info@apexfivecleaning.co.uk
 NODE_ENV=development
 ```
 

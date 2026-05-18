@@ -386,9 +386,10 @@ router.get('/quotes/:id', requireAdmin, async (req, res) => {
 router.post('/test-email', requireAdmin, strictRateLimiter, async (req, res) => {
   try {
     const { to } = req.body;
-    const target = to || process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
+    const target =
+      to || process.env.NOTIFY_EMAIL || process.env.COMPANY_EMAIL || 'info@apexfivecleaning.co.uk';
     if (!target) {
-      return res.status(400).json({ success: false, error: 'Provide `to` or set NOTIFY_EMAIL on the server' });
+      return res.status(400).json({ success: false, error: 'Provide `to` or set NOTIFY_EMAIL / COMPANY_EMAIL on the server' });
     }
 
     if (!isEmailConfigured()) {

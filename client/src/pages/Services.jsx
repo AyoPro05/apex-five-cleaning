@@ -139,7 +139,7 @@ const Services = () => {
   return (
     <>
       <SEO
-        title="Cleaning Services in Kent"
+        title="Cleaning Services in UK"
         description="Explore our residential, end of tenancy, Airbnb turnover, and commercial cleaning services. Eco-friendly products, reliable teams, and transparent pricing."
         path="/services"
         jsonLd={servicesPageSchemas}

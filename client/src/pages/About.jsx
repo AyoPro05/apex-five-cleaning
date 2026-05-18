@@ -17,7 +17,7 @@ const About = () => {
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">About Us</span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">About Apex Five Cleaning</h1>
         <p className="text-xl text-gray-600 mb-12">
-          We're a professional cleaning company built on trust, clarity, and exceptional service. Based in Kent, serving homeowners across the South East.
+          We're a professional cleaning company built on trust, clarity, and exceptional service. Based in Wallington, Surrey, UK, serving homeowners across the South East and beyond.
         </p>
         </motion.div>
         

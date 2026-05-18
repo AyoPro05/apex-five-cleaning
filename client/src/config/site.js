@@ -4,6 +4,7 @@
  */
 export const SITE_URL = 'https://www.apexfivecleaning.co.uk'
 export const SITE_NAME = 'Apex Five Cleaning'
+export const CONTACT_EMAIL = 'info@apexfivecleaning.co.uk'
 
 /** Main landline — call / contact on site and in emails */
 export const PHONE_MAIN_DISPLAY = '020 3535 6331'

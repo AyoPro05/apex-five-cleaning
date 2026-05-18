@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { AlertCircle, ChevronDown } from 'lucide-react';
 import SEO from '../components/SEO';
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
+import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site';
 
 /**
  * PAYMENT ERROR PAGE
@@ -214,8 +214,8 @@ const PaymentError = () => {
               <div className="space-y-2 text-sm">
                 <div>
                   📧{' '}
-                  <a href="mailto:support@apexfivecleaning.co.uk" className="text-blue-600 hover:underline font-semibold">
-                    support@apexfivecleaning.co.uk
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline font-semibold">
+                    {CONTACT_EMAIL}
                   </a>
                 </div>
                 <div>
