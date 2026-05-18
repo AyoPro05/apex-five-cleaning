@@ -176,6 +176,57 @@ const quoteValidationSchema = Joi.object({
   }).optional(),
 });
 
+export const contactValidationSchema = Joi.object({
+  name: Joi.string()
+    .trim()
+    .min(2)
+    .max(100)
+    .required()
+    .messages({
+      'string.empty': 'Please enter your name',
+      'any.required': 'Name is required',
+    }),
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.empty': 'Please enter your email',
+      'string.email': 'Please enter a valid email address',
+      'any.required': 'Email is required',
+    }),
+  phone: Joi.string().trim().max(30).allow('', null).optional(),
+  subject: Joi.string()
+    .valid('residential', 'end-of-tenancy', 'airbnb', 'quote', 'other', '')
+    .optional(),
+  message: Joi.string()
+    .trim()
+    .min(10)
+    .max(5000)
+    .required()
+    .messages({
+      'string.empty': 'Please enter a message',
+      'string.min': 'Message must be at least 10 characters',
+      'any.required': 'Message is required',
+    }),
+});
+
+export const validateContactData = (data) => {
+  const { error, value } = contactValidationSchema.validate(data, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
+
+  if (error) {
+    const errors = {};
+    error.details.forEach((detail) => {
+      errors[detail.path[0]] = detail.message;
+    });
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, value };
+};
+
 export const validateQuoteData = (data) => {
   const { error, value } = quoteValidationSchema.validate(data, {
     abortEarly: false, // Return all errors, not just the first

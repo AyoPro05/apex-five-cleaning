@@ -39,6 +39,7 @@ import bookingsRouter from "./routes/bookings.js";
 import paymentsRouter from "./routes/payments.js";
 import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
+import contactRouter from "./routes/contact.js";
 import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService.js";
 
 // Fail fast instead of waiting for Mongoose operation buffering timeouts
@@ -168,6 +169,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/customer", customerRouter);
 app.use("/api/uploads", uploadsRouter);
+app.use("/api/contact", contactRouter);
 
 // Database connection
 const connectDB = async () => {

@@ -25,6 +25,10 @@ Set these on your **API** service (Render → Environment):
 
 Customer-facing emails display `COMPANY_EMAIL` only (not `NOTIFY_EMAIL`).
 
+### Contact form (`POST /api/contact`)
+
+Messages from the website **Contact** page are emailed to `NOTIFY_EMAIL` (default `info@apexfivecleaning.co.uk`). The customer's address is set as **Reply-To** so you can respond from your inbox.
+
 ### Port settings
 
 - **587 (recommended):** `SMTP_PORT=587` — STARTTLS (app sets `secure=false`, `requireTLS=true`).

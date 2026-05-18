@@ -442,6 +442,106 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
   }
 };
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const CONTACT_SUBJECT_LABELS = {
+  residential: 'Residential Cleaning',
+  'end-of-tenancy': 'End of Tenancy',
+  airbnb: 'Airbnb Cleaning',
+  quote: 'Request a Quote',
+  other: 'Other Inquiry',
+};
+
+export const getContactEnquiryTemplate = (enquiry) => {
+  const brand = getBrandConfig();
+  const subjectLabel =
+    CONTACT_SUBJECT_LABELS[enquiry.subject] || enquiry.subject || 'General enquiry';
+  const phoneRow = enquiry.phone
+    ? `<tr><td>Phone</td><td><a href="tel:${escapeHtml(enquiry.phone)}">${escapeHtml(enquiry.phone)}</a></td></tr>`
+    : '';
+
+  return {
+    subject: `Website enquiry — ${enquiry.name}${enquiry.subject ? ` (${subjectLabel})` : ''}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${getEmailBaseStyles()}
+          .admin-table { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 6px; overflow: hidden; }
+          .admin-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+          .admin-table td:first-child { font-weight: 600; width: 28%; background: #f8fafc; color: #475569; }
+          .message-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; white-space: pre-wrap; }
+        </style></head>
+        <body>
+          
+          <div class="email-container">
+            ${getEmailHeader(brand, 'New contact form message', 'Reply directly to the customer from your inbox')}
+            
+            <div class="email-content">
+              <table class="admin-table">
+                <tr><td>Name</td><td>${escapeHtml(enquiry.name)}</td></tr>
+                <tr><td>Email</td><td><a href="mailto:${escapeHtml(enquiry.email)}">${escapeHtml(enquiry.email)}</a></td></tr>
+                ${phoneRow}
+                <tr><td>Subject</td><td>${escapeHtml(subjectLabel)}</td></tr>
+              </table>
+              <p><strong>Message</strong></p>
+              
+              <div class="message-box">${escapeHtml(enquiry.message)}</div>
+            </div>
+            ${getEmailFooter(brand, `Submitted ${new Date().toLocaleString('en-GB')}`)}
+          </div>
+        </body>
+      </html>
+    `,
+    text: `New contact form message\n\nName: ${enquiry.name}\nEmail: ${enquiry.email}\nPhone: ${enquiry.phone || '—'}\nSubject: ${subjectLabel}\n\n${enquiry.message}`,
+  };
+};
+
+export const sendContactEnquiryEmail = async (enquiry) => {
+  initializeEmailProvider();
+  const template = getContactEnquiryTemplate(enquiry);
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const notifyEmail = getNotificationInbox();
+  const customerEmail = enquiry.email;
+
+  try {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      await sgMail.send({
+        to: notifyEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        replyTo: customerEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      });
+      console.log(`✓ Contact enquiry email sent to ${notifyEmail} via SendGrid`);
+      return { success: true };
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      await smtpTransport.sendMail({
+        to: notifyEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        replyTo: customerEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      });
+      console.log(`✓ Contact enquiry email sent to ${notifyEmail} via SMTP`);
+      return { success: true };
+    }
+    console.warn('⚠️ No email provider configured. Contact enquiry not sent.');
+    return { success: false, error: 'No email provider configured' };
+  } catch (error) {
+    logOutboundEmailError('Error sending contact enquiry email', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const sendAdminNotificationEmail = async (quoteData) => {
   initializeEmailProvider();
   const template = getAdminNotificationTemplate(quoteData);

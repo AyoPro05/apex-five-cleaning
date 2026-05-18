@@ -123,6 +123,32 @@ export const guestPaymentIntentRateLimiter = rateLimit({
   },
 });
 
+// Contact form: limit spam while allowing genuine enquiries
+export const contactRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many messages sent. Please try again later or call us directly.',
+    });
+  },
+});
+
+export const contactEmailRateLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => String(req.body?.email || '').trim().toLowerCase() || req.ip,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'This email has sent the maximum number of messages for today. Please try again tomorrow.',
+    });
+  },
+});
+
 export const guestPaymentConfirmRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -139,6 +165,8 @@ export const guestPaymentConfirmRateLimiter = rateLimit({
 export default {
   quoteRateLimiter,
   emailRateLimiter,
+  contactRateLimiter,
+  contactEmailRateLimiter,
   apiRateLimiter,
   strictRateLimiter,
   authLoginRateLimiter,

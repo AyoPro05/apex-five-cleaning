@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildLocalBusinessSchema } from '../config/seoSchemas'
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
+import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
+import { post } from '../utils/apiClient'
 
 const Contact = () => {
   const contactSchemas = [
@@ -75,20 +76,27 @@ const Contact = () => {
       return
     }
 
-    // Simulate sending (in production, send to backend API)
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Reset form and show success
+      const response = await post('/api/contact', {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        subject: formData.subject,
+        message: formData.message.trim(),
+        _website: '',
+      })
+
+      if (!response?.success) {
+        setError(response?.error || 'Failed to send message. Please try again.')
+        return
+      }
+
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
       setSubmitted(true)
-      
-      // Hide success message after 5 seconds
       setTimeout(() => setSubmitted(false), 5000)
     } catch (err) {
-      setError('Failed to send message. Please try again.')
+      setError(err.message || 'Failed to send message. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -130,8 +138,8 @@ const Contact = () => {
                 <Mail className="w-6 h-6 text-teal-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Email</h3>
-                  <a href="mailto:info@apexfivecleaning.co.uk" className="text-teal-600 hover:text-teal-700 font-semibold">
-                    info@apexfivecleaning.co.uk
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-teal-600 hover:text-teal-700 font-semibold">
+                    {CONTACT_EMAIL}
                   </a>
                   <p className="text-gray-500 text-sm">We reply within 24 hours</p>
                 </div>
@@ -198,6 +206,14 @@ const Contact = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                name="_website"
+                tabIndex={-1}
+                autoComplete="off"
+                className="hidden"
+                aria-hidden="true"
+              />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                 <input
