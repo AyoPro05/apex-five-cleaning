@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import ScrollRestoringLink from './ScrollRestoringLink'
 import { Menu, X, User, LogOut, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
@@ -47,14 +48,14 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24 md:h-28">
           {/* Logo - 3 steps back from nav menus */}
-          <Link to="/" className="flex items-center mr-12 lg:mr-16">
+          <ScrollRestoringLink to="/" className="flex items-center mr-12 lg:mr-16" aria-label="Home">
             <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-16 md:h-20 w-auto object-contain" />
-          </Link>
+          </ScrollRestoringLink>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
+              <ScrollRestoringLink
                 key={link.path}
                 to={link.path}
                 className={`font-medium transition ${
@@ -64,7 +65,7 @@ const Navbar = () => {
                 }`}
               >
                 {link.label}
-              </Link>
+              </ScrollRestoringLink>
             ))}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
@@ -145,7 +146,7 @@ const Navbar = () => {
         <div className="md:hidden bg-white border-t">
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((link) => (
-              <Link
+              <ScrollRestoringLink
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -154,7 +155,7 @@ const Navbar = () => {
                 }`}
               >
                 {link.label}
-              </Link>
+              </ScrollRestoringLink>
             ))}
             {isAuthenticated ? (
               <>

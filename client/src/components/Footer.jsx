@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import ScrollRestoringLink from './ScrollRestoringLink'
 import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
 import { useCookieConsent } from '../context/CookieConsentContext'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
@@ -43,25 +44,25 @@ const Footer = () => {
             <h4 className="text-white font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="hover:text-teal-500 transition">Home</Link>
+                <ScrollRestoringLink to="/" className="hover:text-teal-500 transition">Home</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/services" className="hover:text-teal-500 transition">Services</Link>
+                <ScrollRestoringLink to="/services" className="hover:text-teal-500 transition">Services</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/service-areas" className="hover:text-teal-500 transition">Service Areas</Link>
+                <ScrollRestoringLink to="/service-areas" className="hover:text-teal-500 transition">Service Areas</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/testimonials" className="hover:text-teal-500 transition">Reviews</Link>
+                <ScrollRestoringLink to="/testimonials" className="hover:text-teal-500 transition">Reviews</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/blog" className="hover:text-teal-500 transition">Blog</Link>
+                <ScrollRestoringLink to="/blog" className="hover:text-teal-500 transition">Blog</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/faq" className="hover:text-teal-500 transition">FAQ</Link>
+                <ScrollRestoringLink to="/faq" className="hover:text-teal-500 transition">FAQ</ScrollRestoringLink>
               </li>
               <li>
-                <Link to="/about" className="hover:text-teal-500 transition">About Us</Link>
+                <ScrollRestoringLink to="/about" className="hover:text-teal-500 transition">About Us</ScrollRestoringLink>
               </li>
               <li>
                 <Link to="/request-a-quote" className="hover:text-teal-500 transition">Get a Quote</Link>

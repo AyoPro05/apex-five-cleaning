@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { get, post, patch, getBlob, del } from "../utils/apiClient";
+import {
+  useAdminInactivityLogout,
+  clearAdminActivityTimestamp,
+} from "../hooks/useAdminInactivityLogout";
 import {
   LineChart,
   Line,
@@ -695,6 +699,28 @@ const AdminDashboard = () => {
     return `${config.bg} ${config.text}`;
   };
 
+  const adminLogout = useCallback((options = {}) => {
+    localStorage.removeItem("adminToken");
+    sessionStorage.removeItem("adminToken");
+    clearAdminActivityTimestamp();
+    setAdminToken("");
+    setShowTokenInput(true);
+    setSelectedQuote(null);
+    setShowDetails(false);
+    if (options.idle) {
+      setLoginError(
+        "You were signed out after 10 minutes of inactivity. Please sign in again.",
+      );
+    }
+  }, []);
+
+  const handleIdleLogout = useCallback(() => {
+    adminLogout({ idle: true });
+    navigate("/");
+  }, [adminLogout, navigate]);
+
+  useAdminInactivityLogout(Boolean(adminToken) && !showTokenInput, handleIdleLogout);
+
   const handleAdminLogin = async () => {
     if (!adminToken.trim()) return;
     setLoginLoading(true);
@@ -724,7 +750,8 @@ const AdminDashboard = () => {
             Admin Access
           </h1>
           <p className="text-sm text-gray-600 mb-4">
-            Enter your admin token to receive a short-lived session. You may need to sign in again after about an hour.
+            Enter your admin token to receive a short-lived session. You will be signed out automatically after 10
+            minutes without activity, or when your session expires.
           </p>
           <form
             onSubmit={(e) => {
@@ -825,15 +852,13 @@ const AdminDashboard = () => {
               </div>
               <div className="mt-6 border-t pt-4">
                 <button
+                  type="button"
                   onClick={() => {
-                    localStorage.removeItem("adminToken");
-                    sessionStorage.removeItem("adminToken");
-                    setAdminToken("");
-                    setShowTokenInput(true);
+                    adminLogout();
                     navigate("/");
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition"
-                  title="Log out when stepping away from your desk"
+                  title="Sign out of admin"
                 >
                   <LogOut className="w-4 h-4" />
                   Log out
