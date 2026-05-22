@@ -68,6 +68,27 @@ function profileIncomplete(profile) {
   return !hasPhone || !hasAddress
 }
 
+function apiErrorMessage(err) {
+  const status = err?.response?.status
+  const msg = err?.response?.data?.message || err?.response?.data?.error
+  if (status === 401) {
+    return msg || 'Please sign in again or verify your email address.'
+  }
+  if (status === 429) {
+    return 'Too many requests. Please wait a moment and try again.'
+  }
+  return msg || err?.message || 'Something went wrong.'
+}
+
+async function fetchCustomerGet(endpoint) {
+  try {
+    const data = await get(endpoint)
+    return { ok: true, data }
+  } catch (err) {
+    return { ok: false, error: apiErrorMessage(err), err }
+  }
+}
+
 function buildQuotePrefillFromUser(profile, defaultAddress) {
   const prefill = {
     firstName: profile?.firstName || '',
@@ -131,6 +152,7 @@ export default function CustomerDashboard() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [copied, setCopied] = useState(false)
+  const [referralLoading, setReferralLoading] = useState(false)
 
   const [profileForm, setProfileForm] = useState({
     firstName: '',
@@ -199,30 +221,83 @@ export default function CustomerDashboard() {
     })
   }, [])
 
+  const loadReferral = useCallback(async () => {
+    setReferralLoading(true)
+    const result = await fetchCustomerGet('/api/customer/referral')
+    if (result.ok && result.data?.success) {
+      setReferral(result.data.referral)
+      setMessage((prev) =>
+        prev.type === 'error' && prev.text?.includes('referral') ? { type: '', text: '' } : prev
+      )
+      setReferralLoading(false)
+      return true
+    }
+    setMessage({
+      type: 'error',
+      text: result.error || 'Could not load referral details. Please try again.',
+    })
+    setReferralLoading(false)
+    return false
+  }, [])
+
   const loadCore = useCallback(async () => {
     if (!token) return
     setLoading(true)
-    try {
-      const [d, r, a, freshUser] = await Promise.all([
-        get('/api/customer/dashboard'),
-        get('/api/customer/referral'),
-        get('/api/customer/addresses'),
-        refreshUser(),
-      ])
-      if (d.success) setDashboard(d.dashboard)
-      if (r.success) setReferral(r.referral)
-      if (a.success) setAddresses(a.addresses || [])
-      if (freshUser) syncProfileForm(freshUser)
-      else if (user) syncProfileForm(user)
-    } catch {
-      setMessage({ type: 'error', text: 'Could not load your account. Please refresh the page.' })
+    setMessage({ type: '', text: '' })
+
+    const [dashRes, refRes, addrRes, freshUser] = await Promise.all([
+      fetchCustomerGet('/api/customer/dashboard'),
+      fetchCustomerGet('/api/customer/referral'),
+      fetchCustomerGet('/api/customer/addresses'),
+      refreshUser().then(
+        (u) => ({ ok: !!u, user: u }),
+        (err) => ({ ok: false, error: apiErrorMessage(err) }),
+      ),
+    ])
+
+    let loaded = 0
+
+    if (dashRes.ok && dashRes.data?.success) {
+      setDashboard(dashRes.data.dashboard)
+      loaded += 1
     }
+    if (refRes.ok && refRes.data?.success) {
+      setReferral(refRes.data.referral)
+      loaded += 1
+    }
+    if (addrRes.ok && addrRes.data?.success) {
+      setAddresses(addrRes.data.addresses || [])
+      loaded += 1
+    }
+    if (freshUser?.ok && freshUser.user) {
+      syncProfileForm(freshUser.user)
+      loaded += 1
+    } else if (user) {
+      syncProfileForm(user)
+    }
+
+    if (loaded === 0) {
+      const detail =
+        refRes.error ||
+        dashRes.error ||
+        addrRes.error ||
+        freshUser?.error ||
+        'Could not load your account. Please refresh the page.'
+      setMessage({ type: 'error', text: detail })
+    }
+
     setLoading(false)
   }, [token, refreshUser, syncProfileForm, user])
 
   useEffect(() => {
     loadCore()
-  }, [loadCore])
+  }, [token])
+
+  useEffect(() => {
+    if (activeTab === 'referral' && token && !referral && !loading) {
+      loadReferral()
+    }
+  }, [activeTab, token, referral, loading, loadReferral])
 
   useEffect(() => {
     if (!token) return
@@ -1116,7 +1191,24 @@ export default function CustomerDashboard() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-600">Loading referral details…</p>
+                  <div className="text-center py-6">
+                    {referralLoading ? (
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-gray-600 mb-3">Referral details could not be loaded.</p>
+                        <button
+                          type="button"
+                          onClick={loadReferral}
+                          className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                        >
+                          Try again
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}

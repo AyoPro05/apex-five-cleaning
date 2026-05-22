@@ -93,12 +93,26 @@ export function AuthProvider({ children }) {
 
   const persistUser = useCallback((nextUser) => {
     if (!nextUser) return
-    const st = getStorage()
-    if (st) st.setItem(USER_KEY, JSON.stringify(nextUser))
-    ;[localStorage, sessionStorage].forEach((s) => {
-      if (s.getItem(TOKEN_KEY)) s.setItem(USER_KEY, JSON.stringify(nextUser))
+    setUser((prev) => {
+      const prevId = prev?._id || prev?.id
+      const nextId = nextUser._id || nextUser.id
+      if (
+        prevId &&
+        nextId &&
+        String(prevId) === String(nextId) &&
+        prev?.email === nextUser.email &&
+        prev?.firstName === nextUser.firstName &&
+        prev?.referralPoints === nextUser.referralPoints &&
+        prev?.referralCode === nextUser.referralCode
+      ) {
+        return prev
+      }
+      const serialized = JSON.stringify(nextUser)
+      ;[localStorage, sessionStorage].forEach((s) => {
+        if (s.getItem(TOKEN_KEY)) s.setItem(USER_KEY, serialized)
+      })
+      return nextUser
     })
-    setUser(nextUser)
   }, [])
 
   const refreshUser = useCallback(async () => {

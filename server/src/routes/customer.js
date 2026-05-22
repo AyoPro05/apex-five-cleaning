@@ -23,6 +23,27 @@ router.use(authMiddleware);
 const POINTS_PER_REFERRAL = 5;
 const POINTS_FOR_10_PERCENT = 20;
 
+function generateReferralCode() {
+  const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `APEX${rand}`;
+}
+
+/** Older accounts may lack a code; create one on demand (referral tab). */
+async function ensureReferralCode(userId) {
+  const existing = await User.findById(userId).select('referralCode referralPoints').lean();
+  if (!existing) return null;
+  if (existing.referralCode) return existing;
+  const code = generateReferralCode();
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    { $set: { referralCode: code } },
+    { new: true, runValidators: true },
+  )
+    .select('referralCode referralPoints')
+    .lean();
+  return updated;
+}
+
 /**
  * GET /api/customer/dashboard
  * Overview stats for customer dashboard
@@ -42,9 +63,7 @@ router.get('/dashboard', async (req, res) => {
       Address.countDocuments({ userId }),
     ]);
 
-    const user = await User.findById(userId)
-      .select('referralPoints referralCode firstName')
-      .lean();
+    const user = await ensureReferralCode(userId);
 
     const totalSpent = totalResult[0]?.total || 0;
 
@@ -74,7 +93,10 @@ router.get('/dashboard', async (req, res) => {
 router.get('/referral', async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('referralCode referralPoints').lean();
+    const user = await ensureReferralCode(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
     const referrals = await Referral.find({ referrerId: userId })
       .sort({ createdAt: -1 })
       .lean();
