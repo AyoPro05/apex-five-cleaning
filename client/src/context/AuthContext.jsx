@@ -5,8 +5,8 @@
  * Option to use localStorage for "remember me".
  */
 
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { post } from '../utils/apiClient'
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { get, post } from '../utils/apiClient'
 
 const AuthContext = createContext(null)
 
@@ -91,6 +91,31 @@ export function AuthProvider({ children }) {
   const getToken = () => getStorage()?.getItem(TOKEN_KEY)
   const isAuthenticated = () => !!user && !!getToken()
 
+  const persistUser = useCallback((nextUser) => {
+    if (!nextUser) return
+    const st = getStorage()
+    if (st) st.setItem(USER_KEY, JSON.stringify(nextUser))
+    ;[localStorage, sessionStorage].forEach((s) => {
+      if (s.getItem(TOKEN_KEY)) s.setItem(USER_KEY, JSON.stringify(nextUser))
+    })
+    setUser(nextUser)
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    const token = getToken()
+    if (!token) return null
+    try {
+      const data = await get('/api/auth/me')
+      if (data?.user) {
+        persistUser(data.user)
+        return data.user
+      }
+    } catch {
+      /* session may have expired */
+    }
+    return null
+  }, [persistUser])
+
   const registerAuthModals = (openSignIn, openSignUp) => {
     openSignInRef.current = openSignIn
     openSignUpRef.current = openSignUp
@@ -104,6 +129,8 @@ export function AuthProvider({ children }) {
     register,
     logout,
     isAuthenticated: isAuthenticated(),
+    persistUser,
+    refreshUser,
     openSignIn: () => openSignInRef.current?.(),
     openSignUp: () => openSignUpRef.current?.(),
     registerAuthModals,

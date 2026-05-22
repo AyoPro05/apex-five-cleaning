@@ -335,7 +335,7 @@ export const updateMe = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-password -verificationToken -passwordResetToken');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ success: true, user });
+    res.json({ success: true, user: sanitizeUserForClient(user) });
   } catch (error) {
     console.error('Update me error:', error);
     res.status(500).json({ error: 'Failed to update profile' });

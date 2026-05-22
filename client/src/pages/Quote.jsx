@@ -13,6 +13,7 @@ import {
   setServiceRegionFromPostcode,
 } from "../utils/attribution";
 import { trackEvent } from "../utils/analytics";
+import { loadAndClearQuotePrefill } from "../utils/quotePrefill";
 
 // Additional services customers can add to their quote
 const ADDITIONAL_SERVICES = [
@@ -82,6 +83,22 @@ const Quote = () => {
   }, []);
 
   useEffect(() => {
+    const prefill = loadAndClearQuotePrefill();
+    if (prefill) {
+      setFormData((prev) => ({
+        ...prev,
+        ...(prefill.firstName && { firstName: prefill.firstName }),
+        ...(prefill.lastName && { lastName: prefill.lastName }),
+        ...(prefill.email && { email: prefill.email }),
+        ...(prefill.phone && { phone: prefill.phone }),
+        ...(prefill.address && { address: prefill.address }),
+        ...(prefill.postcode && { postcode: prefill.postcode }),
+        ...(prefill.serviceType && { serviceType: prefill.serviceType }),
+        ...(prefill.propertyType && { propertyType: prefill.propertyType }),
+        ...(prefill.bedrooms && { bedrooms: String(prefill.bedrooms) }),
+        ...(prefill.bathrooms && { bathrooms: String(prefill.bathrooms) }),
+      }));
+    }
     const draft = loadQuoteDraft();
     if (!draft) return;
     setFormData((prev) => ({
