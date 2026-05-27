@@ -7,6 +7,11 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { get, post } from '../utils/apiClient'
+import {
+  useCustomerInactivityLogout,
+  clearCustomerActivityTimestamp,
+  CUSTOMER_LAST_ACTIVITY_KEY,
+} from '../hooks/useCustomerInactivityLogout'
 
 const AuthContext = createContext(null)
 
@@ -62,6 +67,8 @@ export function AuthProvider({ children }) {
       st.setItem(REFRESH_KEY, data.tokens.refreshToken)
       st.setItem(USER_KEY, JSON.stringify(data.user))
     }
+    clearCustomerActivityTimestamp()
+    sessionStorage.setItem(CUSTOMER_LAST_ACTIVITY_KEY, String(Date.now()))
     setToken(data.tokens.accessToken)
     setUser(data.user)
     return data.user
@@ -74,10 +81,11 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await post('/api/auth/logout')
     } catch {}
+    clearCustomerActivityTimestamp()
     ;[localStorage, sessionStorage].forEach((s) => {
       s.removeItem(TOKEN_KEY)
       s.removeItem(REFRESH_KEY)
@@ -86,7 +94,15 @@ export function AuthProvider({ children }) {
     })
     setUser(null)
     setToken(null)
-  }
+  }, [])
+
+  const isLoggedIn = Boolean(user) && Boolean(token)
+
+  const handleCustomerIdleLogout = useCallback(() => {
+    logout()
+  }, [logout])
+
+  useCustomerInactivityLogout(isLoggedIn && !loading, handleCustomerIdleLogout)
 
   const getToken = () => getStorage()?.getItem(TOKEN_KEY)
   const isAuthenticated = () => !!user && !!getToken()
