@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import mongoose from 'mongoose';
 import { authMiddleware } from '../../middleware/auth.js';
 import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
@@ -76,6 +77,10 @@ const calculatePrice = (serviceId, duration, discount = 0) => {
   return { basePrice, discountAmount, totalPrice };
 };
 
+export const resolveBookingDiscount = (user) => {
+  return user?.role === 'member' ? 10 : 0;
+};
+
 /**
  * Get service name from ID
  */
@@ -106,8 +111,7 @@ router.post('/', authMiddleware, async (req, res) => {
       duration,
       serviceArea,
       address,
-      notes,
-      discount = 0
+      notes
     } = req.body;
 
     // Validate input
@@ -122,13 +126,10 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Check member discount eligibility (10% OFF for members)
     const user = await User.findById(req.user.id);
-    let finalDiscount = discount;
-    if (user.role === 'member') {
-      finalDiscount = Math.max(discount, 10); // At least 10% for members
-    }
+    const finalDiscount = resolveBookingDiscount(user);
 
     // Calculate pricing
-    const { basePrice, discountAmount, totalPrice } = calculatePrice(serviceId, duration, finalDiscount);
+    const { basePrice, totalPrice } = calculatePrice(serviceId, duration, finalDiscount);
 
     // Create booking
     const booking = new Booking({
@@ -224,6 +225,64 @@ router.get('/', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve bookings',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET BOOKING STATISTICS
+ * GET /api/bookings/stats/overview
+ * Get user's booking statistics and summary
+ */
+router.get('/stats/overview', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const stats = await Booking.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          completedBookings: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          pendingBookings: {
+            $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+          },
+          cancelledBookings: {
+            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+          },
+          totalSpent: { $sum: '$totalPrice' },
+          totalSavings: { $sum: { $multiply: ['$basePrice', { $divide: ['$discount', 100] }] } },
+          averageRating: { $avg: '$rating' }
+        }
+      }
+    ]);
+
+    const result = stats[0] || {
+      totalBookings: 0,
+      completedBookings: 0,
+      pendingBookings: 0,
+      cancelledBookings: 0,
+      totalSpent: 0,
+      totalSavings: 0,
+      averageRating: 0
+    };
+
+    res.json({
+      success: true,
+      stats: {
+        ...result,
+        averageRating: result.averageRating?.toFixed(1) || 0
+      }
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve statistics',
       error: error.message
     });
   }
@@ -522,64 +581,6 @@ router.post('/:id/review', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to add review',
-      error: error.message
-    });
-  }
-});
-
-/**
- * GET BOOKING STATISTICS
- * GET /api/bookings/stats/overview
- * Get user's booking statistics and summary
- */
-router.get('/stats/overview', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const stats = await Booking.aggregate([
-      { $match: { userId: new (require('mongoose').Types.ObjectId)(userId) } },
-      {
-        $group: {
-          _id: null,
-          totalBookings: { $sum: 1 },
-          completedBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-          },
-          pendingBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
-          },
-          cancelledBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-          },
-          totalSpent: { $sum: '$totalPrice' },
-          totalSavings: { $sum: { $multiply: ['$basePrice', { $divide: ['$discount', 100] }] } },
-          averageRating: { $avg: '$rating' }
-        }
-      }
-    ]);
-
-    const result = stats[0] || {
-      totalBookings: 0,
-      completedBookings: 0,
-      pendingBookings: 0,
-      cancelledBookings: 0,
-      totalSpent: 0,
-      totalSavings: 0,
-      averageRating: 0
-    };
-
-    res.json({
-      success: true,
-      stats: {
-        ...result,
-        averageRating: result.averageRating?.toFixed(1) || 0
-      }
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve statistics',
       error: error.message
     });
   }

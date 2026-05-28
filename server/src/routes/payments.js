@@ -63,6 +63,43 @@ const validatePaymentAmount = (amount) => {
   return amount >= minAmount && amount <= maxAmount;
 };
 
+const normalizeId = (value) => {
+  if (value == null) return '';
+  if (value._id != null) return String(value._id);
+  return String(value);
+};
+
+export const validateStoredPaymentIntent = (payment, paymentIntent) => {
+  if (!payment || !paymentIntent) {
+    return { ok: false, message: 'Missing payment intent details' };
+  }
+  if (String(payment.stripePaymentIntentId || '') !== String(paymentIntent.id || '')) {
+    return { ok: false, message: 'Payment intent does not match payment record' };
+  }
+
+  const expectedAmount = Math.round(Number(payment.amount) * 100);
+  if (!Number.isFinite(expectedAmount) || expectedAmount !== Number(paymentIntent.amount)) {
+    return { ok: false, message: 'Payment intent amount does not match payment record' };
+  }
+
+  const expectedCurrency = String(payment.currency || 'GBP').toLowerCase();
+  if (expectedCurrency !== String(paymentIntent.currency || '').toLowerCase()) {
+    return { ok: false, message: 'Payment intent currency does not match payment record' };
+  }
+
+  const metadata = paymentIntent.metadata || {};
+  if (String(metadata.bookingId || '') !== normalizeId(payment.bookingId)) {
+    return { ok: false, message: 'Payment intent booking metadata does not match payment record' };
+  }
+  if (String(metadata.userId || '') !== normalizeId(payment.userId)) {
+    return { ok: false, message: 'Payment intent user metadata does not match payment record' };
+  }
+
+  return { ok: true };
+};
+
+export const canRefundPayment = (requester) => requester?.role === 'admin';
+
 /**
  * Format amount for display (pence to pounds)
  */
@@ -499,8 +536,22 @@ router.post('/confirm', authMiddleware, async (req, res) => {
       });
     }
 
+    if (payment.stripePaymentIntentId !== paymentIntentId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid payment intent'
+      });
+    }
+
     // Retrieve PaymentIntent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+    const intentCheck = validateStoredPaymentIntent(payment, paymentIntent);
+    if (!intentCheck.ok) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid payment intent'
+      });
+    }
 
     if (paymentIntent.status === 'succeeded') {
       // Payment succeeded
@@ -681,12 +732,11 @@ router.post('/:paymentId/refund', authMiddleware, async (req, res) => {
       });
     }
 
-    // Authorization check (admin or user)
-    const user = await User.findById(req.user.id);
-    if (payment.userId.toString() !== req.user.id && user.role !== 'admin') {
+    // Refunds alter money movement and must be admin-only.
+    if (!canRefundPayment(req.user)) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to refund this payment'
+        message: 'Only admins can refund payments'
       });
     }
 
