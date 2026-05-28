@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
+import { MapPin, Phone, Mail, CheckCircle, AlertCircle, ShieldCheck, Clock3 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
@@ -7,6 +7,7 @@ import { buildLocalBusinessSchema } from '../config/seoSchemas'
 import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
 import { post } from '../utils/apiClient'
 import { getRecaptchaSiteKey, getRecaptchaToken, loadRecaptchaScript } from '../utils/recaptcha'
+import { createIdempotencyKey, withIdempotency } from '../utils/idempotency'
 
 const Contact = () => {
   const contactSchemas = [
@@ -30,6 +31,7 @@ const Contact = () => {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey())
 
   useEffect(() => {
     loadRecaptchaScript('contact-form')
@@ -84,7 +86,12 @@ const Contact = () => {
     setLoading(true)
     try {
       let captchaToken = ''
-      if (getRecaptchaSiteKey()) {
+      const recaptchaSiteKey = getRecaptchaSiteKey()
+      if (!recaptchaSiteKey && import.meta.env.PROD) {
+        setError('Security check is not configured on this site. Please contact support.')
+        return
+      }
+      if (recaptchaSiteKey) {
         try {
           captchaToken = await getRecaptchaToken('contact')
         } catch (captchaErr) {
@@ -96,15 +103,19 @@ const Contact = () => {
         }
       }
 
-      const response = await post('/api/contact', {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        subject: formData.subject,
-        message: formData.message.trim(),
-        captchaToken,
-        _website: '',
-      })
+      const response = await post(
+        '/api/contact',
+        {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          subject: formData.subject,
+          message: formData.message.trim(),
+          captchaToken,
+          _website: '',
+        },
+        withIdempotency(idempotencyKey),
+      )
 
       if (!response?.success) {
         setError(response?.error || 'Failed to send message. Please try again.')
@@ -112,6 +123,7 @@ const Contact = () => {
       }
 
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
+      setIdempotencyKey(createIdempotencyKey())
       setSubmitted(true)
       setTimeout(() => setSubmitted(false), 5000)
     } catch (err) {
@@ -135,7 +147,7 @@ const Contact = () => {
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Contact Us</span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">Get in Touch</h1>
         <p className="text-xl text-gray-600 mb-12">
-          Have a question or ready to book? We're here to help! We typically respond within 24 hours.
+          Have a question or ready to book? We are here to help and usually respond the same day.
         </p>
         </motion.div>
 
@@ -199,6 +211,19 @@ const Contact = () => {
                   WhatsApp Us
                 </a>
               </div>
+            </div>
+            <div className="mt-6 p-6 bg-white border border-gray-200 rounded-xl">
+              <h3 className="font-semibold text-gray-900 mb-4">Why clients choose us</h3>
+              <ul className="space-y-3 text-sm text-gray-600">
+                <li className="flex items-start gap-2">
+                  <Clock3 className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                  Fast response and clear communication from first contact
+                </li>
+                <li className="flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                  Trusted, insured team using eco-conscious cleaning products
+                </li>
+              </ul>
             </div>
           </div>
 
@@ -315,6 +340,9 @@ const Contact = () => {
               >
                 {loading ? 'Sending...' : 'Send Message'}
               </button>
+              <p className="text-xs text-gray-500">
+                Prefer a full pricing estimate? Use the quote form for a faster and more accurate response.
+              </p>
             </form>
           </div>
         </motion.div>

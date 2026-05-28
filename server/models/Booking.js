@@ -6,42 +6,61 @@
 import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
-  // Reference
+  // Reference (optional for guest-originating drafts created from approved quotes;
+  // linked to a User when the customer registers with a matching email)
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User reference is required']
+    ref: 'User'
   },
+
+  // Quote linkage (populated when this booking was auto-created from a converted quote)
+  quoteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quote',
+    index: true
+  },
+  quoteReference: {
+    type: String,
+    trim: true,
+    uppercase: true,
+    index: true
+  },
+
+  // Customer snapshot (used for guest drafts before they register)
+  customerEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    index: true
+  },
+  customerFirstName: { type: String, trim: true },
+  customerLastName: { type: String, trim: true },
+  customerPhone: { type: String, trim: true },
 
   // Service Information
   serviceId: {
     type: String,
-    enum: ['residential', 'end-of-tenancy', 'airbnb'],
-    required: [true, 'Service type is required']
+    enum: ['residential', 'end-of-tenancy', 'airbnb', 'commercial']
   },
   serviceName: String,
 
-  // Booking Details
+  // Booking Details (optional for drafts — admin sets these before confirming)
   date: {
-    type: Date,
-    required: [true, 'Booking date is required']
+    type: Date
   },
   time: {
     type: String,
-    required: [true, 'Booking time is required'],
     match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please provide time in HH:MM format']
   },
   duration: {
     type: Number,
-    required: [true, 'Duration is required'],
     min: 1,
     max: 12
   },
 
-  // Service Area
+  // Service Area (optional for drafts)
   serviceArea: {
     type: String,
-    required: [true, 'Service area is required'],
     enum: [
       'Canterbury', 'Dover', 'Maidstone', 'Tunbridge Wells', 'Sevenoaks', 'Ashford',
       'Sheerness-on-Sea', 'Sittingbourne', 'Axminster', 'Croydon'
@@ -62,10 +81,10 @@ const bookingSchema = new mongoose.Schema({
     maxlength: 500
   },
 
-  // Pricing
+  // Pricing (default 0 for drafts; final values set when admin confirms scope)
   basePrice: {
     type: Number,
-    required: true
+    default: 0
   },
   discount: {
     type: Number,
@@ -73,13 +92,13 @@ const bookingSchema = new mongoose.Schema({
   },
   totalPrice: {
     type: Number,
-    required: true
+    default: 0
   },
 
-  // Status
+  // Status — "draft" used for auto-created bookings awaiting admin scheduling
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'rescheduled'],
+    enum: ['draft', 'pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'rescheduled'],
     default: 'pending'
   },
 
@@ -115,6 +134,9 @@ const bookingSchema = new mongoose.Schema({
     default: Date.now
   },
   completedAt: Date,
+
+  // Automation: satisfaction follow-up email sent 48h after completion (one-shot)
+  satisfactionEmailSentAt: Date,
 
   // Cancellation
   cancelledAt: Date,

@@ -6,6 +6,7 @@ import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import BlogImage from '../components/BlogImage'
 import SEO from '../components/SEO'
 import { PHONE_MAIN_HREF } from '../config/site'
+import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -99,6 +100,26 @@ const Blog = () => {
   })
 
   const featuredPosts = blogPosts.filter(post => post.featured).slice(0, 2)
+  const blogListSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Apex Five Cleaning Blog",
+    url: "https://www.apexfivecleaning.co.uk/blog",
+    blogPost: blogPosts.map((post) => ({
+      "@type": "BlogPosting",
+      headline: post.title,
+      datePublished: post.date,
+      url: `https://www.apexfivecleaning.co.uk/blog/${post.slug}`,
+      author: {
+        "@type": "Person",
+        name: post.author,
+      },
+    })),
+  }
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+    { name: "Blog", url: "https://www.apexfivecleaning.co.uk/blog" },
+  ])
 
   return (
     <>
@@ -106,6 +127,7 @@ const Blog = () => {
         title="Cleaning Blog and Resources"
         description="Read expert cleaning tips, end of tenancy guides, Airbnb turnover advice, and eco-friendly home cleaning insights."
         path="/blog"
+        jsonLd={[blogListSchema, breadcrumbSchema]}
       />
       <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -261,6 +283,14 @@ const Blog = () => {
             >
               Call Now
             </a>
+          </div>
+          <div className="mt-5 flex flex-wrap justify-center gap-4 text-sm text-teal-50">
+            <button onClick={() => navigate('/testimonials')} className="underline hover:text-white">
+              Read Reviews
+            </button>
+            <button onClick={() => navigate('/faq')} className="underline hover:text-white">
+              View FAQs
+            </button>
           </div>
         </div>
         </div>

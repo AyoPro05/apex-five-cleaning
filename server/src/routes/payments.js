@@ -24,6 +24,8 @@ import {
   guestPaymentConfirmRateLimiter,
   guestPaymentDetailsRateLimiter,
 } from '../middleware/rateLimiter.js';
+import { idempotency } from '../middleware/idempotency.js';
+import { emitEvent } from '../utils/eventBus.js';
 
 const router = express.Router();
 const GENERIC_GUEST_QUOTE_ERROR =
@@ -159,7 +161,7 @@ router.get('/guest/lookup', guestPaymentLookupRateLimiter, async (req, res) => {
  * GUEST: Create payment intent (no auth)
  * POST /api/payments/guest/create-intent
  */
-router.post('/guest/create-intent', guestPaymentIntentRateLimiter, async (req, res) => {
+router.post('/guest/create-intent', guestPaymentIntentRateLimiter, idempotency(), async (req, res) => {
   try {
     if (!stripe) {
       return res.status(503).json({ success: false, message: 'Payment system unavailable' });
@@ -306,6 +308,18 @@ router.post('/guest/confirm', guestPaymentConfirmRateLimiter, async (req, res) =
         }
       }
       await quotePayment.save();
+
+      const quote = quotePayment.quoteId
+        ? await Quote.findById(quotePayment.quoteId).select('reference email').lean()
+        : null;
+      emitPaymentSucceededEvent({
+        paymentType: 'guest_quote',
+        paymentId: quotePayment._id,
+        amount: quotePayment.amount,
+        quoteId: quotePayment.quoteId,
+        quoteReference: quote?.reference,
+        customerEmail: quote?.email,
+      });
 
       return res.json({
         success: true,
@@ -754,6 +768,28 @@ router.post('/:paymentId/refund', authMiddleware, async (req, res) => {
 /**
  * Apply succeeded PaymentIntent state to a guest quote payment record.
  */
+async function emitPaymentSucceededEvent({
+  paymentType,
+  paymentId,
+  amount,
+  currency = 'gbp',
+  quoteId,
+  quoteReference,
+  bookingId,
+  customerEmail,
+}) {
+  emitEvent('payment.succeeded', {
+    paymentType,
+    paymentId: paymentId ? String(paymentId) : undefined,
+    amount,
+    currency,
+    quoteId: quoteId ? String(quoteId) : undefined,
+    quoteReference,
+    bookingId: bookingId ? String(bookingId) : undefined,
+    customerEmail,
+  });
+}
+
 async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
   quotePayment.status = 'succeeded';
   quotePayment.processedAt = new Date();
@@ -769,6 +805,18 @@ async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
   }
 
   await quotePayment.save();
+
+  if (quotePayment.quoteId) {
+    const quote = await Quote.findById(quotePayment.quoteId).select('reference email').lean();
+    emitPaymentSucceededEvent({
+      paymentType: 'guest_quote',
+      paymentId: quotePayment._id,
+      amount: quotePayment.amount,
+      quoteId: quotePayment.quoteId,
+      quoteReference: quote?.reference,
+      customerEmail: quote?.email,
+    });
+  }
 }
 
 /**
@@ -890,6 +938,14 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     booking.paymentStatus = 'completed';
     booking.status = 'confirmed';
     await booking.save();
+
+    emitPaymentSucceededEvent({
+      paymentType: payment.bookingId ? 'booking' : 'unknown',
+      paymentId: payment._id,
+      amount: payment.amount / 100,
+      bookingId: payment.bookingId,
+      customerEmail: booking?.customerEmail,
+    });
 
     console.log(`✓ Payment succeeded: ${payment._id}`);
   } catch (error) {

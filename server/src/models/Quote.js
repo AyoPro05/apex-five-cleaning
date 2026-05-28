@@ -180,9 +180,46 @@ const quoteSchema = new mongoose.Schema(
       default: false,
     },
 
+    // Automation tracking
+    // Admin reminder for a stuck "new" quote
+    stuckReminderSentAt: {
+      type: Date,
+    },
+    // Client follow-up nudge sent 24h after submission while still "new"
+    clientFollowUpSentAt: {
+      type: Date,
+    },
+    // Timestamp when admin moved the quote to "converted" (approved)
+    convertedAt: {
+      type: Date,
+    },
+    // Payment reminder sent to client 48h after conversion (if still unpaid)
+    paymentReminderSentAt: {
+      type: Date,
+    },
+    // Draft booking auto-created from this quote (so admin doesn't manually transcribe)
+    linkedBookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Booking',
+    },
+
     // IP Address for spam tracking
     ipAddress: {
       type: String,
+    },
+
+    // Suspicious activity flags (auto-set on submission)
+    suspectedSpam: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    suspicionReasons: {
+      type: [String],
+      default: [],
+    },
+    suspicionReviewedAt: {
+      type: Date,
     },
   },
   {

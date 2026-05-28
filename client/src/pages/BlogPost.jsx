@@ -5,6 +5,7 @@ import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import { SITE_URL, PHONE_MAIN_HREF } from '../config/site'
 import BlogImage from '../components/BlogImage'
 import SEO from '../components/SEO'
+import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 const BlogPost = () => {
   const { slug } = useParams()
@@ -14,6 +15,7 @@ const BlogPost = () => {
   const blogDatabase = {
     'guide-end-of-tenancy-cleaning': {
       title: 'The Ultimate Guide to End of Tenancy Cleaning',
+      excerpt: 'Get your full deposit back with our comprehensive end of tenancy cleaning guide. Includes checklist, tips, and what landlords are looking for.',
       author: 'Apex Five Team',
       date: '2026-01-24',
       readTime: '8 min read',
@@ -75,6 +77,7 @@ const BlogPost = () => {
     },
     'eco-friendly-cleaning-products': {
       title: 'Eco-Friendly Cleaning Products: What Really Works',
+      excerpt: 'Discover the best eco-friendly cleaning products that actually work and why green cleaning is better for your health and home.',
       author: 'Apex Five Team',
       date: '2026-01-20',
       readTime: '6 min read',
@@ -123,6 +126,7 @@ const BlogPost = () => {
     },
     'prepare-home-professional-cleaning': {
       title: 'How to Prepare Your Home for Professional Cleaning',
+      excerpt: 'Simple steps to prepare your home before your cleaning appointment so you get the best possible results.',
       author: 'Sarah Thompson',
       date: '2026-01-18',
       readTime: '5 min read',
@@ -165,6 +169,7 @@ const BlogPost = () => {
     },
     'airbnb-cleaning-best-practices': {
       title: 'Cleaning for Airbnb Hosts: Turnaround Best Practices',
+      excerpt: 'Essential Airbnb turnaround cleaning strategies to protect ratings and deliver guest-ready stays every time.',
       author: 'Apex Five Team',
       date: '2026-01-15',
       readTime: '7 min read',
@@ -197,6 +202,7 @@ const BlogPost = () => {
     },
     'spring-cleaning-checklist': {
       title: 'Spring Cleaning Checklist: Room by Room',
+      excerpt: 'A practical room-by-room spring cleaning checklist to refresh your home and avoid missing key areas.',
       author: 'Emily Carter',
       date: '2026-01-12',
       readTime: '9 min read',
@@ -243,6 +249,7 @@ const BlogPost = () => {
     },
     'professional-cleaning-saves-time-money': {
       title: 'Why Professional Cleaning Saves Time and Money',
+      excerpt: 'The real cost of DIY cleaning vs professional services, and how regular cleaning support can save both time and stress.',
       author: 'Apex Five Team',
       date: '2026-01-10',
       readTime: '6 min read',
@@ -308,36 +315,17 @@ const BlogPost = () => {
     description: post.title
   }
 
-  const breadcrumbSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: SITE_URL
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Blog',
-        item: `${SITE_URL}/blog`
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: post.title,
-        item: `${SITE_URL}/blog/${slug}`
-      }
-    ]
-  }
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Blog', url: `${SITE_URL}/blog` },
+    { name: post.title, url: `${SITE_URL}/blog/${slug}` },
+  ])
 
   return (
     <>
       <SEO
         title={post.title}
-        description={`${post.category} article by ${post.author}. ${post.readTime}.`}
+        description={post.excerpt}
         path={`/blog/${slug}`}
         image={`${SITE_URL}${post.image}`}
         type="article"

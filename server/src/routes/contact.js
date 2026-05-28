@@ -10,6 +10,7 @@ import {
   contactEmailRateLimiter,
 } from '../middleware/rateLimiter.js';
 import { verifyCaptcha } from '../middleware/captchaMiddleware.js';
+import { idempotency } from '../middleware/idempotency.js';
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.post(
   '/',
   contactRateLimiter,
   contactEmailRateLimiter,
+  idempotency(),
   verifyCaptcha,
   async (req, res) => {
     try {

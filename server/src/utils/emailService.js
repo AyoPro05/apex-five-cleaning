@@ -1,5 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import nodemailer from 'nodemailer';
+import User from '../../models/User.js';
+import { notifyAdminAlert } from './leadWebhook.js';
 
 /**
  * Email is sent FROM a single configured identity (your SMTP or SendGrid).
@@ -137,6 +139,103 @@ const logOutboundEmailError = (label, error) => {
   const detail = formatOutboundEmailErrorDetail(error);
   console.error(`❌ ${label}:`, error?.message || error, detail ? `\n   API detail: ${detail.slice(0, 1200)}` : '');
 };
+
+/**
+ * Retry an outbound email send up to N times with backoff.
+ * Use for critical mails (verification, password reset, client confirmation).
+ * @param {string} label - human-readable label for logging
+ * @param {() => Promise<void>} action - the actual send call (throws on failure)
+ * @param {{ retries?: number, delaysMs?: number[] }} [options]
+ */
+// ─────────────────────────────────────────────────────────────────
+// EMAIL DELIVERY TRACKING (bounce / hard-fail detection)
+// Records per-user delivery health, alerts admin after repeated failures.
+// Safe to call without await (fire-and-forget) — never throws.
+// ─────────────────────────────────────────────────────────────────
+
+const BOUNCE_ALERT_THRESHOLD = 3;
+
+const recordEmailSuccess = (email) => {
+  if (!email) return;
+  User.updateOne(
+    { email: String(email).toLowerCase() },
+    {
+      $set: {
+        emailFailures: 0,
+        emailDeliveryStatus: 'ok',
+        emailLastFailureReason: '',
+      },
+    },
+  ).catch(() => {});
+};
+
+const recordEmailFailure = async (email, reason) => {
+  if (!email) return;
+  try {
+    const lower = String(email).toLowerCase();
+    const updated = await User.findOneAndUpdate(
+      { email: lower },
+      {
+        $inc: { emailFailures: 1 },
+        $set: {
+          emailLastFailedAt: new Date(),
+          emailLastFailureReason: String(reason || '').slice(0, 240),
+        },
+      },
+      { new: true, projection: { emailFailures: 1, email: 1, firstName: 1, lastName: 1 } },
+    ).lean();
+    if (!updated) return;
+
+    if (updated.emailFailures >= BOUNCE_ALERT_THRESHOLD) {
+      await User.updateOne(
+        { _id: updated._id },
+        { $set: { emailDeliveryStatus: 'bounced' } },
+      );
+      // Fire-and-forget admin alert
+      notifyAdminAlert(
+        'Email bouncing for a user',
+        `User: ${updated.firstName || ''} ${updated.lastName || ''} <${updated.email}>\n` +
+          `Failure count: ${updated.emailFailures}\n` +
+          `Last error: ${String(reason || 'unknown').slice(0, 240)}`,
+      ).catch(() => {});
+    } else if (updated.emailFailures > 0) {
+      await User.updateOne(
+        { _id: updated._id },
+        { $set: { emailDeliveryStatus: 'warning' } },
+      );
+    }
+  } catch {
+    // Never throw from a logging path
+  }
+};
+
+async function sendWithRetry(label, action, options = {}) {
+  const { retries = 2, delaysMs = [600, 2400], trackEmail } = options;
+  const totalAttempts = retries + 1;
+  let lastError = null;
+  for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+    try {
+      await action();
+      if (attempt > 1) {
+        console.log(`✓ ${label} succeeded on attempt ${attempt}/${totalAttempts}`);
+      }
+      if (trackEmail) recordEmailSuccess(trackEmail);
+      return { success: true };
+    } catch (error) {
+      lastError = error;
+      logOutboundEmailError(`${label} attempt ${attempt}/${totalAttempts} failed`, error);
+      if (attempt === totalAttempts) {
+        if (trackEmail) {
+          recordEmailFailure(trackEmail, error?.message || 'unknown').catch(() => {});
+        }
+        return { success: false, error: error.message };
+      }
+      const wait = delaysMs[attempt - 1] ?? 2000;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
+  return { success: false, error: lastError?.message || 'send failed' };
+}
 
 // ─── BRAND CONFIG (used across all email templates) ─────────────────────────
 const getBrandConfig = () => {
@@ -351,35 +450,28 @@ export const sendClientConfirmationEmail = async (toEmail, firstName, quoteId) =
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
 
-  try {
-    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      const msg = {
+  if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    return sendWithRetry(`Client confirmation -> ${toEmail}`, () =>
+      sgMail.send({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject: template.subject,
-        html: template.html
-      };
-      
-      await sgMail.send(msg);
-      console.log(`✓ Client confirmation email sent to ${toEmail} via SendGrid`);
-      return { success: true };
-    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
-      await smtpTransport.sendMail({
+        html: template.html,
+      }),
+    );
+  }
+  if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+    return sendWithRetry(`Client confirmation -> ${toEmail}`, () =>
+      smtpTransport.sendMail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
-        html: template.html
-      });
-      console.log(`✓ Client confirmation email sent to ${toEmail} via SMTP`);
-      return { success: true };
-    } else {
-      console.warn('⚠️ No email provider configured. Email not sent.');
-      return { success: false, error: 'No email provider configured' };
-    }
-  } catch (error) {
-    logOutboundEmailError('Error sending client confirmation email', error);
-    return { success: false, error: error.message };
+        html: template.html,
+      }),
+    );
   }
+  console.warn('⚠️ No email provider configured. Email not sent.');
+  return { success: false, error: 'No email provider configured' };
 };
 
 /**
@@ -754,37 +846,36 @@ export const sendVerificationEmail = async (toEmail, firstName, verificationToke
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
 
-  try {
-    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      const msg = {
-        to: toEmail,
-        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
-        subject: template.subject,
-        html: template.html,
-        text: template.text
-      };
-      
-      await sgMail.send(msg);
-      console.log(`✓ Verification email sent to ${toEmail} via SendGrid`);
-      return { success: true };
-    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
-      await smtpTransport.sendMail({
-        to: toEmail,
-        from: `"${senderName}" <${senderEmail}>`,
-        subject: template.subject,
-        html: template.html,
-        text: template.text
-      });
-      console.log(`✓ Verification email sent to ${toEmail} via SMTP`);
-      return { success: true };
-    } else {
-      console.error('❌ No email provider configured (set EMAIL_PROVIDER and SMTP_* or SENDGRID_API_KEY). Verification email not sent.');
-      return { success: false, error: 'No email provider configured' };
-    }
-  } catch (error) {
-    logOutboundEmailError('Error sending verification email', error);
-    return { success: false, error: error.message };
+  if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    return sendWithRetry(
+      `Verification email -> ${toEmail}`,
+      () =>
+        sgMail.send({
+          to: toEmail,
+          from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        }),
+      { trackEmail: toEmail },
+    );
   }
+  if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+    return sendWithRetry(
+      `Verification email -> ${toEmail}`,
+      () =>
+        smtpTransport.sendMail({
+          to: toEmail,
+          from: `"${senderName}" <${senderEmail}>`,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        }),
+      { trackEmail: toEmail },
+    );
+  }
+  console.error('❌ No email provider configured (set EMAIL_PROVIDER and SMTP_* or SENDGRID_API_KEY). Verification email not sent.');
+  return { success: false, error: 'No email provider configured' };
 };
 
 /**
@@ -941,6 +1032,379 @@ export const sendTestEmail = async (toEmail) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────
+// OPERATIONAL EMAILS (scheduler-driven)
+// ─────────────────────────────────────────────────────────────────
+
+const buildAdminBaseUrl = () => {
+  const brand = getBrandConfig();
+  return (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
+};
+
+/**
+ * Stuck-quote reminder: sent to NOTIFY_EMAIL when one or more quotes
+ * have been sitting in `new` status > 24h.
+ */
+export const sendStuckQuoteReminderEmail = async (quotes = []) => {
+  initializeEmailProvider();
+  if (!Array.isArray(quotes) || quotes.length === 0) {
+    return { success: false, skipped: true };
+  }
+  const brand = getBrandConfig();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const notifyEmail = getNotificationInbox();
+  const adminBase = buildAdminBaseUrl();
+
+  const rows = quotes
+    .slice(0, 50)
+    .map((quote) => {
+      const ref = escapeHtml(quote.reference || String(quote._id));
+      const hours = Math.max(
+        24,
+        Math.round((Date.now() - new Date(quote.createdAt).getTime()) / (60 * 60 * 1000)),
+      );
+      return `
+        <tr>
+          <td><code>${ref}</code></td>
+          <td>${escapeHtml(quote.firstName || '')} ${escapeHtml(quote.lastName || '')}</td>
+          <td>${escapeHtml(quote.serviceType || '—')}</td>
+          <td>${escapeHtml(quote.postcode || '—')}</td>
+          <td>${hours}h ago</td>
+        </tr>`;
+    })
+    .join('');
+
+  const subject = `⏰ ${quotes.length} quote${quotes.length === 1 ? '' : 's'} need follow-up — ${brand.companyName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      table.stuck { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
+      table.stuck th, table.stuck td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 13px; }
+      table.stuck th { background: #f8fafc; color: #475569; font-weight: 600; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, '⏰ Stuck Quotes Reminder', 'Quotes waiting more than 24 hours for a first response')}
+        <div class="email-content">
+          <p>The following ${quotes.length} quote${quotes.length === 1 ? '' : 's'} have been sitting in the "new" status for more than 24 hours. A quick follow-up usually doubles conversion.</p>
+          <table class="stuck">
+            <thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Postcode</th><th>Age</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${adminBase}/admin/quotes" class="cta-button">Open admin dashboard</a>
+          </div>
+        </div>
+        ${getEmailFooter(brand, 'Automated reminder · sent once per stuck quote')}
+      </div>
+    </body></html>`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: notifyEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: notifyEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject,
+        html,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+  return sendWithRetry(`Stuck-quote reminder -> ${notifyEmail}`, action);
+};
+
+/**
+ * Daily ops digest. Pass in pre-aggregated stats.
+ * @param {object} stats
+ * @param {number} stats.newQuotes24h
+ * @param {number} stats.newChatLeads24h
+ * @param {number} stats.pendingPaymentsCount
+ * @param {number} stats.pendingPaymentsTotal  (in pounds)
+ * @param {number} stats.stuckQuotes
+ */
+export const sendDailyDigestEmail = async (stats = {}) => {
+  initializeEmailProvider();
+  const brand = getBrandConfig();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const notifyEmail = getNotificationInbox();
+  const adminBase = buildAdminBaseUrl();
+  const dateLabel = new Date().toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const card = (label, value, color = '#14b8a6') => `
+    <td style="padding: 14px; background: white; border-radius: 6px; border-left: 4px solid ${color};">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #475569;">${label}</div>
+      <div style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 6px;">${value}</div>
+    </td>`;
+
+  const subject = `📊 Daily ops digest — ${dateLabel} — ${brand.companyName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      table.kpis { width: 100%; border-spacing: 8px 8px; border-collapse: separate; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, '📊 Daily Ops Digest', dateLabel)}
+        <div class="email-content">
+          <p>Here is your daily summary of activity across the platform.</p>
+          <table class="kpis" cellpadding="0" cellspacing="0">
+            <tr>
+              ${card('New quotes (24h)', stats.newQuotes24h ?? 0)}
+              ${card('Chat leads (24h)', stats.newChatLeads24h ?? 0, '#0ea5e9')}
+            </tr>
+            <tr>
+              ${card('Pending payments', `${stats.pendingPaymentsCount ?? 0}`, '#8b5cf6')}
+              ${card('Pending value', `£${Number(stats.pendingPaymentsTotal ?? 0).toFixed(2)}`, '#8b5cf6')}
+            </tr>
+            <tr>
+              ${card('Stuck quotes (>24h)', stats.stuckQuotes ?? 0, '#f59e0b')}
+              ${card('—', '—', '#e5e7eb')}
+            </tr>
+          </table>
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${adminBase}/admin" class="cta-button">Open admin dashboard</a>
+          </div>
+        </div>
+        ${getEmailFooter(brand, 'Automated daily digest · sent once per day')}
+      </div>
+    </body></html>`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: notifyEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: notifyEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        subject,
+        html,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+  return sendWithRetry(`Daily digest -> ${notifyEmail}`, action);
+};
+
+const DEFAULT_GOOGLE_REVIEW_URL = 'https://share.google/ByNUvIHRlpT95uh09';
+
+const getGoogleReviewUrl = () =>
+  (process.env.GOOGLE_REVIEW_URL && process.env.GOOGLE_REVIEW_URL.trim()) ||
+  DEFAULT_GOOGLE_REVIEW_URL;
+
+/**
+ * SATISFACTION FOLLOW-UP — sent 48h after a booking is marked "completed".
+ * Asks for a Google review when happy; offers a private feedback path otherwise.
+ */
+export const sendSatisfactionFollowUpEmail = async (toEmail, firstName, reference) => {
+  initializeEmailProvider();
+  const brand = getBrandConfig();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const reviewUrl = getGoogleReviewUrl();
+  const issueUrl = `mailto:${brand.email}?subject=${encodeURIComponent(
+    `Feedback on my recent cleaning (${reference || 'booking'})`,
+  )}`;
+  const safeName = escapeHtml(firstName || 'there');
+  const safeRef = reference ? escapeHtml(reference) : '';
+  const subject = `How did we do? · ${brand.companyName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      .review-card { background:#ecfdf5; border-left:4px solid #14b8a6; padding:20px; margin:18px 0; border-radius:4px; }
+      .ghost-link { display:inline-block; margin-top:14px; font-size:13px; color:#475569; }
+      .stars { font-size:22px; letter-spacing:4px; margin: 8px 0; }
+      .ref-pill { display:inline-block; background:white; padding:6px 12px; border-radius:4px; font-family:monospace; font-size:12px; border:1px solid #e5e7eb; margin-bottom:8px; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, 'How did we do?', 'Your feedback helps us keep raising the bar')}
+        <div class="email-content">
+          <p>Hi ${safeName},</p>
+          <p>Thank you for choosing <strong>${brand.companyName}</strong>. We hope your recent clean met the standard we promised.</p>
+          ${safeRef ? `<div class="ref-pill">Ref: ${safeRef}</div>` : ''}
+          <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p style="margin: 4px 0 12px 0;">If you were happy with our service, a short Google review would mean the world to our team and helps other local clients find us.</p>
+            <a href="${reviewUrl}" class="cta-button" target="_blank" rel="noopener">Leave a Google review</a>
+          </div>
+          <p style="font-size:13px; color:#6b7280;">
+            Was anything not quite right? Please reply directly — or
+            <a href="${issueUrl}" style="color:${brand.brandColorDark};">let us know</a> and we will make it right.
+          </p>
+          <p style="margin-top:18px;">Thanks again for trusting us with your space.</p>
+          <p style="margin-top:8px; font-size:13px; color:#6b7280;">— The ${brand.companyName} team</p>
+        </div>
+        ${getEmailFooter(brand, 'Automated follow-up · sent once after each completed clean')}
+      </div>
+    </body></html>`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+  return sendWithRetry(`Satisfaction follow-up -> ${toEmail}`, action);
+};
+
+/**
+ * CLIENT FOLLOW-UP — sent 24h after quote submission if still in "new" status.
+ * Soft, friendly nudge to keep momentum and invite extra details.
+ */
+export const sendClientFollowUpEmail = async (toEmail, firstName, reference) => {
+  initializeEmailProvider();
+  const brand = getBrandConfig();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const safeName = escapeHtml(firstName);
+  const safeRef = escapeHtml(reference);
+  const subject = `Quick check-in on your quote · ${brand.companyName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      .ref-pill { display:inline-block; background:white; padding:8px 14px; border-radius:4px; font-family:monospace; font-size:13px; border:1px solid #e5e7eb; margin:8px 0; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, 'Just checking in', 'We have your quote — anything to add?')}
+        <div class="email-content">
+          <p>Hi ${safeName},</p>
+          <p>Thanks again for reaching out to <strong>${brand.companyName}</strong>. We received your quote request and our team is reviewing the details.</p>
+          <div class="ref-pill">Quote ref: ${safeRef}</div>
+          <p>If anything has changed since you submitted — preferred date, additional rooms, specific concerns — just reply to this email and we will update your quote.</p>
+          <p>Need to chat?</p>
+          <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a></p>
+          <p style="margin-top:20px;">We aim to respond to every request within a working day.</p>
+        </div>
+        ${getEmailFooter(brand, 'Sent because you requested a quote on ' + brand.websiteDisplay)}
+      </div>
+    </body></html>`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+  return sendWithRetry(`Client follow-up -> ${toEmail}`, action);
+};
+
+/**
+ * PAYMENT REMINDER — sent 48h after a quote is converted (approved) if no payment yet.
+ */
+export const sendPaymentReminderEmail = async (toEmail, firstName, reference, approvedAmount) => {
+  initializeEmailProvider();
+  const brand = getBrandConfig();
+  const clientBase = (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
+  const payUrl = `${clientBase}/pay-online`;
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const safeName = escapeHtml(firstName);
+  const safeRef = escapeHtml(reference);
+  const amountLine = Number.isFinite(Number(approvedAmount)) && Number(approvedAmount) > 0
+    ? `<p>Approved amount: <strong>£${Number(approvedAmount).toFixed(2)}</strong></p>`
+    : '';
+  const subject = `Reminder · complete payment for quote ${reference} · ${brand.companyName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      .ref-pill { display:inline-block; background:white; padding:8px 14px; border-radius:4px; font-family:monospace; font-size:13px; border:1px solid #e5e7eb; margin:8px 0; }
+      .pay-box { background:#ecfdf5; border-left:4px solid #14b8a6; padding:18px; margin:18px 0; border-radius:4px; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, 'Friendly reminder', 'Complete payment to lock in your booking')}
+        <div class="email-content">
+          <p>Hi ${safeName},</p>
+          <p>Your quote has been approved and is ready to book. To secure your preferred slot, please complete payment using the link below.</p>
+          <div class="ref-pill">Quote ref: ${safeRef}</div>
+          ${amountLine}
+          <div class="pay-box">
+            <a href="${payUrl}" class="cta-button">Pay Online</a>
+            <p style="margin:10px 0 0 0; font-size:13px; color:#0d9488;">Use your quote reference and email to retrieve payment details on the page.</p>
+          </div>
+          <p style="font-size:13px; color:#6b7280;">If you have already paid, please ignore this reminder. Need help?</p>
+          <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a></p>
+        </div>
+        ${getEmailFooter(brand, 'Automated payment reminder · sent once per approved quote')}
+      </div>
+    </body></html>`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+  return sendWithRetry(`Payment reminder -> ${toEmail}`, action);
+};
+
 export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => {
   initializeEmailProvider();
   const resetLink = `${(process.env.CLIENT_URL || 'https://apexfivecleaning.co.uk').replace(/\/$/, '')}/reset-password?token=${resetToken}`;
@@ -948,34 +1412,34 @@ export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => 
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
 
-  try {
-    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-      const msg = {
-        to: toEmail,
-        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
-        subject: template.subject,
-        html: template.html,
-        text: template.text
-      };
-      await sgMail.send(msg);
-      console.log(`✓ Password reset email sent to ${toEmail} via SendGrid`);
-      return { success: true };
-    } else if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
-      await smtpTransport.sendMail({
-        to: toEmail,
-        from: `"${senderName}" <${senderEmail}>`,
-        subject: template.subject,
-        html: template.html,
-        text: template.text
-      });
-      console.log(`✓ Password reset email sent to ${toEmail} via SMTP`);
-      return { success: true };
-    } else {
-      console.warn('⚠️ No email provider configured. Password reset email not sent.');
-      return { success: false, error: 'No email provider configured' };
-    }
-  } catch (error) {
-    logOutboundEmailError('Error sending password reset email', error);
-    return { success: false, error: error.message };
+  if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    return sendWithRetry(
+      `Password reset -> ${toEmail}`,
+      () =>
+        sgMail.send({
+          to: toEmail,
+          from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        }),
+      { trackEmail: toEmail },
+    );
   }
+  if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+    return sendWithRetry(
+      `Password reset -> ${toEmail}`,
+      () =>
+        smtpTransport.sendMail({
+          to: toEmail,
+          from: `"${senderName}" <${senderEmail}>`,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        }),
+      { trackEmail: toEmail },
+    );
+  }
+  console.warn('⚠️ No email provider configured. Password reset email not sent.');
+  return { success: false, error: 'No email provider configured' };
 };

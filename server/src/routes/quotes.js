@@ -19,6 +19,11 @@ import {
 import { quoteImageUpload, quotesUploadDir } from "../middleware/uploadMiddleware.js";
 import { validateQuoteImageBuffer } from "../utils/imageValidation.js";
 import { verifyCaptcha } from "../middleware/captchaMiddleware.js";
+import { idempotency } from "../middleware/idempotency.js";
+import { notifyNewQuote } from "../utils/leadWebhook.js";
+import { emitEvent } from "../utils/eventBus.js";
+import { assessSubmissionRisk } from "../utils/suspiciousActivity.js";
+import { notifyAdminAlert } from "../utils/leadWebhook.js";
 
 const router = express.Router();
 
@@ -129,11 +134,24 @@ const submitQuoteHandler = async (req, res) => {
     if (attribution) value.attribution = attribution;
     else delete value.attribution;
 
+    const ipAddress = req.ip || req.connection?.remoteAddress || "";
+    const risk = await assessSubmissionRisk({
+      type: "quote",
+      captchaScore: req.captcha?.score,
+      captchaVerified: req.captcha?.verified ?? true,
+      ipAddress,
+      email: value.email,
+      phone: value.phone,
+      postcode: value.postcode,
+    });
+
     const quote = new Quote({
       ...value,
       captchaScore: req.captcha?.score || 1.0,
       captchaVerified: req.captcha?.verified ?? true,
-      ipAddress: req.ip || req.connection.remoteAddress,
+      ipAddress,
+      suspectedSpam: risk.suspectedSpam,
+      suspicionReasons: risk.suspicionReasons,
     });
 
     let saved = false;
@@ -176,6 +194,34 @@ const submitQuoteHandler = async (req, res) => {
         } catch (emailErr) {
           console.warn("Quote saved but outbound email failed:", emailErr?.message || emailErr);
         }
+        try {
+          await notifyNewQuote(quote);
+        } catch {}
+        emitEvent("quote.created", {
+          quoteId: String(quote._id),
+          reference: quote.reference,
+          email: quote.email,
+          phone: quote.phone,
+          serviceType: quote.serviceType,
+          postcode: quote.postcode,
+          propertyType: quote.propertyType,
+          bedrooms: quote.bedrooms,
+          bathrooms: quote.bathrooms,
+          status: quote.status,
+          suspectedSpam: quote.suspectedSpam,
+          suspicionReasons: quote.suspicionReasons,
+        });
+        if (quote.suspectedSpam) {
+          notifyAdminAlert(
+            `Suspected spam quote ${quote.reference || quote._id}`,
+            [
+              `Customer: ${quote.firstName} ${quote.lastName}`,
+              `Email: ${quote.email}`,
+              `Reasons: ${quote.suspicionReasons.join(", ")}`,
+              `CAPTCHA: ${Math.round((quote.captchaScore || 0) * 100)}%`,
+            ].join("\n"),
+          ).catch(() => {});
+        }
       })();
     });
     return;
@@ -200,6 +246,7 @@ router.post(
   "/submit",
   quoteRateLimiter,
   emailRateLimiter,
+  idempotency(),
   quoteImageUpload.array("images", 5),
   verifyCaptcha,
   submitQuoteHandler,
@@ -210,6 +257,7 @@ router.post(
   "/",
   quoteRateLimiter,
   emailRateLimiter,
+  idempotency(),
   quoteImageUpload.array("images", 5),
   verifyCaptcha,
   submitQuoteHandler,

@@ -64,6 +64,20 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: String,
   passwordResetExpiry: Date,
 
+  // Email delivery tracking — used to detect bounces and alert admin
+  emailFailures: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  emailLastFailedAt: Date,
+  emailLastFailureReason: String,
+  emailDeliveryStatus: {
+    type: String,
+    enum: ['ok', 'warning', 'bounced'],
+    default: 'ok'
+  },
+
   // Stripe Integration
   stripeCustomerId: {
     type: String,

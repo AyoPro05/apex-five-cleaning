@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import ScrollRestoringLink from './ScrollRestoringLink'
-import { Menu, X, User, LogOut, Search } from 'lucide-react'
+import { Menu, X, User, LogOut, Search, Phone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
 import SignInModal from './SignInModal'
 import SignUpModal from './SignUpModal'
 import SearchModal from './SearchModal'
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -31,11 +32,10 @@ const Navbar = () => {
 
   const navLinks = [
     { path: '/', label: 'Home' },
-    { path: '/services', label: 'Services' },
-    { path: '/service-areas', label: 'Service Areas' },
-    { path: '/testimonials', label: 'Reviews' },
-    { path: '/blog', label: 'Blog' },
     { path: '/about', label: 'About' },
+    { path: '/services', label: 'Services' },
+    { path: '/testimonials', label: 'Reviews' },
+    { path: '/faq', label: 'FAQ' },
     { path: '/contact', label: 'Contact' },
   ]
 
@@ -53,7 +53,7 @@ const Navbar = () => {
           </ScrollRestoringLink>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <ScrollRestoringLink
                 key={link.path}
@@ -67,6 +67,51 @@ const Navbar = () => {
                 {link.label}
               </ScrollRestoringLink>
             ))}
+            <ScrollRestoringLink
+              to="/request-a-quote"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-semibold"
+            >
+              Book Now
+            </ScrollRestoringLink>
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+            >
+              <Phone className="w-4 h-4 text-teal-600" />
+              <span className="text-sm font-medium">{PHONE_MAIN_DISPLAY}</span>
+            </a>
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+              <ScrollRestoringLink
+                to="/pay-online"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  isActive("/pay-online")
+                    ? "bg-teal-50 text-teal-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Pay Online
+              </ScrollRestoringLink>
+              {isAuthenticated ? (
+                <ScrollRestoringLink
+                  to="/dashboard"
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    isActive("/dashboard")
+                      ? "bg-teal-50 text-teal-700"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  Dashboard
+                </ScrollRestoringLink>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowSignIn(true)}
+                  className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+                >
+                  Login
+                </button>
+              )}
+            </div>
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -116,14 +161,16 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowSearch(true)}
-                className="p-2 text-gray-400 hover:text-teal-600 transition"
-                title="Search"
-                aria-label="Search"
-              >
-                <Search className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="p-2 text-gray-400 hover:text-teal-600 transition"
+                  title="Search"
+                  aria-label="Search"
+                >
+                  <Search className="w-6 h-6" />
+                </button>
+              </div>
             )}
           </div>
 
@@ -177,6 +224,46 @@ const Navbar = () => {
                 </button>
               </>
             ) : null}
+            <ScrollRestoringLink
+              to="/request-a-quote"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-center mt-3 py-2.5 rounded-lg bg-teal-600 text-white font-semibold"
+            >
+              Book Now
+            </ScrollRestoringLink>
+            <ScrollRestoringLink
+              to="/pay-online"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
+            >
+              Pay Online
+            </ScrollRestoringLink>
+            {isAuthenticated ? (
+              <ScrollRestoringLink
+                to="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
+              >
+                Dashboard
+              </ScrollRestoringLink>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignIn(true)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="w-full text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
+              >
+                Login
+              </button>
+            )}
+            <a
+              href={PHONE_MAIN_HREF}
+              className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
+            >
+              Call {PHONE_MAIN_DISPLAY}
+            </a>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => { setShowSearch(true); setIsMobileMenuOpen(false); }}
@@ -190,6 +277,24 @@ const Navbar = () => {
           </div>
         </div>
       )}
+
+      <div className="md:hidden fixed bottom-4 left-4 right-4 z-[70]">
+        <div className="bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl p-2 grid grid-cols-2 gap-2">
+          <a
+            href={PHONE_MAIN_HREF}
+            className="inline-flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+          >
+            <Phone className="w-4 h-4 text-teal-600" />
+            Call Now
+          </a>
+          <ScrollRestoringLink
+            to="/request-a-quote"
+            className="inline-flex items-center justify-center py-2.5 rounded-lg bg-teal-600 text-white font-semibold text-sm"
+          >
+            Get a Quote
+          </ScrollRestoringLink>
+        </div>
+      </div>
 
       <SignInModal
         isOpen={showSignIn}

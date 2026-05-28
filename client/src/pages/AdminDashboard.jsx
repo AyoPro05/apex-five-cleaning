@@ -38,10 +38,40 @@ import {
 	  PoundSterling,
 	  Plus,
 	  Save,
+  MessageCircle,
 	} from "lucide-react";
 
 const RETENTION_MONTHS = 6;
 const CHART_COLORS = ["#0d9488", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
+
+const SUSPICION_REASON_LABELS = {
+  low_captcha_score: "Low CAPTCHA score",
+  captcha_unverified: "CAPTCHA not verified",
+  missing_postcode: "Missing postcode",
+  ip_burst: "Multiple submissions from same IP",
+  email_burst: "Multiple quotes from same email (24h)",
+  disposable_email: "Disposable email domain",
+  missing_contact: "Missing email and phone",
+  phone_only_chat: "Chat lead with phone only",
+};
+
+function formatSuspicionReasons(reasons = []) {
+  return (reasons || []).map((key) => SUSPICION_REASON_LABELS[key] || key);
+}
+
+function SuspectedSpamBadge({ item }) {
+  if (!item?.suspectedSpam) return null;
+  const label = formatSuspicionReasons(item.suspicionReasons).join(" · ") || "Flagged for review";
+  return (
+    <span
+      title={label}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200"
+    >
+      <AlertCircle className="w-3 h-3" />
+      Suspected
+    </span>
+  );
+}
 
 const STAFF_FORM_DEFAULT = {
   firstName: "",
@@ -94,6 +124,7 @@ const staffName = (staff) =>
 const getTabFromPath = (pathname = "") => {
   if (pathname.startsWith("/admin/quotes")) return "quotes";
   if (pathname.startsWith("/admin/customers")) return "customers";
+  if (pathname.startsWith("/admin/chat-leads")) return "chat-leads";
   if (pathname.startsWith("/admin/staff")) return "staff";
   return "dashboard";
 };
@@ -104,6 +135,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [chatLeadUpdatingId, setChatLeadUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [deletingQuoteId, setDeletingQuoteId] = useState(null);
   const [quotes, setQuotes] = useState([]);
@@ -142,6 +174,17 @@ const AdminDashboard = () => {
 	    limit: 20,
 	    total: 0,
 	  });
+  const [chatLeads, setChatLeads] = useState([]);
+  const [chatLeadsLoading, setChatLeadsLoading] = useState(false);
+  const [chatLeadsError, setChatLeadsError] = useState("");
+  const [chatLeadSearch, setChatLeadSearch] = useState("");
+  const [chatLeadStatusFilter, setChatLeadStatusFilter] = useState("all");
+  const [selectedChatLeadIds, setSelectedChatLeadIds] = useState([]);
+  const [chatLeadsPagination, setChatLeadsPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+  });
 
 	  // Staff operations
 	  const [staffList, setStaffList] = useState([]);
@@ -204,11 +247,16 @@ const AdminDashboard = () => {
 
     try {
       const params = new URLSearchParams({
-        status: filters.status === "all" ? "all" : filters.status,
         page: filters.page,
         limit: filters.limit,
         search: filters.search,
       });
+      if (filters.status === "suspected") {
+        params.set("suspected", "1");
+        params.set("status", "all");
+      } else {
+        params.set("status", filters.status === "all" ? "all" : filters.status);
+      }
 
       const data = await get(`/api/admin/quotes?${params}`);
       if (data.success) {
@@ -402,6 +450,44 @@ const AdminDashboard = () => {
 	    }
 	  };
 
+  const fetchChatLeads = async (options = {}) => {
+    if (!adminToken) return;
+    const page = options.page || chatLeadsPagination.page || 1;
+    const limit = options.limit || chatLeadsPagination.limit || 20;
+    setChatLeadsLoading(true);
+    setChatLeadsError("");
+    try {
+      const params = new URLSearchParams({
+        page,
+        limit,
+        search: chatLeadSearch || "",
+      });
+      if (chatLeadStatusFilter === "suspected") {
+        params.set("suspected", "1");
+        params.set("status", "all");
+      } else {
+        params.set("status", chatLeadStatusFilter);
+      }
+      const data = await get(`/api/admin/chat-leads?${params}`);
+      if (data.success) {
+        setChatLeads(data.data || []);
+        setSelectedChatLeadIds([]);
+        const { total = 0, page: p = page, limit: l = limit } = data.pagination || {};
+        setChatLeadsPagination({
+          page: p,
+          limit: l,
+          total,
+        });
+      } else {
+        setChatLeadsError(data.error || "Failed to load chat leads");
+      }
+    } catch (err) {
+      setChatLeadsError(err.response?.data?.error || err.message);
+    } finally {
+      setChatLeadsLoading(false);
+    }
+  };
+
 	  const fetchShifts = async () => {
 	    if (!adminToken) return;
 	    try {
@@ -580,24 +666,98 @@ const AdminDashboard = () => {
 	  };
 
   // Update quote
-  const updateQuote = async (quoteId, status, notes, amount) => {
+  const updateQuote = async (quoteId, status, notes, amount, options = {}) => {
     setUpdatingStatus("loading");
     try {
       const payload = { status, adminNotes: notes };
       if (amount !== undefined && status === "converted") payload.approvedAmount = amount;
+      if (options.clearSuspicion) payload.clearSuspicion = true;
       const data = await patch(`/api/admin/quotes/${quoteId}`, payload);
 
       if (data.success) {
         setUpdatingStatus("success");
+        if (options.clearSuspicion && data.quote) {
+          setSelectedQuote(data.quote);
+        }
         setTimeout(() => {
           setUpdatingStatus("");
-          setShowDetails(false);
+          if (!options.clearSuspicion) setShowDetails(false);
           fetchQuotes();
-        }, 1500);
+        }, options.clearSuspicion ? 800 : 1500);
       }
     } catch (err) {
       setUpdatingStatus("error");
       setError(err.message);
+    }
+  };
+
+  const clearQuoteSuspicion = async (quoteId) => {
+    setUpdatingStatus("loading");
+    try {
+      const data = await patch(`/api/admin/quotes/${quoteId}`, { clearSuspicion: true });
+      if (data.success) {
+        if (data.quote) setSelectedQuote(data.quote);
+        fetchQuotes();
+        fetchAnalytics();
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingStatus("");
+    }
+  };
+
+  const clearChatLeadSuspicion = async (leadId) => {
+    setChatLeadUpdatingId(leadId);
+    try {
+      const lead = chatLeads.find((item) => item._id === leadId);
+      const result = await patch(`/api/admin/chat-leads/${leadId}`, {
+        status: lead?.status || "new",
+        clearSuspicion: true,
+      });
+      if (result?.success) {
+        await fetchChatLeads();
+        await fetchAnalytics();
+      }
+    } catch (err) {
+      setChatLeadsError(err.response?.data?.error || err.message);
+    } finally {
+      setChatLeadUpdatingId(null);
+    }
+  };
+
+  const updateChatLeadStatus = async (leadId, status) => {
+    setError("");
+    setChatLeadUpdatingId(leadId);
+    try {
+      const result = await patch(`/api/admin/chat-leads/${leadId}`, { status });
+      if (!result?.success) {
+        setError(result?.error || "Failed to update chat lead status");
+        return;
+      }
+      await fetchAnalytics();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Failed to update chat lead status");
+    } finally {
+      setChatLeadUpdatingId(null);
+    }
+  };
+
+  const bulkUpdateChatLeadsStatus = async (status) => {
+    if (!selectedChatLeadIds.length) return;
+    setChatLeadsError("");
+    setChatLeadUpdatingId("bulk");
+    try {
+      await Promise.all(
+        selectedChatLeadIds.map((leadId) =>
+          patch(`/api/admin/chat-leads/${leadId}`, { status }),
+        ),
+      );
+      await Promise.all([fetchAnalytics(), fetchChatLeads({ page: chatLeadsPagination.page })]);
+    } catch (err) {
+      setChatLeadsError(err.response?.data?.error || err.message || "Failed to bulk update chat leads");
+    } finally {
+      setChatLeadUpdatingId(null);
     }
   };
 
@@ -650,6 +810,12 @@ const AdminDashboard = () => {
       fetchCustomers();
     }
   }, [activeTab, adminToken, showTokenInput]);
+
+  useEffect(() => {
+    if (adminToken && !showTokenInput && activeTab === "chat-leads") {
+      fetchChatLeads();
+    }
+  }, [activeTab, adminToken, showTokenInput, chatLeadStatusFilter, chatLeadSearch, chatLeadsPagination.page, chatLeadsPagination.limit]);
 
 	  // Load analytics when switching to the Dashboard tab
 	  useEffect(() => {
@@ -840,6 +1006,17 @@ const AdminDashboard = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => navigate("/admin/chat-leads")}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+                    activeTab === "chat-leads"
+                      ? "bg-teal-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  Chat Leads
+                </button>
+                <button
+                  type="button"
                   onClick={() => navigate("/admin/staff")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                     activeTab === "staff"
@@ -901,6 +1078,23 @@ const AdminDashboard = () => {
                       <div className="bg-white rounded-xl shadow p-6 border-l-4 border-amber-500">
                         <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                         <p className="text-2xl font-bold text-gray-900 mt-1">£{(analytics.totalRevenue || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-cyan-500">
+                        <p className="text-sm font-medium text-gray-600">Chat Leads (Total)</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.chatLeads?.total || 0}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-indigo-500">
+                        <p className="text-sm font-medium text-gray-600">Chat Leads (Last 7d)</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.chatLeads?.last7d || 0}</p>
+                      </div>
+                      <div className="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
+                        <p className="text-sm font-medium text-gray-600">Suspected Spam</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          {(analytics.suspectedQuotes || 0) + (analytics.suspectedChatLeads || 0)}
+                        </p>
+                        <p className="text-sm text-orange-600 mt-0.5">
+                          {analytics.suspectedQuotes || 0} quotes · {analytics.suspectedChatLeads || 0} chat leads
+                        </p>
                       </div>
                     </div>
 
@@ -998,6 +1192,75 @@ const AdminDashboard = () => {
                                     >
                                       {b.status === "succeeded" ? "Paid" : b.status === "pending" ? "Pending" : b.status}
                                     </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent chat leads */}
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
+                      <div className="flex justify-between items-center px-6 py-4 border-b">
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-cyan-600" />
+                          Recent Chat Leads
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => navigate("/admin/customers")}
+                          className="text-sm font-medium text-teal-600 hover:text-teal-700"
+                        >
+                          Open Customers →
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        {(!analytics.chatLeads?.recent || analytics.chatLeads.recent.length === 0) ? (
+                          <div className="p-8 text-center text-gray-500 text-sm">No chat leads captured yet</div>
+                        ) : (
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Contact</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Service</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {analytics.chatLeads.recent.map((lead) => (
+                                <tr key={lead._id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-3 text-sm font-medium text-gray-900">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span>{lead.name || "—"}</span>
+                                      <SuspectedSpamBadge item={lead} />
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-3 text-sm text-gray-600">
+                                    {lead.email || lead.phone || "—"}
+                                    {lead.postcode ? <span className="block text-xs text-gray-500">{lead.postcode}</span> : null}
+                                  </td>
+                                  <td className="px-6 py-3 text-sm text-gray-600">{lead.serviceType || "—"}</td>
+                                  <td className="px-6 py-3 text-sm text-gray-600">
+                                    {lead.createdAt
+                                      ? new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                      : "—"}
+                                  </td>
+                                  <td className="px-6 py-3 text-sm">
+                                    <select
+                                      value={lead.status || "new"}
+                                      disabled={chatLeadUpdatingId === lead._id}
+                                      onChange={(e) => updateChatLeadStatus(lead._id, e.target.value)}
+                                      className="px-2 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800 border border-cyan-200 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                                    >
+                                      <option value="new">new</option>
+                                      <option value="contacted">contacted</option>
+                                      <option value="qualified">qualified</option>
+                                      <option value="closed">closed</option>
+                                    </select>
                                   </td>
                                 </tr>
                               ))}
@@ -1111,6 +1374,7 @@ const AdminDashboard = () => {
                         <option value="contacted">Contacted</option>
                         <option value="converted">Converted</option>
                         <option value="rejected">Rejected</option>
+                        <option value="suspected">Suspected spam</option>
                         <option value="all">All</option>
                       </select>
                     </div>
@@ -1182,6 +1446,9 @@ const AdminDashboard = () => {
                               Service
                             </th>
                             <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                              Risk
+                            </th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                               Status
                             </th>
                             <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
@@ -1199,13 +1466,27 @@ const AdminDashboard = () => {
                               className="hover:bg-gray-50 transition"
                             >
                               <td className="px-6 py-4 text-sm text-gray-900">
-                                {quote.firstName} {quote.lastName}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span>
+                                    {quote.firstName} {quote.lastName}
+                                  </span>
+                                  <SuspectedSpamBadge item={quote} />
+                                </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600">
                                 {quote.email}
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600 capitalize">
                                 {quote.serviceType.replace("-", " ")}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">
+                                {quote.suspectedSpam ? (
+                                  <span className="text-amber-800" title={formatSuspicionReasons(quote.suspicionReasons).join(" · ")}>
+                                    {formatSuspicionReasons(quote.suspicionReasons)[0] || "Review"}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
                               </td>
                               <td className="px-6 py-4">
                                 <span
@@ -1501,6 +1782,248 @@ const AdminDashboard = () => {
                           fetchCustomers({
                             page: customerPagination.page + 1,
                           })
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronRight className="w-4 h-4 inline" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "chat-leads" && (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900">Chat Leads</h1>
+                  <p className="text-gray-600 mt-1">Manage leads captured by the AI chat assistant</p>
+                </div>
+
+                {chatLeadsError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <p className="text-red-800">{chatLeadsError}</p>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Search chat leads
+                      </label>
+                      <input
+                        type="text"
+                        value={chatLeadSearch}
+                        onChange={(e) => {
+                          setChatLeadSearch(e.target.value);
+                          setChatLeadsPagination((p) => ({ ...p, page: 1 }));
+                        }}
+                        placeholder="Name, email, phone, postcode, service..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                      </label>
+                      <select
+                        value={chatLeadStatusFilter}
+                        onChange={(e) => {
+                          setChatLeadStatusFilter(e.target.value);
+                          setChatLeadsPagination((p) => ({ ...p, page: 1 }));
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500"
+                      >
+                        <option value="all">all</option>
+                        <option value="new">new</option>
+                        <option value="contacted">contacted</option>
+                        <option value="qualified">qualified</option>
+                        <option value="closed">closed</option>
+                        <option value="suspected">suspected spam</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchChatLeads({ page: 1 })}
+                      className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-2 items-center">
+                  <span className="text-sm text-gray-600">
+                    {selectedChatLeadIds.length} selected
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!selectedChatLeadIds.length || chatLeadUpdatingId === "bulk"}
+                    onClick={() => bulkUpdateChatLeadsStatus("contacted")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 disabled:opacity-50"
+                  >
+                    Mark Contacted
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedChatLeadIds.length || chatLeadUpdatingId === "bulk"}
+                    onClick={() => bulkUpdateChatLeadsStatus("qualified")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 disabled:opacity-50"
+                  >
+                    Mark Qualified
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedChatLeadIds.length || chatLeadUpdatingId === "bulk"}
+                    onClick={() => bulkUpdateChatLeadsStatus("closed")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-200 text-gray-800 disabled:opacity-50"
+                  >
+                    Mark Closed
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  {chatLeadsLoading ? (
+                    <div className="p-12 text-center">
+                      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                      <p className="text-gray-600 mt-4">Loading chat leads...</p>
+                    </div>
+                  ) : chatLeads.length === 0 ? (
+                    <div className="p-12 text-center text-gray-600">No chat leads found</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 border-b">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  chatLeads.length > 0 &&
+                                  selectedChatLeadIds.length === chatLeads.length
+                                }
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedChatLeadIds(chatLeads.map((l) => l._id));
+                                  } else {
+                                    setSelectedChatLeadIds([]);
+                                  }
+                                }}
+                              />
+                            </th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Contact</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Service</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Postcode</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Risk</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {chatLeads.map((lead) => (
+                            <tr key={lead._id} className="hover:bg-gray-50">
+                              <td className="px-4 py-4">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedChatLeadIds.includes(lead._id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedChatLeadIds((prev) => [...prev, lead._id]);
+                                    } else {
+                                      setSelectedChatLeadIds((prev) => prev.filter((id) => id !== lead._id));
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span>{lead.name || "—"}</span>
+                                  <SuspectedSpamBadge item={lead} />
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">
+                                {lead.email || lead.phone || "—"}
+                                {lead.phone && lead.email ? (
+                                  <span className="block text-xs text-gray-500">{lead.phone}</span>
+                                ) : null}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{lead.serviceType || "—"}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{lead.postcode || "—"}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("en-GB") : "—"}
+                              </td>
+                              <td className="px-6 py-4 text-sm">
+                                {lead.suspectedSpam ? (
+                                  <div className="space-y-1">
+                                    <p className="text-amber-800 text-xs" title={formatSuspicionReasons(lead.suspicionReasons).join(" · ")}>
+                                      {formatSuspicionReasons(lead.suspicionReasons)[0] || "Review"}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => clearChatLeadSuspicion(lead._id)}
+                                      disabled={chatLeadUpdatingId === lead._id}
+                                      className="text-xs font-semibold text-teal-700 hover:text-teal-800 disabled:opacity-50"
+                                    >
+                                      Mark OK
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-sm">
+                                <select
+                                  value={lead.status || "new"}
+                                  disabled={chatLeadUpdatingId === lead._id}
+                                  onChange={(e) => updateChatLeadStatus(lead._id, e.target.value)}
+                                  className="px-2 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800 border border-cyan-200 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                                >
+                                  <option value="new">new</option>
+                                  <option value="contacted">contacted</option>
+                                  <option value="qualified">qualified</option>
+                                  <option value="closed">closed</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {chatLeads.length > 0 && (
+                  <div className="mt-6 flex justify-between items-center">
+                    <p className="text-sm text-gray-600">
+                      Page {chatLeadsPagination.page} of{" "}
+                      {Math.ceil(
+                        (chatLeadsPagination.total || 0) / (chatLeadsPagination.limit || 1),
+                      ) || 1}
+                    </p>
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        disabled={chatLeadsPagination.page <= 1}
+                        onClick={() =>
+                          setChatLeadsPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronLeft className="w-4 h-4 inline" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          chatLeadsPagination.page >=
+                          Math.ceil(
+                            (chatLeadsPagination.total || 0) / (chatLeadsPagination.limit || 1),
+                          )
+                        }
+                        onClick={() =>
+                          setChatLeadsPagination((p) => ({ ...p, page: p.page + 1 }))
                         }
                         className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                       >
@@ -2120,6 +2643,37 @@ const AdminDashboard = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Customer can use this to pay online (Pay Online page)
                   </p>
+                </div>
+              )}
+
+              {selectedQuote.suspectedSpam && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Flagged as suspected spam
+                      </p>
+                      <ul className="mt-2 text-sm text-amber-800 list-disc list-inside space-y-1">
+                        {formatSuspicionReasons(selectedQuote.suspicionReasons).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                      {selectedQuote.captchaScore != null && (
+                        <p className="text-xs text-amber-700 mt-2">
+                          CAPTCHA score: {Math.round((selectedQuote.captchaScore || 0) * 100)}%
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => clearQuoteSuspicion(selectedQuote._id)}
+                      disabled={updatingStatus === "loading"}
+                      className="shrink-0 px-3 py-1.5 text-sm font-semibold rounded-lg bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                    >
+                      Mark OK
+                    </button>
+                  </div>
                 </div>
               )}
 

@@ -1,313 +1,271 @@
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Home, Building, Calendar, Briefcase, Sparkles, Clock, Shield, Leaf, Star } from 'lucide-react'
-import { scrollReveal, scrollRevealVisible, staggerContainer, staggerItem } from '../utils/scrollReveal'
-import SEO from '../components/SEO'
-import { buildBreadcrumbSchema } from '../config/seoSchemas'
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowRight, CheckCircle2, ShieldCheck, Star } from "lucide-react";
+import SEO from "../components/SEO";
+import SmartImage from "../components/SmartImage";
+import ImageLightbox from "../components/ImageLightbox";
+import { SERVICES } from "../data/servicesCatalog";
+import { buildBreadcrumbSchema } from "../config/seoSchemas";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
+import {
+  scrollReveal,
+  scrollRevealVisible,
+  staggerContainer,
+  staggerItem,
+} from "../utils/scrollReveal";
 
-// Service image paths - files in /public/images/services/ named as below
-const SERVICE_IMAGES = {
-  residential: '/images/services/Service_Residential_Cleaning.png',
-  'end-of-tenancy': '/images/services/Service_EndOfTenancy_Cleaning.png',
-  airbnb: '/images/services/Service_Airbnb_Cleaning.png',
-  commercial: '/images/services/Service_Commercial_Cleaning.png'
-}
+const servicesPageSchemas = [
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Apex Five Cleaning Service Pages",
+    itemListElement: SERVICES.map((service, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: service.title,
+      url: `https://www.apexfivecleaning.co.uk/services/${service.id}`,
+    })),
+  },
+  buildBreadcrumbSchema([
+    { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+    { name: "Services", url: "https://www.apexfivecleaning.co.uk/services" },
+  ]),
+];
 
-const Services = () => {
-  const navigate = useNavigate()
-
-  const services = [
-    {
-      id: 'residential',
-      title: 'Residential Cleaning',
-      icon: Home,
-      image: SERVICE_IMAGES.residential,
-      description: 'Regular cleaning services to keep your home spotless and fresh.',
-      price: 'From £45 per visit',
-      duration: '2-4 hours',
-      rating: 4.9,
-      reviews: 87,
-      badge: 'Most Popular',
-      features: [
-        'Kitchen & bathroom deep clean',
-        'Dusting & vacuuming',
-        'Mopping & floor care',
-        'Window cleaning',
-        'Eco-friendly products'
-      ],
-      benefits: [
-        'Flexible weekly/bi-weekly scheduling',
-        'Same cleaner every time (consistency)',
-        'Customizable service list',
-        'Free first inspection'
-      ]
-    },
-    {
-      id: 'end-of-tenancy',
-      title: 'End of Tenancy Cleaning',
-      icon: Building,
-      image: SERVICE_IMAGES['end-of-tenancy'],
-      description: 'Comprehensive deep cleaning to help you get your full deposit back.',
-      price: 'From £150',
-      duration: '6-10 hours',
-      rating: 4.8,
-      reviews: 64,
-      features: [
-        'Full property deep clean',
-        'Inside all appliances',
-        'Window cleaning inside & out',
-        'Carpet cleaning',
-        'Inventory check support'
-      ],
-      benefits: [
-        'Deposit protection guarantee',
-        'Professional inventory support',
-        'Landlord communication',
-        'Final inspection checklist'
-      ]
-    },
-    {
-      id: 'airbnb',
-      title: 'Airbnb Turnover Cleaning',
-      icon: Calendar,
-      image: SERVICE_IMAGES.airbnb,
-      description: 'Fast, reliable cleaning between guests to keep your bookings flowing.',
-      price: 'From £60',
-      duration: '2-3 hours',
-      rating: 4.9,
-      reviews: 92,
-      badge: 'Quick Turnaround',
-      features: [
-        'Quick turnaround service',
-        'Linen & towel replacement',
-        'Bathroom refresh',
-        'Kitchen sanitization',
-        'Guest-ready checklist'
-      ],
-      benefits: [
-        'Same-day service available',
-        'Recurring booking discounts',
-        'Damage reporting included',
-        'Photo documentation'
-      ]
-    },
-    {
-      id: 'commercial',
-      title: 'Commercial Cleaning',
-      icon: Briefcase,
-      image: SERVICE_IMAGES.commercial,
-      description: 'Professional cleaning for offices, retail, and business premises.',
-      price: 'From £80',
-      duration: 'Varies by site',
-      rating: 4.8,
-      reviews: 41,
-      features: [
-        'Daily or periodic office cleaning',
-        'Reception & communal areas',
-        'Restroom sanitization',
-        'Floor care & vacuuming',
-        'Waste management'
-      ],
-      benefits: [
-        'Out-of-hours scheduling',
-        'Contract and one-off options',
-        'COSHH-compliant products',
-        'Key-holder arrangements'
-      ]
-    }
-  ]
-
-  const servicesPageSchemas = [
-    {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      name: "Apex Five Cleaning Services",
-      itemListElement: services.map((service, index) => ({
-        "@type": "ListItem",
-        position: index + 1,
-        name: service.title,
-        url: `https://www.apexfivecleaning.co.uk/services/${service.id}`,
-      })),
-    },
-    buildBreadcrumbSchema([
-      { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
-      { name: "Services", url: "https://www.apexfivecleaning.co.uk/services" },
-    ]),
-  ]
+export default function Services() {
+  const navigate = useNavigate();
+  const [lightboxImage, setLightboxImage] = useState("");
 
   return (
     <>
       <SEO
-        title="Cleaning Services in UK"
-        description="Explore our residential, end of tenancy, Airbnb turnover, and commercial cleaning services. Eco-friendly products, reliable teams, and transparent pricing."
+        title="Cleaning Services for Homes, Rentals and Businesses"
+        description="Choose from domestic, deep cleaning, end of tenancy, Airbnb, office, and commercial cleaning services. Clear scope, transparent pricing guidance, and fast quotes."
         path="/services"
         jsonLd={servicesPageSchemas}
       />
-      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
+      <motion.section
+        className="pt-32 pb-20 bg-white min-h-screen"
+        {...scrollRevealVisible}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div className="text-center mb-16" {...scrollReveal}>
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Our Services</span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
-            Professional Cleaning Services
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We offer a range of eco-friendly cleaning services tailored to your needs. All our services use professional-grade, environmentally safe products and are backed by our satisfaction guarantee.
-          </p>
-        </motion.div>
+          <motion.div className="text-center mb-12" {...scrollReveal}>
+            <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
+              Services
+            </span>
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-5">
+              Cleaning services built around your property and schedule
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Pick the service that fits your needs, see what is included, then
+              request a quote in minutes.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate("/request-a-quote")}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-7 py-3 rounded-lg font-semibold"
+              >
+                Get a Free Quote
+              </button>
+              <a
+                href={PHONE_MAIN_HREF}
+                className="bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 px-7 py-3 rounded-lg font-semibold"
+              >
+                Call Now: {PHONE_MAIN_DISPLAY}
+              </a>
+            </div>
+          </motion.div>
 
-        {/* Service Cards */}
-        <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16"
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true, amount: 0.1 }}
-        >
-          {services.map((service) => {
-            const Icon = service.icon
-            return (
+          <motion.div
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true, amount: 0.08 }}
+          >
+            {SERVICES.map((service) => (
               <motion.div
                 key={service.id}
                 variants={staggerItem}
-                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition border border-gray-100 flex flex-col h-full relative group cursor-pointer"
-                onClick={() => navigate(`/services/${service.id}`)}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col"
               >
-                {/* Service Image */}
-                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                  <img
+                <div className="aspect-[16/10] bg-gray-100 overflow-hidden">
+                  <SmartImage
                     src={service.image}
                     alt={service.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop'
-                    }}
+                    className="h-full transition-transform duration-500 hover:scale-105"
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    loading="lazy"
                   />
                 </div>
-                {/* Badge */}
-                {service.badge && (
-                  <div className="absolute top-4 right-4 bg-amber-400 text-gray-900 px-3 py-1 rounded-full text-xs font-bold z-10">
-                    {service.badge}
-                  </div>
-                )}
-
-                {/* Content */}
                 <div className="p-6 flex flex-col flex-grow">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-teal-600" />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900">{service.title}</h2>
+                  <span className="inline-block text-xs font-semibold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md w-fit mb-3">
+                    Best For: {service.bestFor}
+                  </span>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {service.title}
+                  </h2>
+                  <p className="text-gray-600 mt-3">{service.shortDescription}</p>
+                  <div className="mt-4 rounded-lg bg-teal-50 p-4">
+                    <p className="text-teal-700 font-bold">{service.priceGuide}</p>
+                    <p className="text-sm text-teal-800 mt-1">
+                      Typical duration: {service.typicalDuration}
+                    </p>
                   </div>
-                  <p className="text-gray-600 mb-4">{service.description}</p>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      <span className="font-bold text-gray-900">{service.rating}</span> ({service.reviews} reviews)
-                    </span>
-                  </div>
-
-                  {/* Price & Duration */}
-                  <div className="bg-teal-50 rounded-lg p-4 mb-6">
-                    <p className="text-teal-600 font-bold text-xl">{service.price}</p>
-                    <div className="flex items-center gap-2 text-sm text-teal-700 mt-2">
-                      <Clock className="w-4 h-4" />
-                      Typically {service.duration}
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  <h4 className="font-semibold text-gray-900 mb-3">What's Included:</h4>
-                  <ul className="space-y-2 mb-6">
-                    {service.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-gray-600 text-sm">
-                        <Sparkles className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                        {feature}
+                  <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                    {service.includes.slice(0, 3).map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
                       </li>
                     ))}
                   </ul>
-
-                  {/* Button */}
+                  <div className="mt-4 text-xs inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 w-fit">
+                    Before/after examples available
+                  </div>
                   <button
+                    type="button"
                     onClick={() => navigate(`/services/${service.id}`)}
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold transition mt-auto"
+                    className="mt-6 inline-flex items-center justify-center gap-2 w-full bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-lg font-semibold"
                   >
-                    Learn More
+                    View Service Details
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
-            )
-          })}
-        </motion.div>
+            ))}
+          </motion.div>
 
-        {/* Why Choose Us */}
-        <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16" {...scrollReveal}>
-          <h3 className="text-3xl font-bold text-gray-900 mb-8 text-center">Why Choose Apex Five?</h3>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Leaf className="w-6 h-6" />
+          <motion.div
+            className="mt-14 rounded-2xl border border-gray-200 bg-gray-50 p-8"
+            {...scrollReveal}
+          >
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              Why clients choose Apex Five Cleaning
+            </h3>
+            <div className="grid md:grid-cols-3 gap-6 text-center">
+              <div className="bg-white rounded-xl p-5 border border-gray-100">
+                <ShieldCheck className="w-7 h-7 text-teal-600 mx-auto mb-3" />
+                <p className="font-semibold text-gray-900">Insured and vetted</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Trusted teams with clear standards and accountability.
+                </p>
               </div>
-              <h4 className="font-bold text-gray-900 mb-2">Eco-Friendly</h4>
-              <p className="text-gray-600 text-sm">100% biodegradable, non-toxic products</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-6 h-6" />
+              <div className="bg-white rounded-xl p-5 border border-gray-100">
+                <Star className="w-7 h-7 text-teal-600 mx-auto mb-3" />
+                <p className="font-semibold text-gray-900">Consistent quality</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Repeatable cleaning quality for homes and businesses.
+                </p>
               </div>
-              <h4 className="font-bold text-gray-900 mb-2">Fully Insured</h4>
-              <p className="text-gray-600 text-sm">Professional indemnity & liability covered</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6" />
+              <div className="bg-white rounded-xl p-5 border border-gray-100">
+                <ArrowRight className="w-7 h-7 text-teal-600 mx-auto mb-3" />
+                <p className="font-semibold text-gray-900">Fast quote flow</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Simple quote process with response typically within one business day.
+                </p>
               </div>
-              <h4 className="font-bold text-gray-900 mb-2">4.9 Star Rated</h4>
-              <p className="text-gray-600 text-sm">Trusted by over 500 satisfied customers</p>
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-6 h-6" />
-              </div>
-              <h4 className="font-bold text-gray-900 mb-2">Reliable Service</h4>
-              <p className="text-gray-600 text-sm">Consistent, punctual, professional team</p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* CTA Section */}
-        <motion.div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center" {...scrollReveal}>
-          <h3 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h3>
-          <p className="text-teal-50 text-lg mb-8 max-w-2xl mx-auto">
-            Get a free, no-obligation quote for your cleaning needs. We respond within 24 hours.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => navigate('/request-a-quote')}
-              className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition"
-            >
-              Get a Free Quote
-            </button>
-            <a
-              href={PHONE_MAIN_HREF}
-              className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
-            >
-              Call Now: {PHONE_MAIN_DISPLAY}
-            </a>
-          </div>
-        </motion.div>
+          <motion.div className="mt-12" {...scrollReveal}>
+            <div className="text-center mb-7">
+              <h3 className="text-2xl font-bold text-gray-900">Before and after examples</h3>
+              <p className="text-gray-600 mt-2">
+                Visual clarity on expected outcomes across our most requested services.
+              </p>
+            </div>
+            <div className="grid lg:grid-cols-3 gap-6">
+              {SERVICES.slice(0, 3).map((service) => (
+                <div key={`${service.id}-before-after`} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="font-semibold text-gray-900">{service.title}</p>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.beforeImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.beforeImage}
+                        alt={`${service.title} before cleaning example`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                      <span className="absolute top-2 left-2 text-[10px] uppercase tracking-wide bg-gray-900/75 text-white px-2 py-1 rounded">
+                        Before
+                      </span>
+                    </div>
+                    <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.afterImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.afterImage}
+                        alt={`${service.title} after cleaning example`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                      <span className="absolute top-2 left-2 text-[10px] uppercase tracking-wide bg-teal-700/90 text-white px-2 py-1 rounded">
+                        After
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-center text-xs text-gray-500 md:hidden">Tap any image to zoom</p>
+          </motion.div>
+
+          <motion.div
+            className="mt-10 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-10 text-center"
+            {...scrollReveal}
+          >
+            <h3 className="text-3xl font-bold text-white mb-3">
+              Ready to book the right service?
+            </h3>
+            <p className="text-teal-50 text-lg mb-7 max-w-2xl mx-auto">
+              Tell us what you need and we will send a tailored, no-obligation quote.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate("/request-a-quote")}
+                className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
+              >
+                Get a Free Quote
+              </button>
+              <a
+                href={PHONE_MAIN_HREF}
+                className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-7 py-3 rounded-lg font-semibold"
+              >
+                Call {PHONE_MAIN_DISPLAY}
+              </a>
+            </div>
+          </motion.div>
         </div>
       </motion.section>
+      <ImageLightbox
+        image={lightboxImage}
+        alt="Expanded service example"
+        onClose={() => setLightboxImage("")}
+      />
     </>
-  )
+  );
 }
-
-export default Services

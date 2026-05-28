@@ -40,8 +40,11 @@ import paymentsRouter from "./routes/payments.js";
 import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
 import contactRouter from "./routes/contact.js";
+import chatRouter from "./routes/chat.js";
 import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService.js";
 import { handleStripeWebhook } from "./routes/payments.js";
+import { startScheduler } from "./jobs/scheduler.js";
+import chatopsRouter from "./routes/chatops.js";
 
 // Fail fast instead of waiting for Mongoose operation buffering timeouts
 mongoose.set("bufferCommands", false);
@@ -123,6 +126,9 @@ app.post(
   },
 );
 
+// ChatOps must be mounted before express.json() (Slack signatures + Discord raw body)
+app.use("/api/chatops", chatopsRouter);
+
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ limit: "10kb", extended: true }));
 
@@ -186,6 +192,7 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/customer", customerRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/contact", contactRouter);
+app.use("/api/chat", chatRouter);
 
 // Database connection
 const connectDB = async () => {
@@ -204,6 +211,7 @@ const connectDB = async () => {
     dbConnected = true;
     console.log("✓ Connected to MongoDB");
     verifyEmailTransport().catch(() => {});
+    startScheduler();
     mongoose.connection.on("connected", () => {
       dbConnected = true;
       console.log("✓ MongoDB connected");

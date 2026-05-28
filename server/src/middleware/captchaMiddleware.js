@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getCaptchaBlockThreshold, getCaptchaFlagThreshold } from "../utils/suspiciousActivity.js";
 
 /** Map Google reCAPTCHA error codes to user-friendly messages */
 function captchaErrorMessage(errorCodes = []) {
@@ -65,15 +66,23 @@ export const verifyCaptcha = async (req, res, next) => {
       });
     }
 
-    const minScore = Number(process.env.RECAPTCHA_SCORE_THRESHOLD || 0.5);
-    if (score != null && score < minScore) {
+    const blockThreshold = getCaptchaBlockThreshold();
+    const flagThreshold = getCaptchaFlagThreshold();
+
+    if (score != null && score < blockThreshold) {
+      console.warn("reCAPTCHA blocked submission — score below block threshold:", score);
       return res.status(429).json({
         success: false,
-        error: "Suspicious activity detected. Please try again.",
+        error: "Suspicious activity detected. Please try again later or contact us directly.",
       });
     }
 
-    req.captcha = { verified: true, score, action };
+    req.captcha = {
+      verified: true,
+      score,
+      action,
+      lowScore: score != null && score < flagThreshold,
+    };
     next();
   } catch (error) {
     console.error("CAPTCHA verification error:", error.message);

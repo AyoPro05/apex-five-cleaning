@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
+import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0)
@@ -129,6 +130,10 @@ const FAQ = () => {
       }
     })))
   }
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+    { name: "FAQ", url: "https://www.apexfivecleaning.co.uk/faq" },
+  ])
 
   return (
     <>
@@ -136,7 +141,7 @@ const FAQ = () => {
         title="Cleaning FAQ"
         description="Answers to common questions about residential, end of tenancy, Airbnb, and commercial cleaning services."
         path="/faq"
-        jsonLd={faqSchema}
+        jsonLd={[faqSchema, breadcrumbSchema]}
       />
 
       <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
@@ -209,6 +214,14 @@ const FAQ = () => {
               >
                 Call Now
               </a>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-center gap-4 text-sm">
+              <Link to="/testimonials" className="text-teal-700 hover:text-teal-800 underline">
+                Read customer reviews
+              </Link>
+              <Link to="/blog" className="text-teal-700 hover:text-teal-800 underline">
+                Browse cleaning guides
+              </Link>
             </div>
           </motion.div>
         </div>

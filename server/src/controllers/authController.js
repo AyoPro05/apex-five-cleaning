@@ -6,6 +6,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
 import Referral from '../../models/Referral.js';
+import Booking from '../../models/Booking.js';
 import { sendVerificationEmail, isEmailConfigured, sendPasswordResetEmail } from '../utils/emailService.js';
 import { sanitizeUserForClient } from '../utils/userSanitize.js';
 import crypto from 'crypto';
@@ -95,6 +96,16 @@ export const register = async (req, res) => {
         referredEmail: user.email,
         status: 'pending',
       });
+    }
+
+    // Link any guest draft bookings created from earlier quotes with the same email
+    try {
+      await Booking.updateMany(
+        { customerEmail: user.email, userId: { $exists: false } },
+        { $set: { userId: user._id } },
+      );
+    } catch (linkErr) {
+      console.warn('Could not link existing draft bookings to new user:', linkErr.message);
     }
 
     // Generate verification token

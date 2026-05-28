@@ -149,6 +149,32 @@ export const contactEmailRateLimiter = rateLimit({
   },
 });
 
+export const chatMessageRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: "Too many chat messages. Please wait a moment and try again.",
+    });
+  },
+});
+
+export const chatLeadRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: "Too many lead submissions. Please try again shortly.",
+    });
+  },
+});
+
 /** Public resend-verification — limit email bombing */
 export const resendVerificationRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -206,11 +232,27 @@ export const guestPaymentConfirmRateLimiter = rateLimit({
   },
 });
 
+// ChatOps (Slack/Discord/admin commands): tight limit to reduce abuse
+export const chatOpsRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many ChatOps requests. Please wait and try again.',
+    });
+  },
+});
+
 export default {
   quoteRateLimiter,
   emailRateLimiter,
   contactRateLimiter,
   contactEmailRateLimiter,
+  chatMessageRateLimiter,
+  chatLeadRateLimiter,
   resendVerificationRateLimiter,
   refreshTokenRateLimiter,
   apiRateLimiter,

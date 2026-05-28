@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
+import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -99,6 +101,22 @@ const Testimonials = () => {
       name: "Apex Five Cleaning",
     },
   }))
+  const aggregateRatingSchema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: "Apex Five Cleaning",
+    url: "https://www.apexfivecleaning.co.uk",
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: "200",
+      bestRating: "5",
+    },
+  }
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
+    { name: "Reviews", url: "https://www.apexfivecleaning.co.uk/testimonials" },
+  ])
 
   return (
     <>
@@ -106,7 +124,7 @@ const Testimonials = () => {
         title="Customer Reviews and Testimonials"
         description="Read verified customer testimonials for Apex Five Cleaning services across Kent, Essex, and Greater London."
         path="/testimonials"
-        jsonLd={reviewSchemas}
+        jsonLd={[aggregateRatingSchema, ...reviewSchemas, breadcrumbSchema]}
       />
       <motion.section className="pt-32 pb-20 bg-gradient-to-b from-white to-gray-50 min-h-screen" {...scrollRevealVisible}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -232,15 +250,26 @@ const Testimonials = () => {
             Experience the Apex Five difference. Professional, eco-friendly cleaning you can trust.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition">
+            <Link
+              to="/request-a-quote"
+              className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition"
+            >
               Book Now
-            </button>
+            </Link>
             <a
               href={PHONE_MAIN_HREF}
               className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
             >
               Call {PHONE_MAIN_DISPLAY}
             </a>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-4 justify-center text-sm">
+            <Link to="/faq" className="text-teal-50 hover:text-white underline">
+              Read FAQs
+            </Link>
+            <Link to="/blog" className="text-teal-50 hover:text-white underline">
+              Explore Cleaning Guides
+            </Link>
           </div>
         </div>
         </div>

@@ -8,6 +8,7 @@ import { scrollReveal } from '../utils/scrollReveal'
 import { CreditCard, ArrowLeft, LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../components/SEO'
+import { createIdempotencyKey, withIdempotency } from '../utils/idempotency'
 
 // Stripe publishable key must come from env only (no fallback – never ship secrets or placeholder keys)
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
@@ -185,10 +186,17 @@ export default function PayOnline() {
       const data = await get(`/api/payments/guest/lookup?quoteId=${encodeURIComponent(quoteRef.trim())}&email=${encodeURIComponent(lookupEmail)}`)
       if (data.success) {
         setQuote(data.quote)
-        const intentData = await post('/api/payments/guest/create-intent', {
-          quoteId: quoteRef.trim(),
-          email: lookupEmail,
-        })
+        // Stable key per (quoteRef + email) so accidental double-submits on the
+        // same lookup return the existing PaymentIntent instead of creating a new one.
+        const intentKey = `intent-${(quoteRef.trim() + lookupEmail).slice(0, 64)}-${createIdempotencyKey().slice(0, 16)}`
+        const intentData = await post(
+          '/api/payments/guest/create-intent',
+          {
+            quoteId: quoteRef.trim(),
+            email: lookupEmail,
+          },
+          withIdempotency(intentKey),
+        )
         if (intentData.success) {
           setClientSecret(intentData.clientSecret)
           setPaymentId(intentData.paymentId)

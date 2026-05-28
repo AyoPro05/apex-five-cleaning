@@ -1,633 +1,367 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Calculator,
-  Crown,
-  Calendar,
-  Gift,
-  LayoutDashboard,
-  Star,
-  CheckCircle,
+  ArrowRight,
+  CheckCircle2,
+  Leaf,
   MapPin,
   Phone,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  LogIn,
+  ShieldCheck,
+  Star,
 } from "lucide-react";
-import ServiceAreaMap from "../components/ServiceAreaMap";
 import SEO from "../components/SEO";
-import {
-  buildLocalBusinessSchema,
-  buildWebSiteSchema,
-} from "../config/seoSchemas";
+import ServiceAreaMap from "../components/ServiceAreaMap";
+import SmartImage from "../components/SmartImage";
+import ImageLightbox from "../components/ImageLightbox";
+import { buildLocalBusinessSchema, buildWebSiteSchema } from "../config/seoSchemas";
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
-import { getServiceAreaRegionsForNav } from "../data/serviceAreasCatalog";
+import { SERVICES } from "../data/servicesCatalog";
 
-// Scroll reveal animation config
-const scrollReveal = {
-  initial: { opacity: 0, y: 40 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.15 },
-  transition: { duration: 0.6, ease: "easeOut" },
-};
-
-const staggerContainer = {
-  initial: {},
-  whileInView: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-  },
-  viewport: { once: true, amount: 0.1 },
-};
-
-const staggerItem = {
-  initial: { opacity: 0, y: 30 },
-  whileInView: { opacity: 1, y: 0 },
-  transition: { duration: 0.5 },
-  viewport: { once: true },
-};
-
-const regions = getServiceAreaRegionsForNav();
-
-// Testimonials
-const testimonials = [
+const serviceCards = [
   {
-    id: 1,
-    name: "Sarah Mitchell",
-    role: "Homeowner, Canterbury",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "Apex Five Cleaning transformed my home. They're professional, punctual, and use eco-friendly products. Highly recommended!",
-    service: "Residential Cleaning",
+    title: "Domestic Cleaning",
+    subtitle: "For busy homeowners",
+    description: "Regular weekly or bi-weekly cleaning that keeps your home consistently fresh.",
   },
   {
-    id: 2,
-    name: "James Richardson",
-    role: "Property Manager, Maidstone",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "We use Apex Five for all our end-of-tenancy cleans. They consistently return properties to move-in condition. Outstanding service.",
-    service: "End of Tenancy Cleaning",
+    title: "End of Tenancy",
+    subtitle: "For tenants and landlords",
+    description: "Detailed move-out cleaning designed to help properties pass inventory checks.",
   },
   {
-    id: 3,
-    name: "Emma Thompson",
-    role: "Airbnb Host, Dover",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "Quick, reliable, and thorough. They understand what Airbnb guests expect. My booking rate has improved since using them.",
-    service: "Airbnb Turnover Cleaning",
+    title: "Airbnb Cleaning",
+    subtitle: "For hosts and short lets",
+    description: "Fast, reliable turnover cleaning between guests with consistent standards.",
   },
   {
-    id: 4,
-    name: "Robert Chen",
-    role: "Office Manager, Tunbridge Wells",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "Professional, reliable, and flexible with scheduling. They've been maintaining our office perfectly for two years now.",
-    service: "Residential Cleaning",
-  },
-  {
-    id: 5,
-    name: "Lisa Anderson",
-    role: "Landlord, Sevenoaks",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "Impressive attention to detail and eco-conscious approach. My tenants love the clean properties. Best decision ever.",
-    service: "End of Tenancy Cleaning",
-  },
-  {
-    id: 6,
-    name: "Michael Hughes",
-    role: "Property Owner, Ashford",
-    rating: 5,
-    image: "/images/testimonials/Testimonial_Customer_Avatar_Default.png",
-    text: "Consistently excellent work. They treat your home like their own. Trustworthy, professional, and fair pricing.",
-    service: "Residential Cleaning",
+    title: "Office & Commercial",
+    subtitle: "For businesses",
+    description: "Professional cleaning plans for offices, retail spaces, and commercial sites.",
   },
 ];
 
-const Home = () => {
+const testimonialHighlights = [
+  {
+    name: "Sarah M.",
+    service: "Domestic Cleaning",
+    quote: "Reliable team, spotless finish, and easy communication every time.",
+  },
+  {
+    name: "James R.",
+    service: "End of Tenancy",
+    quote: "The property looked move-in ready. Great attention to detail.",
+  },
+  {
+    name: "Emma T.",
+    service: "Airbnb Cleaning",
+    quote: "Quick turnaround and consistent quality for every guest changeover.",
+  },
+];
+
+const GOOGLE_REVIEW_URL = "https://share.google/ByNUvIHRlpT95uh09";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.2 },
+  transition: { duration: 0.5, ease: "easeOut" },
+};
+
+export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated, openSignIn } = useAuth();
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const nextSlide = () =>
-    setCurrentSlide((prev) => (prev + 1) % testimonials.length);
-  const prevSlide = () =>
-    setCurrentSlide(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length,
-    );
-
-  const getVisibleTestimonials = () => {
-    const visible = [];
-    for (let i = 0; i < 3; i++) {
-      visible.push(testimonials[(currentSlide + i) % testimonials.length]);
-    }
-    return visible;
-  };
-
+  const [lightboxImage, setLightboxImage] = useState("");
   const homeSchemas = [buildWebSiteSchema(), buildLocalBusinessSchema()];
+  const beforeAfterHighlights = [
+    SERVICES.find((s) => s.id === "domestic-cleaning"),
+    SERVICES.find((s) => s.id === "end-of-tenancy-cleaning"),
+    SERVICES.find((s) => s.id === "airbnb-cleaning"),
+  ].filter(Boolean);
 
   return (
     <>
       <SEO
-        title="Professional Eco-Friendly Cleaning | Kent, Essex & Greater London"
-        description="Residential, end of tenancy, Airbnb, and commercial cleaning across Kent, Essex, and Greater London — Canterbury to Croydon. Eco-friendly products, insured team, fast quotes from Apex Five Cleaning."
+        title="Eco-Friendly Cleaning Services | Kent, London & Essex"
+        description="Professional domestic, end of tenancy, Airbnb, and office cleaning across Kent, London, and Essex. Get a fast quote from Apex Five Cleaning."
         path="/"
         jsonLd={homeSchemas}
       />
-      {/* Hero Section */}
-      <section
-        className="relative min-h-screen flex items-center pt-20 overflow-hidden"
-        style={{
-          backgroundImage: "url(/images/heroes/Hero_Services.png)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-teal-600/90 to-teal-800/80" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-white">
-              <span className="inline-block bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-                ✨ Eco-Friendly Cleaning Services
-              </span>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Your Home, <br />
-                <span className="text-teal-200">Spotlessly Clean</span>
-              </h1>
-              <p className="text-xl text-teal-100 mb-8 max-w-lg">
-                Professional residential cleaning services that bring clarity to
-                pricing, trust to every visit, and shine to every surface.
-              </p>
-              <div className="bg-white/10 backdrop-blur rounded-xl p-4 mb-6 flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-white">Join Our Family</p>
-                  <p className="text-teal-200 text-sm">
-                    Sign up for{" "}
-                    <span className="font-bold text-amber-300">10% OFF</span>{" "}
-                    every clean!
-                  </p>
-                </div>
+
+      <section className="relative min-h-[78vh] flex items-center overflow-hidden pt-28">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url(/images/heroes/Hero_Services.png)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/75 via-teal-900/70 to-slate-900/65" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
+          <motion.div {...fadeUp} className="max-w-3xl text-white">
+            <p className="text-sm font-semibold uppercase tracking-wider text-teal-100 mb-4">
+              Professional Cleaning Services
+            </p>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+              Eco-friendly cleaning for homes and businesses across Kent, London, and Essex.
+            </h1>
+            <p className="text-lg text-teal-50 mt-5 max-w-2xl">
+              Trusted by homeowners, tenants, landlords, Airbnb hosts, and commercial clients who need reliable results and clear communication.
+            </p>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/request-a-quote")}
+                className="inline-flex items-center justify-center gap-2 bg-white text-teal-700 hover:bg-teal-50 px-6 py-3 rounded-lg font-semibold"
+              >
+                Get a Free Quote
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <a
+                href={PHONE_MAIN_HREF}
+                className="inline-flex items-center justify-center gap-2 bg-teal-500/30 border border-teal-200/50 hover:bg-teal-500/40 px-6 py-3 rounded-lg font-semibold"
+              >
+                <Phone className="w-4 h-4" />
+                Call Now
+              </a>
+            </div>
+
+            <div className="mt-8 grid sm:grid-cols-3 gap-3">
+              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
+                <p className="text-xs uppercase text-teal-100 mb-1">Reviews</p>
+                <p className="font-semibold">4.9/5 rating from verified clients</p>
               </div>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:items-stretch">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/request-a-quote")}
-                    className="bg-white text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-teal-50 transition shadow-xl flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
-                  >
-                    <Calculator className="w-5 h-5" />
-                    Get Your Free Quote
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/pay-online")}
-                    className="bg-amber-400 text-gray-900 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-300 transition shadow-lg flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
-                  >
-                    <CreditCard className="w-5 h-5" />
-                    Pay Online
-                  </button>
-                  {!isAuthenticated && (
-                    <button
-                      type="button"
-                      onClick={openSignIn}
-                      className="border-2 border-amber-400/50 text-amber-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-400/20 transition flex items-center justify-center gap-2 sm:flex-1 min-w-[10rem]"
-                    >
-                      <LogIn className="w-5 h-5" />
-                      Login
-                    </button>
-                  )}
-                </div>
+              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
+                <p className="text-xs uppercase text-teal-100 mb-1">Trusted Team</p>
+                <p className="font-semibold">Insured, vetted, and reliable</p>
               </div>
-              <div className="mt-10 flex items-center gap-6">
-                <div className="flex -space-x-3">
-                  <img
-                    src="https://randomuser.me/api/portraits/women/44.jpg"
-                    alt="Customer"
-                    className="w-10 h-10 rounded-full border-2 border-white"
-                  />
-                  <img
-                    src="https://randomuser.me/api/portraits/men/32.jpg"
-                    alt="Customer"
-                    className="w-10 h-10 rounded-full border-2 border-white"
-                  />
-                  <img
-                    src="https://randomuser.me/api/portraits/women/68.jpg"
-                    alt="Customer"
-                    className="w-10 h-10 rounded-full border-2 border-white"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span className="font-semibold">4.9/5</span>
-                  </div>
-                  <p className="text-sm text-teal-200">
-                    From 200+ happy clients
-                  </p>
-                </div>
+              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
+                <p className="text-xs uppercase text-teal-100 mb-1">Local Coverage</p>
+                <p className="font-semibold">Serving Kent, London, and Essex</p>
               </div>
             </div>
-            <div className="relative">
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <div>
-                    <p className="text-gray-800 font-semibold">100%</p>
-                    <p className="text-gray-500 text-sm">Eco-Safe Products</p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -top-4 -right-4 bg-gradient-to-r from-amber-400 to-amber-600 text-amber-900 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-1 shadow-lg">
-                <Crown className="w-4 h-4" />
-                10% OFF Members
-              </div>
-            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Choose your service type</h2>
+            <p className="text-gray-600 mt-3">Select the service that matches your property and goals.</p>
+          </motion.div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {serviceCards.map((card) => (
+              <motion.button
+                {...fadeUp}
+                key={card.title}
+                type="button"
+                onClick={() => navigate("/services")}
+                className="text-left p-5 rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-sm transition bg-gray-50/60"
+              >
+                <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
+                <p className="text-sm text-teal-700 mt-1 font-medium">{card.subtitle}</p>
+                <p className="text-sm text-gray-600 mt-3">{card.description}</p>
+              </motion.button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Member Benefits Section - Scroll Reveal */}
-      <motion.section
-        className="py-16 bg-gradient-to-b from-amber-50 to-white"
-        {...scrollReveal}
-      >
+      <section className="py-14 bg-gray-50 border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div className="text-center mb-12" {...scrollReveal}>
-            <span className="text-amber-600 font-semibold text-sm uppercase tracking-wider">
-              Apex Family
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
-              Join Our Family & Save 10%
-            </h2>
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Become a valued member of the Apex Five Cleaning family and enjoy
-              exclusive benefits.
+          <motion.div {...fadeUp} className="text-center mb-8">
+            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Before and after clarity</p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-2">Real cleaning outcomes, not vague promises</h2>
+            <p className="text-gray-600 mt-3 max-w-3xl mx-auto">
+              See the transformation style we aim for across domestic, tenancy, and short-let cleanups.
             </p>
           </motion.div>
-          <motion.div
-            className="grid md:grid-cols-4 gap-6"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="whileInView"
-            viewport={{ once: true, amount: 0.1 }}
-          >
-            {[
-              {
-                icon: Crown,
-                bgClass: "bg-gradient-to-br from-amber-400 to-amber-600",
-                iconClass: "text-white",
-                title: "10% Family Benefit",
-                desc: "As a valued member",
-              },
-              {
-                icon: Calendar,
-                bgClass: "bg-teal-100",
-                iconClass: "text-teal-600",
-                title: "Priority Booking",
-                desc: "Get the times you want",
-              },
-              {
-                icon: Gift,
-                bgClass: "bg-purple-100",
-                iconClass: "text-purple-600",
-                title: "Member Exclusives",
-                desc: "Special offers throughout the year",
-              },
-              {
-                icon: LayoutDashboard,
-                bgClass: "bg-blue-100",
-                iconClass: "text-blue-600",
-                title: "Easy Management",
-                desc: "Manage bookings & payments online",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                variants={staggerItem}
-                className="bg-white rounded-2xl p-6 shadow-lg text-center"
-              >
-                <div
-                  className={`w-14 h-14 ${item.bgClass} rounded-2xl flex items-center justify-center mx-auto mb-4`}
-                >
-                  <item.icon className={`w-7 h-7 ${item.iconClass}`} />
+          <div className="grid lg:grid-cols-3 gap-6">
+            {beforeAfterHighlights.map((service) => (
+              <motion.div {...fadeUp} key={service.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="font-bold text-gray-900">{service.title}</h3>
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.desc}</p>
+                <div className="grid grid-cols-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.beforeImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.beforeImage}
+                        alt={`${service.title} before cleaning`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                    <span className="absolute top-2 left-2 text-[11px] bg-gray-900/75 text-white px-2 py-1 rounded">
+                      Before
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.afterImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.afterImage}
+                        alt={`${service.title} after cleaning`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                    <span className="absolute top-2 left-2 text-[11px] bg-teal-700/90 text-white px-2 py-1 rounded">
+                      After
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 text-sm text-gray-600">
+                  <p>{service.beforeAfter.beforeLabel}</p>
+                  <p className="mt-1 text-teal-700 font-medium">{service.beforeAfter.afterLabel}</p>
+                </div>
               </motion.div>
             ))}
+          </div>
+          <p className="mt-4 text-center text-xs text-gray-500 md:hidden">Tap any image to zoom</p>
+        </div>
+      </section>
+
+      <section className="py-12 bg-teal-50 border-y border-teal-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-4">
+          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="flex items-center gap-2 text-teal-700 mb-2">
+              <ShieldCheck className="w-5 h-5" />
+              <p className="font-semibold">Insured and dependable</p>
+            </div>
+            <p className="text-sm text-gray-600">Professional teams with clear standards and quality checks.</p>
+          </motion.div>
+          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="flex items-center gap-2 text-teal-700 mb-2">
+              <Leaf className="w-5 h-5" />
+              <p className="font-semibold">Eco-friendly approach</p>
+            </div>
+            <p className="text-sm text-gray-600">Safer, non-harsh products available for family and pet-friendly spaces.</p>
+          </motion.div>
+          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="flex items-center gap-2 text-teal-700 mb-2">
+              <CheckCircle2 className="w-5 h-5" />
+              <p className="font-semibold">Fast quote response</p>
+            </div>
+            <p className="text-sm text-gray-600">Most quote requests are answered within one business day.</p>
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* Service Areas Section - Scroll Reveal */}
-      <motion.section className="py-20 bg-gray-50" {...scrollReveal}>
+      <section className="py-14 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div className="text-center mb-16" {...scrollReveal}>
-            <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
-              Service Coverage
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-6">
-              Areas We Serve
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
-              Professional cleaning across Kent, Essex, and Greater London.
-              Select your area to learn more.
-            </p>
-            <motion.button
-              onClick={() => navigate("/service-areas")}
-              className="text-teal-600 font-semibold hover:text-teal-700 mb-8 inline-flex items-center gap-2"
-              {...scrollReveal}
+          <motion.div {...fadeUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Reviews</p>
+              <h2 className="text-3xl font-bold text-gray-900 mt-2">What clients say before they rebook</h2>
+            </div>
+            <a
+              href={GOOGLE_REVIEW_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-teal-700 font-semibold hover:text-teal-800"
             >
-              Learn more about our service areas →
-            </motion.button>
-            <motion.div className="mb-12" {...scrollReveal}>
-              <ServiceAreaMap height="420px" />
-            </motion.div>
+              Read Google reviews
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </motion.div>
-
-          {regions.map((region, regionIdx) => (
-            <motion.div key={regionIdx} className="mb-16" {...scrollReveal}>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {region.name}
-              </h3>
-              <p className="text-gray-600 mb-6">{region.description}</p>
-              <motion.div
-                className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-                variants={staggerContainer}
-                initial="initial"
-                whileInView="whileInView"
-                viewport={{ once: true, amount: 0.1 }}
-              >
-                {region.areas.map((area, areaIdx) => (
-                  <motion.button
-                    key={areaIdx}
-                    variants={staggerItem}
-                    onClick={() => navigate(`/service-areas/${area.slug}`)}
-                    className="text-left bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group"
-                  >
-                    <div className="flex items-start gap-4 mb-4">
-                      <MapPin className="w-5 h-5 text-teal-600 flex-shrink-0 mt-1" />
-                      <h4 className="text-lg font-bold text-gray-900 group-hover:text-teal-600 transition">
-                        {area.name}
-                      </h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      {area.coverage}
-                    </p>
-                    <span className="inline-flex items-center gap-2 text-teal-600 font-semibold group-hover:gap-3 transition">
-                      Learn More →
-                    </span>
-                  </motion.button>
-                ))}
+          <div className="grid md:grid-cols-3 gap-4">
+            {testimonialHighlights.map((item) => (
+              <motion.div {...fadeUp} key={item.name} className="border border-gray-200 rounded-xl p-5">
+                <div className="flex items-center gap-1 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-gray-700">&quot;{item.quote}&quot;</p>
+                <p className="mt-4 text-sm font-semibold text-gray-900">{item.name}</p>
+                <p className="text-sm text-teal-700">{item.service}</p>
               </motion.div>
-            </motion.div>
-          ))}
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <motion.div
-            className="grid md:grid-cols-3 gap-6 mb-12"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="whileInView"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <motion.div
-              variants={staggerItem}
-              className="bg-white border border-gray-200 rounded-xl p-6"
-            >
-              <Clock className="w-8 h-8 text-teal-600 mb-3" />
-              <h3 className="font-bold text-gray-900 mb-2">Quick Response</h3>
-              <p className="text-gray-600">
-                Most areas get quotes within 24 hours.
-              </p>
-            </motion.div>
-            <motion.div
-              variants={staggerItem}
-              className="bg-white border border-gray-200 rounded-xl p-6"
-            >
-              <Phone className="w-8 h-8 text-teal-600 mb-3" />
-              <h3 className="font-bold text-gray-900 mb-2">Direct Contact</h3>
-              <p className="text-gray-600">
-                Call {PHONE_MAIN_DISPLAY} for your area.
-              </p>
-            </motion.div>
-            <motion.div
-              variants={staggerItem}
-              className="bg-white border border-gray-200 rounded-xl p-6"
-            >
-              <MapPin className="w-8 h-8 text-teal-600 mb-3" />
-              <h3 className="font-bold text-gray-900 mb-2">
-                Expanding Coverage
-              </h3>
-              <p className="text-gray-600">
-                Don't see your area? Contact us anyway.
-              </p>
-            </motion.div>
+      <section className="py-14 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-8">
+            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Service area proof</p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-2">Local cleaning coverage you can verify</h2>
           </motion.div>
+          <motion.div {...fadeUp} className="rounded-2xl overflow-hidden border border-gray-200 bg-white p-4">
+            <ServiceAreaMap height="360px" />
+          </motion.div>
+          <motion.div {...fadeUp} className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => navigate("/service-areas")}
+              className="px-6 py-3 rounded-lg bg-white border border-gray-200 text-gray-800 hover:bg-gray-100 font-semibold"
+            >
+              View service areas
+            </button>
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-semibold"
+            >
+              <Phone className="w-4 h-4" />
+              Call {PHONE_MAIN_DISPLAY}
+            </a>
+          </motion.div>
+        </div>
+      </section>
 
-          <motion.div
-            className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center"
-            {...scrollReveal}
-          >
-            <h3 className="text-3xl font-bold text-white mb-4">
-              Ready to Book?
-            </h3>
-            <p className="text-teal-50 text-lg mb-8">
-              Request a free quote from the hero on our home page, or call us for your area.
+      <section className="py-16 bg-gradient-to-r from-teal-700 to-teal-800 text-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div {...fadeUp}>
+            <h2 className="text-3xl sm:text-4xl font-bold">Ready for a cleaner home or workspace?</h2>
+            <p className="text-teal-100 mt-3 text-lg">
+              Tell us what you need and we will send a clear, no-obligation quote.
             </p>
-            <div className="flex justify-center">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/request-a-quote")}
+                className="px-6 py-3 rounded-lg bg-white text-teal-700 hover:bg-teal-50 font-semibold"
+              >
+                Get a Free Quote
+              </button>
               <a
                 href={PHONE_MAIN_HREF}
-                className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
+                className="px-6 py-3 rounded-lg bg-amber-400 text-gray-900 hover:bg-amber-300 font-semibold"
               >
                 Call Now
               </a>
             </div>
+            <p className="mt-4 text-sm text-teal-100 inline-flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              Local teams serving Kent, London, and Essex
+            </p>
           </motion.div>
         </div>
-      </motion.section>
-
-      {/* Reviews / Testimonials Section - Scroll Reveal */}
-      <motion.section
-        className="py-20 bg-gradient-to-b from-white to-gray-50"
-        {...scrollReveal}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div className="text-center mb-16" {...scrollReveal}>
-            <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
-              Customer Reviews
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-6">
-              Loved by Thousands
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what our satisfied customers say about our cleaning services.
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-5 h-5 fill-amber-400 text-amber-400"
-                  />
-                ))}
-              </div>
-              <span className="text-gray-600 font-semibold">
-                4.9 / 5 Stars (200+ Reviews)
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Desktop: 3 cards */}
-          <motion.div
-            className="hidden md:grid grid-cols-3 gap-8 mb-8"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="whileInView"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {getVisibleTestimonials().map((t) => (
-              <motion.div
-                key={t.id}
-                variants={staggerItem}
-                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition border border-gray-100 flex flex-col h-full"
-              >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-amber-400 text-amber-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-600 text-lg mb-6 flex-grow italic">
-                  &quot;{t.text}&quot;
-                </p>
-                <div className="flex items-center gap-4">
-                  <img
-                    src={t.image}
-                    alt={t.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-bold text-gray-900">{t.name}</p>
-                    <p className="text-sm text-teal-600 font-semibold">
-                      {t.service}
-                    </p>
-                    <p className="text-xs text-gray-500">{t.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Mobile: single card */}
-          <div className="md:hidden mb-8">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100"
-            >
-              <div className="flex gap-1 mb-4">
-                {[...Array(testimonials[currentSlide].rating)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-4 h-4 fill-amber-400 text-amber-400"
-                  />
-                ))}
-              </div>
-              <p className="text-gray-600 text-lg mb-6 italic">
-                &quot;{testimonials[currentSlide].text}&quot;
-              </p>
-              <div className="flex items-center gap-4">
-                <img
-                  src={testimonials[currentSlide].image}
-                  alt={testimonials[currentSlide].name}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <p className="font-bold text-gray-900">
-                    {testimonials[currentSlide].name}
-                  </p>
-                  <p className="text-sm text-teal-600 font-semibold">
-                    {testimonials[currentSlide].service}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {testimonials[currentSlide].role}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          <motion.div
-            className="flex items-center justify-between max-w-md mx-auto"
-            {...scrollReveal}
-          >
-            <button
-              onClick={prevSlide}
-              className="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-full transition shadow-lg"
-              aria-label="Previous testimonial"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div className="flex gap-2">
-              {testimonials.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`w-3 h-3 rounded-full transition ${
-                    idx === currentSlide ? "bg-teal-600" : "bg-gray-300"
-                  }`}
-                  aria-label={`Go to testimonial ${idx + 1}`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={nextSlide}
-              className="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-full transition shadow-lg"
-              aria-label="Next testimonial"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </motion.div>
-
-          <motion.div
-            className="mt-20 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-12 text-center"
-            {...scrollReveal}
-          >
-            <h3 className="text-3xl font-bold text-white mb-4">
-              Join Thousands of Satisfied Customers
-            </h3>
-            <p className="text-teal-50 text-lg mb-8">
-              Experience the Apex Five difference. Professional, eco-friendly
-              cleaning you can trust. Use <strong className="text-white">Get Your Free Quote</strong> at the top of this page to book.
-            </p>
-            <div className="flex justify-center">
-              <a
-                href={PHONE_MAIN_HREF}
-                className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-8 py-3 rounded-lg font-bold transition text-center"
-              >
-                Call {PHONE_MAIN_DISPLAY}
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
+      </section>
+      <ImageLightbox
+        image={lightboxImage}
+        alt="Expanded cleaning result example"
+        onClose={() => setLightboxImage("")}
+      />
     </>
   );
-};
-
-export default Home;
+}

@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { post } from "../utils/apiClient";
 import { scrollReveal } from "../utils/scrollReveal";
 import SEO from "../components/SEO";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
+import { getRecaptchaSiteKey, getRecaptchaToken, loadRecaptchaScript } from "../utils/recaptcha";
 import {
   getAttributionPayload,
   loadQuoteDraft,
@@ -14,6 +17,7 @@ import {
 } from "../utils/attribution";
 import { trackEvent } from "../utils/analytics";
 import { loadAndClearQuotePrefill } from "../utils/quotePrefill";
+import { createIdempotencyKey, withIdempotency } from "../utils/idempotency";
 
 // Additional services customers can add to their quote
 const ADDITIONAL_SERVICES = [
@@ -32,22 +36,6 @@ const ADDITIONAL_SERVICES = [
 
 const getFirstErrorMessage = (errorMap = {}) =>
   Object.values(errorMap).filter(Boolean)[0] || "Please check the form for errors";
-
-// Load reCAPTCHA script
-const loadRecaptchaScript = () => {
-  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  if (!siteKey || window.grecaptcha) return;
-
-  const existingScript = document.querySelector("script[data-recaptcha='quote-form']");
-  if (!existingScript) {
-    const script = document.createElement("script");
-    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.recaptcha = "quote-form";
-    document.head.appendChild(script);
-  }
-};
 
 const Quote = () => {
   const [step, setStep] = useState(1);
@@ -77,9 +65,10 @@ const Quote = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   const [errors, setErrors] = useState({});
+  const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey());
 
   useEffect(() => {
-    loadRecaptchaScript();
+    loadRecaptchaScript("quote-form");
   }, []);
 
   useEffect(() => {
@@ -319,27 +308,22 @@ const Quote = () => {
 
     try {
       let token = "";
-      if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
-        if (!window.grecaptcha) {
-          setSubmitError(
-            "Security check is still loading. Please wait a few seconds and try again.",
-          );
-          setSubmitting(false);
-          return;
-        }
+      const recaptchaSiteKey = getRecaptchaSiteKey();
+      if (!recaptchaSiteKey && import.meta.env.PROD) {
+        setSubmitError(
+          "Security check is not configured on this site. Please contact support (missing VITE_RECAPTCHA_SITE_KEY).",
+        );
+        setSubmitting(false);
+        return;
+      }
+      if (recaptchaSiteKey) {
         try {
-          token = await new Promise((resolve, reject) => {
-            window.grecaptcha.ready(() => {
-              window.grecaptcha
-                .execute(import.meta.env.VITE_RECAPTCHA_SITE_KEY, { action: "submit" })
-                .then(resolve)
-                .catch(reject);
-            });
-          });
+          token = await getRecaptchaToken("quote_submit");
         } catch (captchaErr) {
           console.error("reCAPTCHA execute failed:", captchaErr);
           setSubmitError(
-            "Could not verify the form (reCAPTCHA). Refresh the page and try again, or check that this site’s domain is allowed in your Google reCAPTCHA admin settings.",
+            captchaErr?.message ||
+              "Could not verify the form (reCAPTCHA). Refresh the page and try again, or check that this site domain is allowed in your Google reCAPTCHA settings.",
           );
           setSubmitting(false);
           return;
@@ -377,7 +361,11 @@ const Quote = () => {
       }
       formDataToSend.append("attribution", JSON.stringify(attribution));
 
-      const data = await post("/api/quotes/submit", formDataToSend);
+      const data = await post(
+        "/api/quotes/submit",
+        formDataToSend,
+        withIdempotency(idempotencyKey),
+      );
 
       if (data.errors) {
         setErrors(data.errors);
@@ -395,6 +383,7 @@ const Quote = () => {
         has_photos: selectedImages.length > 0,
       });
       setStep(4);
+      setIdempotencyKey(createIdempotencyKey());
       setSubmitting(false);
     } catch (error) {
       console.error("Submission error:", error);
@@ -465,8 +454,7 @@ const Quote = () => {
             Request Your Free Quote
           </h1>
           <p className="text-gray-600">
-            Fill out the form below and we'll get back to you with a
-            personalized quote
+            Fill in a few quick details and our team will send a personalised quote within 24 hours.
           </p>
         </motion.div>
 
@@ -477,18 +465,29 @@ const Quote = () => {
               {step < 4 ? `Step ${step} of 3` : "Complete"}
             </span>
             <span className="text-sm font-medium text-gray-600">
-              {step < 4 ? Math.round((step / 3) * 75) : 100}%
+              {step < 4 ? Math.round((step / 3) * 100) : 100}%
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-teal-600 h-2 rounded-full transition-all duration-300"
               style={{
-                width: step < 4 ? `${(step / 3) * 75}%` : "100%",
+                width: step < 4 ? `${(step / 3) * 100}%` : "100%",
               }}
             ></div>
           </div>
         </div>
+        {step < 4 && (
+          <div className="mb-8 bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600">
+            <p>
+              Need help now? Call{" "}
+              <a href={PHONE_MAIN_HREF} className="text-teal-700 font-semibold hover:text-teal-800">
+                {PHONE_MAIN_DISPLAY}
+              </a>{" "}
+              and we can guide you through your quote in minutes.
+            </p>
+          </div>
+        )}
 
         {step === 4 ? (
           <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
@@ -527,6 +526,11 @@ const Quote = () => {
             >
               Request Another Quote
             </button>
+            <div className="mt-4">
+              <Link to="/services" className="text-teal-700 hover:text-teal-800 font-medium">
+                View all cleaning services
+              </Link>
+            </div>
           </div>
         ) : (
           <form
@@ -552,6 +556,9 @@ const Quote = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Property Details
                 </h2>
+                <p className="text-sm text-gray-600 -mt-2 mb-4">
+                  This helps us estimate time and team size accurately.
+                </p>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Property Type *
@@ -645,6 +652,9 @@ const Quote = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Service Type
                 </h2>
+                <p className="text-sm text-gray-600 -mt-2 mb-4">
+                  Add photos and extras to get the most accurate first quote.
+                </p>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     What service do you need? *
@@ -833,6 +843,9 @@ const Quote = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Contact Information
                 </h2>
+                <p className="text-sm text-gray-600 -mt-2 mb-4">
+                  Final step. We use these details only to send your quote and booking options.
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1001,28 +1014,34 @@ const Quote = () => {
 
                 {/* CAPTCHA Notice */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-700">
-                    <span className="font-medium">Protected by reCAPTCHA:</span>{" "}
-                    This site is protected by reCAPTCHA and the Google{" "}
-                    <a
-                      href="https://policies.google.com/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Privacy Policy
-                    </a>{" "}
-                    and{" "}
-                    <a
-                      href="https://policies.google.com/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Terms of Service
-                    </a>{" "}
-                    apply.
-                  </p>
+                  {getRecaptchaSiteKey() ? (
+                    <p className="text-sm text-blue-700">
+                      <span className="font-medium">Protected by reCAPTCHA:</span>{" "}
+                      This site is protected by reCAPTCHA and the Google{" "}
+                      <a
+                        href="https://policies.google.com/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        Privacy Policy
+                      </a>{" "}
+                      and{" "}
+                      <a
+                        href="https://policies.google.com/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        Terms of Service
+                      </a>{" "}
+                      apply.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-blue-700">
+                      CAPTCHA is currently unavailable in this environment.
+                    </p>
+                  )}
                   {errors.captchaToken && (
                     <p className="text-red-600 text-sm mt-2">{errors.captchaToken}</p>
                   )}

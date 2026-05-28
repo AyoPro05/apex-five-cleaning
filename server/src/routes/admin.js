@@ -6,11 +6,14 @@ import Referral from '../../models/Referral.js';
 import QuotePayment from '../../models/QuotePayment.js';
 import Staff from '../../models/Staff.js';
 import StaffShift from '../../models/StaffShift.js';
+import ChatLead from '../models/ChatLead.js';
+import Booking from '../../models/Booking.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail, sendTestEmail, isEmailConfigured } from '../utils/emailService.js';
 import { sanitizeQuoteImagesForApi, resolveQuoteImageBuffer } from '../utils/quoteImages.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.js';
 import { strictRateLimiter } from '../middleware/rateLimiter.js';
+import { emitEvent } from '../utils/eventBus.js';
 
 const router = express.Router();
 
@@ -32,6 +35,7 @@ const STAFF_ROLES = ['cleaner', 'supervisor', 'admin'];
 const STAFF_EMPLOYMENT_TYPES = ['full-time', 'part-time', 'contractor'];
 const STAFF_STATUSES = ['active', 'inactive', 'suspended'];
 const SHIFT_STATUSES = ['scheduled', 'completed', 'approved', 'paid', 'cancelled'];
+const CHAT_LEAD_STATUSES = ['new', 'contacted', 'qualified', 'closed'];
 
 /** Escape a string for safe use in RegExp (prevents ReDoS / injection) */
 function escapeRegex(s) {
@@ -122,6 +126,63 @@ function normalizeStaffPayload(body = {}, existing = {}) {
 
 /** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
 const requireAdmin = [authMiddleware, adminMiddleware];
+
+const SERVICE_NAMES = {
+  residential: 'Residential Cleaning',
+  'end-of-tenancy': 'End of Tenancy Cleaning',
+  airbnb: 'Airbnb Turnover Cleaning',
+  commercial: 'Commercial Cleaning',
+};
+
+/**
+ * Create a draft Booking from a converted Quote. Idempotent: never creates a
+ * second draft for the same quote.
+ *
+ * - status: 'draft' (admin schedules date/time before moving to 'pending')
+ * - userId: linked if a User with the quote's email exists, otherwise null
+ *   (a guest snapshot is stored on the booking and is linked at register time)
+ * - basePrice/totalPrice: seeded from quote.approvedAmount when present
+ */
+async function ensureDraftBookingForQuote(quote) {
+  if (!quote || !quote._id) return null;
+  if (quote.linkedBookingId) {
+    return Booking.findById(quote.linkedBookingId);
+  }
+  const existing = await Booking.findOne({ quoteId: quote._id });
+  if (existing) {
+    await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: existing._id } });
+    return existing;
+  }
+  const user = quote.email
+    ? await User.findOne({ email: String(quote.email).toLowerCase() }).select('_id').lean()
+    : null;
+  const amount = Number(quote.approvedAmount) > 0 ? Number(quote.approvedAmount) : 0;
+  const draft = await Booking.create({
+    userId: user?._id || undefined,
+    quoteId: quote._id,
+    quoteReference: quote.reference,
+    customerEmail: quote.email,
+    customerFirstName: quote.firstName,
+    customerLastName: quote.lastName,
+    customerPhone: quote.phone,
+    serviceId: ['residential', 'end-of-tenancy', 'airbnb', 'commercial'].includes(quote.serviceType)
+      ? quote.serviceType
+      : undefined,
+    serviceName: SERVICE_NAMES[quote.serviceType] || quote.serviceType,
+    address: {
+      street: quote.address,
+      postCode: quote.postcode,
+      country: 'UK',
+    },
+    notes: quote.additionalNotes,
+    basePrice: amount,
+    totalPrice: amount,
+    status: 'draft',
+    paymentStatus: 'pending',
+  });
+  await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: draft._id } });
+  return draft;
+}
 
 async function purgeExpiredDeletedQuotes() {
   const cutoff = new Date(Date.now() - QUOTE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
@@ -273,6 +334,7 @@ router.get('/quotes', requireAdmin, async (req, res) => {
   try {
     await purgeExpiredDeletedQuotes();
     const status = req.query.status || 'new';
+    const suspected = String(req.query.suspected || '').toLowerCase();
     const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
     const sortBy = QUOTE_SORT_WHITELIST.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
@@ -280,7 +342,9 @@ router.get('/quotes', requireAdmin, async (req, res) => {
     const search = String(req.query.search || '').trim();
     
     const filter = { isDeleted: { $ne: true } };
-    if (status && status !== 'all') {
+    if (suspected === '1' || suspected === 'true') {
+      filter.suspectedSpam = true;
+    } else if (status && status !== 'all') {
       filter.status = status;
     }
     
@@ -418,7 +482,7 @@ router.post('/test-email', requireAdmin, strictRateLimiter, async (req, res) => 
 // Update quote status and notes
 router.patch('/quotes/:id', requireAdmin, async (req, res) => {
   try {
-    const { status, adminNotes, approvedAmount } = req.body;
+    const { status, adminNotes, approvedAmount, clearSuspicion } = req.body;
     
     if (status && !['new', 'contacted', 'converted', 'rejected'].includes(status)) {
       return res.status(400).json({
@@ -442,7 +506,19 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
     if (status) updateData.status = status;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
     if (approvedAmount !== undefined) updateData.approvedAmount = Number(approvedAmount) || 0;
-    
+    if (clearSuspicion === true) {
+      updateData.suspectedSpam = false;
+      updateData.suspicionReasons = [];
+      updateData.suspicionReviewedAt = new Date();
+    }
+    // Stamp convertedAt the first time a quote moves into "converted" — used by the
+    // scheduler to send a payment reminder 48h later if still unpaid.
+    if (status === 'converted' && existingQuote.status !== 'converted') {
+      updateData.convertedAt = new Date();
+      // Clear any prior payment reminder so a fresh approval triggers a fresh cycle
+      updateData.paymentReminderSentAt = undefined;
+    }
+
     const quote = await Quote.findOneAndUpdate(
       { _id: req.params.id, isDeleted: { $ne: true } },
       updateData,
@@ -450,6 +526,7 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
     );
     
     // When status changes to "converted", send "create your account" email
+    // and create a draft booking record so the job appears in the ops pipeline.
     if (status === 'converted' && existingQuote.status !== 'converted') {
       try {
         await sendQuoteApprovedEmail(
@@ -460,6 +537,31 @@ router.patch('/quotes/:id', requireAdmin, async (req, res) => {
       } catch (emailErr) {
         console.warn('Quote approved email failed:', emailErr.message);
       }
+      try {
+        const draft = await ensureDraftBookingForQuote(quote);
+        if (draft) {
+          quote.linkedBookingId = draft._id;
+          emitEvent('booking.draft_created', {
+            bookingId: String(draft._id),
+            quoteId: String(quote._id),
+            quoteReference: quote.reference,
+            status: draft.status,
+            customerEmail: quote.email,
+            serviceType: quote.serviceType,
+            totalPrice: draft.totalPrice,
+          });
+        }
+      } catch (bookingErr) {
+        console.warn('Draft booking creation failed:', bookingErr.message);
+      }
+      emitEvent('quote.converted', {
+        quoteId: String(quote._id),
+        reference: quote.reference,
+        email: quote.email,
+        serviceType: quote.serviceType,
+        approvedAmount: quote.approvedAmount,
+        previousStatus: existingQuote.status,
+      });
     }
     
     return res.json({
@@ -1104,6 +1206,11 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       revenueByMonthAgg,
       serviceDistributionAgg,
       recentPayments,
+      chatLeadAgg,
+      chatLeadByStatusAgg,
+      recentChatLeads,
+      suspectedQuotesCount,
+      suspectedChatLeadsCount,
     ] = await Promise.all([
       QuotePayment.countDocuments(),
       QuotePayment.aggregate([
@@ -1134,11 +1241,40 @@ router.get('/analytics', requireAdmin, async (req, res) => {
         .limit(10)
         .populate('quoteId', 'firstName lastName email serviceType reference')
         .lean(),
+      ChatLead.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            last7d: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$createdAt', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)] },
+                  1,
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+      ChatLead.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      ChatLead.find({})
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .select('name email phone postcode serviceType status createdAt source suspectedSpam suspicionReasons')
+        .lean(),
+      Quote.countDocuments({ isDeleted: { $ne: true }, suspectedSpam: true }),
+      ChatLead.countDocuments({ suspectedSpam: true }),
     ]);
 
     const pendingPayments = pendingPaymentsAgg[0] || { count: 0, total: 0 };
     const completedPayments = completedPaymentsAgg[0] || { count: 0, total: 0 };
     const totalRevenue = completedPayments.total || 0;
+    const chatLeadStats = chatLeadAgg[0] || { total: 0, last7d: 0 };
 
     const revenueByMonth = [];
     for (let i = 11; i >= 0; i--) {
@@ -1181,6 +1317,18 @@ router.get('/analytics', requireAdmin, async (req, res) => {
           count: s.count,
         })),
         recentBookings,
+        chatLeads: {
+          total: chatLeadStats.total || 0,
+          last7d: chatLeadStats.last7d || 0,
+          suspected: suspectedChatLeadsCount || 0,
+          byStatus: (chatLeadByStatusAgg || []).map((s) => ({
+            status: s._id || 'new',
+            count: s.count || 0,
+          })),
+          recent: recentChatLeads || [],
+        },
+        suspectedQuotes: suspectedQuotesCount || 0,
+        suspectedChatLeads: suspectedChatLeadsCount || 0,
       },
     });
   } catch (error) {
@@ -1188,6 +1336,256 @@ router.get('/analytics', requireAdmin, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Error fetching analytics',
+    });
+  }
+});
+
+router.get('/chat-leads', requireAdmin, async (req, res) => {
+  try {
+    const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
+    const status = String(req.query.status || 'all');
+    const suspected = String(req.query.suspected || '').toLowerCase();
+    const search = String(req.query.search || '').trim();
+    const filter = {};
+    if (suspected === '1' || suspected === 'true') {
+      filter.suspectedSpam = true;
+    } else if (status !== 'all') {
+      filter.status = status;
+    }
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), 'i');
+      filter.$or = [
+        { name: { $regex: regex } },
+        { email: { $regex: regex } },
+        { phone: { $regex: regex } },
+        { postcode: { $regex: regex } },
+        { serviceType: { $regex: regex } },
+      ];
+    }
+    const skip = (page - 1) * limit;
+    const [total, leads] = await Promise.all([
+      ChatLead.countDocuments(filter),
+      ChatLead.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    ]);
+    return res.json({
+      success: true,
+      data: leads,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching chat leads:', error);
+    return res.status(500).json({ success: false, error: 'Error fetching chat leads' });
+  }
+});
+
+/**
+ * GET /api/admin/booking-drafts
+ * List draft bookings (auto-created from converted quotes) waiting to be scheduled.
+ */
+router.get('/booking-drafts', requireAdmin, async (req, res) => {
+  try {
+    const page = Math.max(1, Math.min(parseInt(req.query.page, 10) || 1, 100));
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
+    const search = String(req.query.search || '').trim();
+    const filter = { status: 'draft' };
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), 'i');
+      const upper = search.toUpperCase();
+      filter.$or = [
+        { customerEmail: { $regex: regex } },
+        { customerFirstName: { $regex: regex } },
+        { customerLastName: { $regex: regex } },
+        { customerPhone: { $regex: regex } },
+        { quoteReference: upper },
+      ];
+    }
+    const skip = (page - 1) * limit;
+    const [total, drafts] = await Promise.all([
+      Booking.countDocuments(filter),
+      Booking.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+    return res.json({
+      success: true,
+      data: drafts,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error listing booking drafts:', error);
+    return res.status(500).json({ success: false, error: 'Error listing booking drafts' });
+  }
+});
+
+/**
+ * PATCH /api/admin/booking-drafts/:id
+ * Confirm a draft booking: set date/time/duration/serviceArea then transition to "pending".
+ */
+router.patch('/booking-drafts/:id', requireAdmin, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking draft not found' });
+    }
+    const previousStatus = booking.status;
+    if (req.body.status !== undefined) {
+      const validStatuses = ['draft', 'pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'rescheduled'];
+      if (!validStatuses.includes(req.body.status)) {
+        return res.status(400).json({ success: false, error: 'Invalid booking status' });
+      }
+    }
+    const allowed = ['date', 'time', 'duration', 'serviceArea', 'basePrice', 'totalPrice', 'discount', 'notes', 'serviceId', 'status'];
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) booking[key] = req.body[key];
+    }
+    if (req.body.confirm === true && booking.status === 'draft') {
+      booking.status = 'pending';
+    }
+    if (booking.status === 'completed' && previousStatus !== 'completed') {
+      booking.completedAt = new Date();
+    }
+    booking.updatedAt = new Date();
+    await booking.save();
+
+    if (req.body.confirm === true && previousStatus === 'draft' && booking.status === 'pending') {
+      emitEvent('booking.confirmed', {
+        bookingId: String(booking._id),
+        quoteReference: booking.quoteReference,
+        status: booking.status,
+        date: booking.date,
+        time: booking.time,
+        customerEmail: booking.customerEmail,
+        serviceName: booking.serviceName,
+        totalPrice: booking.totalPrice,
+      });
+    }
+    if (booking.status === 'completed' && previousStatus !== 'completed') {
+      emitEvent('booking.completed', {
+        bookingId: String(booking._id),
+        quoteReference: booking.quoteReference,
+        status: booking.status,
+        completedAt: booking.completedAt,
+        customerEmail: booking.customerEmail,
+        serviceName: booking.serviceName,
+        totalPrice: booking.totalPrice,
+      });
+    }
+    return res.json({ success: true, booking });
+  } catch (error) {
+    console.error('Error updating booking draft:', error);
+    return res.status(500).json({ success: false, error: 'Error updating booking draft' });
+  }
+});
+
+/**
+ * GET /api/admin/email-issues
+ * List users with email delivery problems (warning or bounced).
+ * Used to see who needs manual contact via phone or alternative email.
+ */
+router.get('/email-issues', requireAdmin, async (req, res) => {
+  try {
+    const filter = {
+      emailFailures: { $gt: 0 },
+    };
+    const users = await User.find(filter)
+      .sort({ emailFailures: -1, emailLastFailedAt: -1 })
+      .limit(100)
+      .select(
+        'firstName lastName email phone emailFailures emailLastFailedAt emailLastFailureReason emailDeliveryStatus isVerified createdAt',
+      )
+      .lean();
+    return res.json({
+      success: true,
+      data: users,
+      pagination: { total: users.length, page: 1, limit: 100, pages: 1 },
+    });
+  } catch (error) {
+    console.error('Error listing email issues:', error);
+    return res.status(500).json({ success: false, error: 'Error listing email issues' });
+  }
+});
+
+/**
+ * POST /api/admin/email-issues/:id/reset
+ * Clear bounce flags for a user so the system can attempt delivery again.
+ */
+router.post('/email-issues/:id/reset', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          emailFailures: 0,
+          emailDeliveryStatus: 'ok',
+          emailLastFailureReason: '',
+        },
+      },
+      { new: true, projection: { email: 1, emailFailures: 1, emailDeliveryStatus: 1 } },
+    ).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error resetting email status:', error);
+    return res.status(500).json({ success: false, error: 'Error resetting email status' });
+  }
+});
+
+router.patch('/chat-leads/:id', requireAdmin, async (req, res) => {
+  try {
+    const status = String(req.body?.status || '').trim();
+    const clearSuspicion = req.body?.clearSuspicion === true;
+    if (!CHAT_LEAD_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid chat lead status',
+      });
+    }
+
+    const lead = await ChatLead.findByIdAndUpdate(
+      req.params.id,
+      clearSuspicion
+        ? {
+            status,
+            suspectedSpam: false,
+            suspicionReasons: [],
+            suspicionReviewedAt: new Date(),
+          }
+        : { status },
+      { new: true },
+    ).lean();
+
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        error: 'Chat lead not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: lead,
+      message: 'Chat lead status updated',
+    });
+  } catch (error) {
+    console.error('Error updating chat lead status:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error updating chat lead status',
     });
   }
 });
