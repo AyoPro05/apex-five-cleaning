@@ -7,9 +7,10 @@ const BUSINESS_PHONE = "+442035356331";
 const BUSINESS_EMAIL = "info@apexfivecleaning.co.uk";
 const BUSINESS_ADDRESS = {
   "@type": "PostalAddress",
-  streetAddress: "123 Main road, Broadway, Sittingbourne plaza",
-  addressLocality: "Sittingbourne",
-  postalCode: "ME11 2BY",
+  streetAddress: "91 Manor Road",
+  addressLocality: "Wallington",
+  postalCode: "SM6 0AP",
+  addressRegion: "Surrey",
   addressCountry: "GB",
 };
 

@@ -151,7 +151,7 @@ const getBrandConfig = () => {
     email: process.env.COMPANY_EMAIL || DEFAULT_MAILBOX,
     phone: process.env.COMPANY_PHONE || '020 3535 6331',
     phoneTel: process.env.COMPANY_PHONE_TEL || '+442035356331',
-    address: process.env.COMPANY_ADDRESS || 'Wallington, Surrey, UK',
+    address: process.env.COMPANY_ADDRESS || '91 Manor Road, Wallington SM6 0AP, Surrey',
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'
   };

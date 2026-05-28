@@ -37,7 +37,7 @@ export const websiteKnowledge = [
   // Contact
   { keywords: ['contact', 'phone', 'email', 'address', 'where', 'location'],
     topic: 'Contact',
-    answer: `Address: 123, Main road, Broadway, Sittingbourne plaza ME11 2BY. Phone: ${PHONE_MAIN_DISPLAY}. Email: info@apexfivecleaning.co.uk. We reply within 24 hours.`,
+    answer: `Address: 91 Manor Road, Wallington SM6 0AP, Surrey. Phone: ${PHONE_MAIN_DISPLAY}. Email: info@apexfivecleaning.co.uk. We reply within 24 hours.`,
     link: '/contact' },
   // Payment
   { keywords: ['pay', 'payment', 'card', 'pay online'],
@@ -82,7 +82,7 @@ export const websiteKnowledge = [
   // About
   { keywords: ['about', 'who', 'company', 'mission', 'family'],
     topic: 'About Us',
-    answer: 'Apex Five Cleaning is a professional cleaning company based in Wallington, Surrey, UK, part of Apex Five Capital Ltd. Built on trust, clarity, and exceptional service. We serve the South East and beyond.',
+    answer: 'Apex Five Cleaning is a professional cleaning company based at 91 Manor Road, Wallington SM6 0AP, Surrey, part of Apex Five Capital Ltd. Built on trust, clarity, and exceptional service. We serve the South East and beyond.',
     link: '/about' },
   // FAQ
   { keywords: ['faq', 'questions', 'common'],

@@ -168,12 +168,12 @@ const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900">Address</h3>
                   <a
-                    href="https://www.google.com/maps/search/?api=1&query=123+Main+road+Broadway+Sittingbourne+plaza+ME11+2BY"
+                    href="https://www.google.com/maps/search/?api=1&query=91+Manor+Road,+Wallington+SM6+0AP,+Surrey"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-teal-600 hover:text-teal-700 font-medium block"
                   >
-                    123, Main road, Broadway, Sittingbourne plaza ME11 2BY
+                    91 Manor Road, Wallington SM6 0AP, Surrey
                   </a>
                   <p className="text-gray-500 text-sm mt-1">Serving Kent, Essex, Greater London & surrounding areas</p>
                 </div>
