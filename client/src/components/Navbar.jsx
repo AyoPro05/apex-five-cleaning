@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import ScrollRestoringLink from './ScrollRestoringLink'
 import { Menu, X, User, LogOut, Search, Phone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -16,6 +16,7 @@ const Navbar = () => {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, isAuthenticated, logout, registerAuthModals } = useAuth()
 
   useEffect(() => {
@@ -25,13 +26,24 @@ const Navbar = () => {
   const [searchParams] = useSearchParams()
 
   useEffect(() => {
-    if (searchParams.get('signup') === '1' && !isAuthenticated) {
-      setShowSignUp(true)
-    }
-    if (searchParams.get('signin') === '1' && !isAuthenticated) {
-      setShowSignIn(true)
-    }
-  }, [searchParams, isAuthenticated])
+    if (isAuthenticated) return
+
+    const wantsSignIn = searchParams.get('signin') === '1'
+    const wantsSignUp = searchParams.get('signup') === '1'
+    if (!wantsSignIn && !wantsSignUp) return
+
+    if (wantsSignIn) setShowSignIn(true)
+    if (wantsSignUp) setShowSignUp(true)
+
+    const next = new URLSearchParams(searchParams)
+    next.delete('signin')
+    next.delete('signup')
+    const query = next.toString()
+    navigate(
+      { pathname: location.pathname, search: query ? `?${query}` : '' },
+      { replace: true },
+    )
+  }, [searchParams, isAuthenticated, location.pathname, navigate])
 
   const navLinks = [
     { path: '/', label: 'Home' },
@@ -125,29 +137,14 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <ScrollRestoringLink
-                  to="/pay-online"
-                  className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 font-medium hover:border-teal-300 hover:bg-teal-50 transition"
-                >
-                  Pay Online
-                </ScrollRestoringLink>
-                <button
-                  type="button"
-                  onClick={() => setShowSignIn(true)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 font-medium hover:border-teal-300 hover:bg-teal-50 transition"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="p-2 text-gray-400 hover:text-teal-600 transition"
-                  title="Search"
-                  aria-label="Search"
-                >
-                  <Search className="w-6 h-6" />
-                </button>
-              </div>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="p-2 text-gray-400 hover:text-teal-600 transition"
+                title="Search"
+                aria-label="Search"
+              >
+                <Search className="w-6 h-6" />
+              </button>
             )}
           </div>
 
@@ -208,33 +205,6 @@ const Navbar = () => {
             >
               Book Now
             </ScrollRestoringLink>
-            <ScrollRestoringLink
-              to="/pay-online"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
-            >
-              Pay Online
-            </ScrollRestoringLink>
-            {isAuthenticated ? (
-              <ScrollRestoringLink
-                to="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
-              >
-                Dashboard
-              </ScrollRestoringLink>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSignIn(true)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="w-full text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
-              >
-                Login
-              </button>
-            )}
             <a
               href={PHONE_MAIN_HREF}
               className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"

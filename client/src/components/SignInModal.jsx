@@ -170,7 +170,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Login"
+      aria-label="Log in or sign up"
       className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={handleBackdropClick}
     >
@@ -182,8 +182,8 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
         >
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Login</h2>
-        <p className="text-gray-600 mb-6">Welcome back to Apex Five Cleaning</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Log in or sign up</h2>
+        <p className="text-gray-600 mb-6">Access your dashboard, bookings, and payments.</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
@@ -281,7 +281,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
                 Logging in...
               </>
             ) : (
-              'Login'
+              'Log in'
             )}
           </button>
         </form>

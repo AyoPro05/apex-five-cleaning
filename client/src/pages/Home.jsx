@@ -72,14 +72,30 @@ const fadeUp = {
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, openSignIn } = useAuth();
+  const { isAuthenticated, loading, openSignIn, openSignUp } = useAuth();
 
+  // Open sign-in once when bounced from a protected route; clear history state so
+  // mobile refresh does not reopen the modal (state persists on the same URL entry).
   useEffect(() => {
-    if (isAuthenticated) return;
-    if (location.state?.from) {
-      openSignIn?.();
-    }
-  }, [isAuthenticated, location.state, openSignIn]);
+    if (loading || isAuthenticated) return;
+    const redirectFrom = location.state?.from;
+    if (!redirectFrom) return;
+
+    openSignIn?.();
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      { replace: true, state: {} },
+    );
+  }, [
+    loading,
+    isAuthenticated,
+    location.pathname,
+    location.search,
+    location.hash,
+    location.state?.from,
+    navigate,
+    openSignIn,
+  ]);
   const [lightboxImage, setLightboxImage] = useState("");
   const homeSchemas = [buildWebSiteSchema(), buildLocalBusinessSchema()];
   const beforeAfterHighlights = [
@@ -146,16 +162,32 @@ export default function Home() {
               >
                 Pay Online
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (isAuthenticated) navigate("/dashboard");
-                  else openSignIn?.();
-                }}
-                className="inline-flex items-center justify-center gap-2 bg-slate-900/30 border border-white/30 hover:bg-slate-900/40 px-6 py-3 rounded-lg font-semibold"
-              >
-                {isAuthenticated ? "Dashboard" : "Login"}
-              </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard")}
+                  className="inline-flex items-center justify-center gap-2 bg-slate-900/30 border border-white/30 hover:bg-slate-900/40 px-6 py-3 rounded-lg font-semibold"
+                >
+                  Dashboard
+                </button>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:divide-x sm:divide-white/30 rounded-lg overflow-hidden border border-white/30 bg-slate-900/30">
+                  <button
+                    type="button"
+                    onClick={() => openSignIn?.()}
+                    className="inline-flex items-center justify-center px-6 py-3 font-semibold hover:bg-slate-900/40 sm:flex-1"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openSignUp?.()}
+                    className="inline-flex items-center justify-center px-6 py-3 font-semibold hover:bg-slate-900/40 sm:flex-1 border-t border-white/30 sm:border-t-0"
+                  >
+                    Sign up
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="mt-8 grid sm:grid-cols-3 gap-3">
