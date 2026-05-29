@@ -28,6 +28,9 @@ const Navbar = () => {
     if (searchParams.get('signup') === '1' && !isAuthenticated) {
       setShowSignUp(true)
     }
+    if (searchParams.get('signin') === '1' && !isAuthenticated) {
+      setShowSignIn(true)
+    }
   }, [searchParams, isAuthenticated])
 
   const navLinks = [
@@ -123,6 +126,19 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <ScrollRestoringLink
+                  to="/pay-online"
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 font-medium hover:border-teal-300 hover:bg-teal-50 transition"
+                >
+                  Pay Online
+                </ScrollRestoringLink>
+                <button
+                  type="button"
+                  onClick={() => setShowSignIn(true)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 font-medium hover:border-teal-300 hover:bg-teal-50 transition"
+                >
+                  Login
+                </button>
                 <button
                   onClick={() => setShowSearch(true)}
                   className="p-2 text-gray-400 hover:text-teal-600 transition"

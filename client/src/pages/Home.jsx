@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -71,7 +71,15 @@ const fadeUp = {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { isAuthenticated, openSignIn } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+    if (location.state?.from) {
+      openSignIn?.();
+    }
+  }, [isAuthenticated, location.state, openSignIn]);
   const [lightboxImage, setLightboxImage] = useState("");
   const homeSchemas = [buildWebSiteSchema(), buildLocalBusinessSchema()];
   const beforeAfterHighlights = [
@@ -140,7 +148,10 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => {
+                  if (isAuthenticated) navigate("/dashboard");
+                  else openSignIn?.();
+                }}
                 className="inline-flex items-center justify-center gap-2 bg-slate-900/30 border border-white/30 hover:bg-slate-900/40 px-6 py-3 rounded-lg font-semibold"
               >
                 {isAuthenticated ? "Dashboard" : "Login"}

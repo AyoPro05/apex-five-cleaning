@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { X, Mail, Lock, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { post } from '../utils/apiClient'
 
 export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
   const { login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -28,6 +31,10 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }) {
     try {
       await login(email, password, rememberMe)
       onClose()
+      const redirectTo = location.state?.from?.pathname
+      if (redirectTo && redirectTo !== location.pathname) {
+        navigate(redirectTo, { replace: true, state: {} })
+      }
     } catch (err) {
       setError(err.message || 'Login failed')
     } finally {
