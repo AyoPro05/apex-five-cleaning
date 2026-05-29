@@ -17,6 +17,7 @@ import ImageLightbox from "../components/ImageLightbox";
 import { buildLocalBusinessSchema, buildWebSiteSchema } from "../config/seoSchemas";
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
 import { SERVICES } from "../data/servicesCatalog";
+import { useAuth } from "../context/AuthContext";
 
 const serviceCards = [
   {
@@ -70,6 +71,7 @@ const fadeUp = {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [lightboxImage, setLightboxImage] = useState("");
   const homeSchemas = [buildWebSiteSchema(), buildLocalBusinessSchema()];
   const beforeAfterHighlights = [
@@ -126,6 +128,23 @@ export default function Home() {
                 <Phone className="w-4 h-4" />
                 Call Now
               </a>
+            </div>
+
+            <div className="mt-3 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/pay-online")}
+                className="inline-flex items-center justify-center gap-2 bg-white/15 border border-white/30 hover:bg-white/25 px-6 py-3 rounded-lg font-semibold"
+              >
+                Pay Online
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                className="inline-flex items-center justify-center gap-2 bg-slate-900/30 border border-white/30 hover:bg-slate-900/40 px-6 py-3 rounded-lg font-semibold"
+              >
+                {isAuthenticated ? "Dashboard" : "Login"}
+              </button>
             </div>
 
             <div className="mt-8 grid sm:grid-cols-3 gap-3">

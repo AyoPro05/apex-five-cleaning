@@ -73,45 +73,6 @@ const Navbar = () => {
             >
               Book Now
             </ScrollRestoringLink>
-            <a
-              href={PHONE_MAIN_HREF}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
-            >
-              <Phone className="w-4 h-4 text-teal-600" />
-              <span className="text-sm font-medium">{PHONE_MAIN_DISPLAY}</span>
-            </a>
-            <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
-              <ScrollRestoringLink
-                to="/pay-online"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  isActive("/pay-online")
-                    ? "bg-teal-50 text-teal-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Pay Online
-              </ScrollRestoringLink>
-              {isAuthenticated ? (
-                <ScrollRestoringLink
-                  to="/dashboard"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    isActive("/dashboard")
-                      ? "bg-teal-50 text-teal-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Dashboard
-                </ScrollRestoringLink>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowSignIn(true)}
-                  className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
-                >
-                  Login
-                </button>
-              )}
-            </div>
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <div className="relative">

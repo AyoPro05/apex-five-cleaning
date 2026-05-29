@@ -268,16 +268,24 @@ const getEmailHeader = (brand, title, subtitle = '') => {
   `;
 };
 
+const getSupportContactBlock = (brand, options = {}) => {
+  const { includeHours = true } = options;
+  return `
+    <div class="email-contact-stack" style="margin: 10px 0;">
+      <div class="email-contact-line">📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a></div>
+      <div class="email-contact-line">📧 <a href="mailto:${brand.email}">${brand.email}</a></div>
+      ${includeHours ? '<div class="email-contact-line">🕒 Monday–Friday, 8am–6pm</div>' : ''}
+    </div>
+  `;
+};
+
 const getEmailFooter = (brand, extraNote = '') => {
   return `
     <div class="email-footer">
       <div class="email-footer-brand">${brand.companyName}</div>
       <p class="email-footer-tagline">${brand.tagline}</p>
-      <p class="email-footer-contact">
-        <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 
-        <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp;
-        <a href="${brand.website}">${brand.websiteDisplay}</a>
-      </p>
+      ${getSupportContactBlock(brand)}
+      <p class="email-footer-contact email-footer-website"><a href="${brand.website}">${brand.websiteDisplay}</a></p>
       <p class="email-footer-address">${brand.address}</p>
       ${extraNote ? `<p class="email-footer-note">${extraNote}</p>` : ''}
       <p class="email-footer-copy">© ${new Date().getFullYear()} ${brand.legalName}. All rights reserved.</p>
@@ -297,7 +305,11 @@ const getEmailBaseStyles = () => `
   .email-footer-brand { font-weight: 700; font-size: 14px; color: #14b8a6; margin-bottom: 4px; }
   .email-footer-tagline { margin: 4px 0; font-size: 12px; color: #6b7280; }
   .email-footer-contact { margin: 12px 0 4px 0; }
+  .email-contact-stack { margin: 12px 0 6px 0; }
+  .email-contact-line { display: block; margin: 4px 0; font-size: 13px; color: #14b8a6; }
+  .email-contact-line a { color: #14b8a6; text-decoration: none; }
   .email-footer-contact a { color: #14b8a6; text-decoration: none; }
+  .email-footer-website { margin-top: 8px; }
   .email-footer-address { margin: 4px 0; color: #9ca3af; font-size: 11px; }
   .email-footer-note { margin: 12px 0 0 0; color: #9ca3af; font-size: 11px; }
   .email-footer-copy { margin: 16px 0 0 0; color: #9ca3af; font-size: 11px; }
@@ -351,7 +363,7 @@ export const getClientConfirmationTemplate = (firstName, quoteId) => {
               </ul>
               <div class="divider"></div>
               <p>If you have any urgent questions, feel free to contact us:</p>
-              <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a><br><small>Monday–Friday, 8am–6pm</small></p>
+              ${getSupportContactBlock(brand)}
               <div style="text-align: center;">
                 <a href="${brand.website}" class="cta-button">View Our Services</a>
               </div>
@@ -510,10 +522,8 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
               <div style="text-align: center;">
                 <a href="${signupUrl}" class="cta-button">Create My Account</a>
               </div>
-              <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">
-                Questions? Contact us:<br/>
-                📧 <a href="mailto:${brand.email}">${brand.email}</a> &nbsp;|&nbsp; 📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a>
-              </p>
+              <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Questions? Contact us:</p>
+              ${getSupportContactBlock(brand)}
             </div>
             ${getEmailFooter(brand)}
           </div>
@@ -735,7 +745,8 @@ export const getVerificationEmailTemplate = (firstName, verificationLink, expiry
               <div class="security-badge">
                 <p style="margin: 0;">🔒 <strong>Security:</strong> We will never ask for your password via email.</p>
               </div>
-              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a> or <a href="tel:${brand.phoneTel}">${brand.phone}</a>.</p>
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us:</p>
+              ${getSupportContactBlock(brand, { includeHours: false })}
             </div>
             ${getEmailFooter(brand, `Sent because you registered at ${brand.websiteDisplay}`)}
           </div>
@@ -990,7 +1001,8 @@ function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
               <div class="security-note">
                 <strong>Didn't request this?</strong> You can safely ignore this email. Your password will not be changed.
               </div>
-              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us at <a href="mailto:${brand.email}">${brand.email}</a>.</p>
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us:</p>
+              ${getSupportContactBlock(brand, { includeHours: false })}
             </div>
             ${getEmailFooter(brand)}
           </div>
@@ -1309,7 +1321,7 @@ export const sendClientFollowUpEmail = async (toEmail, firstName, reference) => 
           <div class="ref-pill">Quote ref: ${safeRef}</div>
           <p>If anything has changed since you submitted — preferred date, additional rooms, specific concerns — just reply to this email and we will update your quote.</p>
           <p>Need to chat?</p>
-          <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a></p>
+          ${getSupportContactBlock(brand)}
           <p style="margin-top:20px;">We aim to respond to every request within a working day.</p>
         </div>
         ${getEmailFooter(brand, 'Sent because you requested a quote on ' + brand.websiteDisplay)}
@@ -1375,7 +1387,7 @@ export const sendPaymentReminderEmail = async (toEmail, firstName, reference, ap
             <p style="margin:10px 0 0 0; font-size:13px; color:#0d9488;">Use your quote reference and email to retrieve payment details on the page.</p>
           </div>
           <p style="font-size:13px; color:#6b7280;">If you have already paid, please ignore this reminder. Need help?</p>
-          <p>📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a> &nbsp;|&nbsp; 📧 <a href="mailto:${brand.email}">${brand.email}</a></p>
+          ${getSupportContactBlock(brand)}
         </div>
         ${getEmailFooter(brand, 'Automated payment reminder · sent once per approved quote')}
       </div>
