@@ -19,6 +19,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Testimonials from "./pages/Testimonials";
 import FAQ from "./pages/FAQ";
+import Account from "./pages/Account";
 
 // Lazy load – heavier routes (split into separate chunks)
 const ServiceAreas = lazy(() => import("./pages/ServiceAreas"));
@@ -70,6 +71,7 @@ function App() {
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/account" element={<Account />} />
           <Route path="/pay-online" element={<PayOnline />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/reset-password" element={<ResetPassword />} />

@@ -37,6 +37,7 @@ const quotePaymentSchema = new mongoose.Schema({
   },
   failureReason: String,
   processedAt: Date,
+  confirmationEmailSentAt: Date,
   createdAt: { type: Date, default: Date.now },
 });
 

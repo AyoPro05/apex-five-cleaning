@@ -4,15 +4,12 @@ import ScrollRestoringLink from './ScrollRestoringLink'
 import { Menu, X, User, LogOut, Search, Phone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAnnouncement } from '../context/AnnouncementContext'
-import SignInModal from './SignInModal'
-import SignUpModal from './SignUpModal'
 import SearchModal from './SearchModal'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
+import { buildAccountUrl } from '../utils/authRedirect'
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [showSignIn, setShowSignIn] = useState(false)
-  const [showSignUp, setShowSignUp] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const location = useLocation()
@@ -20,29 +17,30 @@ const Navbar = () => {
   const { user, isAuthenticated, logout, registerAuthModals } = useAuth()
 
   useEffect(() => {
-    registerAuthModals(() => setShowSignIn(true), () => setShowSignUp(true))
-  }, [registerAuthModals])
+    const returnTo = `${location.pathname}${location.search}${location.hash}`
+    registerAuthModals(
+      () => navigate(buildAccountUrl({ signIn: true, returnTo })),
+      () => navigate(buildAccountUrl({ signUp: true, returnTo })),
+    )
+  }, [registerAuthModals, navigate, location.pathname, location.search, location.hash])
 
   const [searchParams] = useSearchParams()
 
+  // Legacy ?signin=1 / ?signup=1 links (e.g. old quote emails on any page) → /account
   useEffect(() => {
     if (isAuthenticated) return
-
     const wantsSignIn = searchParams.get('signin') === '1'
     const wantsSignUp = searchParams.get('signup') === '1'
     if (!wantsSignIn && !wantsSignUp) return
+    if (location.pathname === '/account') return
 
-    if (wantsSignIn) setShowSignIn(true)
-    if (wantsSignUp) setShowSignUp(true)
-
-    const next = new URLSearchParams(searchParams)
-    next.delete('signin')
-    next.delete('signup')
-    const query = next.toString()
-    navigate(
-      { pathname: location.pathname, search: query ? `?${query}` : '' },
-      { replace: true },
-    )
+    const next = new URLSearchParams()
+    if (wantsSignIn) next.set('signin', '1')
+    if (wantsSignUp) next.set('signup', '1')
+    if (location.pathname !== '/') {
+      next.set('returnTo', location.pathname)
+    }
+    navigate(`/account?${next.toString()}`, { replace: true })
   }, [searchParams, isAuthenticated, location.pathname, navigate])
 
   const navLinks = [
@@ -82,6 +80,16 @@ const Navbar = () => {
                 {link.label}
               </ScrollRestoringLink>
             ))}
+            {!isAuthenticated && (
+              <ScrollRestoringLink
+                to="/account"
+                className="p-2.5 rounded-lg text-gray-500 hover:text-teal-600 hover:bg-teal-50 transition"
+                title="My account"
+                aria-label="My account"
+              >
+                <User className="w-6 h-6" />
+              </ScrollRestoringLink>
+            )}
             <ScrollRestoringLink
               to="/request-a-quote"
               className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-semibold"
@@ -197,7 +205,16 @@ const Navbar = () => {
                   Sign Out
                 </button>
               </>
-            ) : null}
+            ) : (
+              <ScrollRestoringLink
+                to="/account"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-2 font-medium text-gray-600"
+              >
+                <User className="w-4 h-4" />
+                Account
+              </ScrollRestoringLink>
+            )}
             <ScrollRestoringLink
               to="/request-a-quote"
               onClick={() => setIsMobileMenuOpen(false)}
@@ -243,16 +260,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      <SignInModal
-        isOpen={showSignIn}
-        onClose={() => setShowSignIn(false)}
-        onSwitchToSignUp={() => setShowSignUp(true)}
-      />
-      <SignUpModal
-        isOpen={showSignUp}
-        onClose={() => setShowSignUp(false)}
-        onSwitchToSignIn={() => setShowSignIn(true)}
-      />
       <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </nav>
   )

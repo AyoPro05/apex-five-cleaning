@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -7,6 +7,7 @@ import { get, post } from '../utils/apiClient'
 import { scrollReveal } from '../utils/scrollReveal'
 import { CreditCard, ArrowLeft, LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { buildAccountUrl } from '../utils/authRedirect'
 import SEO from '../components/SEO'
 import { createIdempotencyKey, withIdempotency } from '../utils/idempotency'
 
@@ -162,7 +163,7 @@ function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
 
 export default function PayOnline() {
   const navigate = useNavigate()
-  const { isAuthenticated, user, openSignIn, openSignUp } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [quoteRef, setQuoteRef] = useState('')
   const [email, setEmail] = useState('')
   const [step, setStep] = useState('lookup')
@@ -350,18 +351,21 @@ export default function PayOnline() {
             <div className="border-t border-gray-200 pt-6">
               <p className="text-sm text-gray-600 mb-3">Already have an account?</p>
               <div className="space-y-3">
-                <button
-                  onClick={openSignIn}
+                <Link
+                  to={buildAccountUrl({ signIn: true, returnTo: '/pay-online' })}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold transition"
                 >
                   <LogIn className="w-5 h-5" />
                   Log in
-                </button>
+                </Link>
                 <p className="text-center text-gray-600 text-sm">
                   Don&apos;t have an account?{' '}
-                  <button onClick={openSignUp} className="text-teal-600 font-semibold hover:underline">
+                  <Link
+                    to={buildAccountUrl({ signUp: true, returnTo: '/pay-online' })}
+                    className="text-teal-600 font-semibold hover:underline"
+                  >
                     Sign up
-                  </button>
+                  </Link>
                 </p>
               </div>
             </div>

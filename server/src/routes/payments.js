@@ -26,6 +26,7 @@ import {
 } from '../middleware/rateLimiter.js';
 import { idempotency } from '../middleware/idempotency.js';
 import { emitEvent } from '../utils/eventBus.js';
+import { sendPaymentConfirmationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 const GENERIC_GUEST_QUOTE_ERROR =
@@ -133,6 +134,29 @@ const rejectGuestQuoteProbe = (res) =>
     success: false,
     message: GENERIC_GUEST_QUOTE_ERROR,
   });
+
+const retrievePaymentIntent = (paymentIntentId) =>
+  stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+
+const extractChargeFromPaymentIntent = (paymentIntent) => {
+  const latest = paymentIntent.latest_charge;
+  if (latest && typeof latest === 'object') return latest;
+  return paymentIntent.charges?.data?.[0] || null;
+};
+
+const applyCardDetailsFromIntent = (record, paymentIntent) => {
+  const charge = extractChargeFromPaymentIntent(paymentIntent);
+  if (!charge) return;
+  record.stripeChargeId = charge.id;
+  const card = charge.payment_method_details?.card;
+  if (card) {
+    record.cardLast4 = card.last4;
+    record.cardBrand = card.brand?.toUpperCase();
+    if ('cardExpiry' in record) {
+      record.cardExpiry = `${card.exp_month}/${card.exp_year}`;
+    }
+  }
+};
 
 // ============================================
 // ROUTES
@@ -330,33 +354,10 @@ router.post('/guest/confirm', guestPaymentConfirmRateLimiter, async (req, res) =
       return res.status(403).json({ success: false, message: 'Invalid payment' });
     }
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await retrievePaymentIntent(paymentIntentId);
 
     if (paymentIntent.status === 'succeeded') {
-      quotePayment.status = 'succeeded';
-      quotePayment.processedAt = new Date();
-      if (paymentIntent.charges?.data?.[0]) {
-        const charge = paymentIntent.charges.data[0];
-        const card = charge.payment_method_details?.card;
-        if (card) {
-          quotePayment.cardLast4 = card.last4;
-          quotePayment.cardBrand = card.brand?.toUpperCase();
-          quotePayment.stripeChargeId = charge.id;
-        }
-      }
-      await quotePayment.save();
-
-      const quote = quotePayment.quoteId
-        ? await Quote.findById(quotePayment.quoteId).select('reference email').lean()
-        : null;
-      emitPaymentSucceededEvent({
-        paymentType: 'guest_quote',
-        paymentId: quotePayment._id,
-        amount: quotePayment.amount,
-        quoteId: quotePayment.quoteId,
-        quoteReference: quote?.reference,
-        customerEmail: quote?.email,
-      });
+      await applyQuotePaymentSuccess(quotePayment, paymentIntent);
 
       return res.json({
         success: true,
@@ -544,7 +545,7 @@ router.post('/confirm', authMiddleware, async (req, res) => {
     }
 
     // Retrieve PaymentIntent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+    const paymentIntent = await retrievePaymentIntent(payment.stripePaymentIntentId);
     const intentCheck = validateStoredPaymentIntent(payment, paymentIntent);
     if (!intentCheck.ok) {
       return res.status(403).json({
@@ -554,23 +555,14 @@ router.post('/confirm', authMiddleware, async (req, res) => {
     }
 
     if (paymentIntent.status === 'succeeded') {
+      const wasAlreadySucceeded = payment.status === 'succeeded';
       // Payment succeeded
       payment.status = 'succeeded';
       payment.processedAt = new Date();
       payment.webhookReceived = true;
       payment.webhookReceivedAt = new Date();
 
-      // Extract card info if available
-      if (paymentIntent.charges.data.length > 0) {
-        const charge = paymentIntent.charges.data[0];
-        payment.stripeChargeId = charge.id;
-        if (charge.payment_method_details?.card) {
-          const card = charge.payment_method_details.card;
-          payment.cardLast4 = card.last4;
-          payment.cardBrand = card.brand?.toUpperCase();
-          payment.cardExpiry = `${card.exp_month}/${card.exp_year}`;
-        }
-      }
+      applyCardDetailsFromIntent(payment, paymentIntent);
 
       await payment.save();
 
@@ -580,6 +572,10 @@ router.post('/confirm', authMiddleware, async (req, res) => {
       booking.paymentId = payment._id;
       booking.status = 'confirmed';
       await booking.save();
+
+      if (!wasAlreadySucceeded) {
+        await deliverBookingPaymentConfirmationEmail(payment, booking);
+      }
 
       // Referral: award points when referred user completes first booking (5 pts each)
       const previousPayments = await Payment.countDocuments({
@@ -841,20 +837,18 @@ async function emitPaymentSucceededEvent({
 }
 
 async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
+  const wasAlreadySucceeded = quotePayment.status === 'succeeded';
+
   quotePayment.status = 'succeeded';
   quotePayment.processedAt = new Date();
 
-  const charge = paymentIntent.charges?.data?.[0];
-  if (charge) {
-    quotePayment.stripeChargeId = charge.id;
-    const card = charge.payment_method_details?.card;
-    if (card) {
-      quotePayment.cardLast4 = card.last4;
-      quotePayment.cardBrand = card.brand?.toUpperCase();
-    }
-  }
+  applyCardDetailsFromIntent(quotePayment, paymentIntent);
 
   await quotePayment.save();
+
+  if (!wasAlreadySucceeded) {
+    await deliverQuotePaymentConfirmationEmail(quotePayment);
+  }
 
   if (quotePayment.quoteId) {
     const quote = await Quote.findById(quotePayment.quoteId).select('reference email').lean();
@@ -866,6 +860,86 @@ async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
       quoteReference: quote?.reference,
       customerEmail: quote?.email,
     });
+  }
+}
+
+const formatServiceLabel = (serviceType, fallback = 'Cleaning service') => {
+  if (!serviceType) return fallback;
+  return String(serviceType).replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+async function deliverQuotePaymentConfirmationEmail(quotePayment) {
+  if (quotePayment.confirmationEmailSentAt) return;
+
+  const quote = quotePayment.quoteId
+    ? await Quote.findById(quotePayment.quoteId).lean()
+    : null;
+  const toEmail = String(quotePayment.email || quote?.email || '').trim().toLowerCase();
+  if (!toEmail) return;
+
+  const user = await User.findOne({ email: toEmail }).select('emailNotifications firstName').lean();
+  if (user?.emailNotifications?.paymentReceipt === false) {
+    quotePayment.confirmationEmailSentAt = new Date();
+    await quotePayment.save();
+    return;
+  }
+
+  const result = await sendPaymentConfirmationEmail({
+    toEmail,
+    firstName: quote?.firstName || user?.firstName || 'there',
+    amount: quotePayment.amount,
+    currency: quotePayment.currency || 'GBP',
+    reference: quote?.reference,
+    paymentId: String(quotePayment._id),
+    paymentType: 'quote',
+    serviceName: formatServiceLabel(quote?.serviceType, 'Quote payment'),
+    cardBrand: quotePayment.cardBrand,
+    cardLast4: quotePayment.cardLast4,
+    processedAt: quotePayment.processedAt || new Date(),
+  });
+
+  if (result.success) {
+    quotePayment.confirmationEmailSentAt = new Date();
+    await quotePayment.save();
+    console.log(`✓ Payment confirmation email sent to ${toEmail} (quote payment ${quotePayment._id})`);
+  } else {
+    console.warn(`⚠️ Payment confirmation email failed for quote payment ${quotePayment._id}:`, result.error);
+  }
+}
+
+async function deliverBookingPaymentConfirmationEmail(payment, booking) {
+  if (payment.confirmationEmailSentAt) return;
+
+  const user = await User.findById(payment.userId).select('email firstName emailNotifications').lean();
+  const toEmail = String(user?.email || booking?.customerEmail || '').trim().toLowerCase();
+  if (!toEmail) return;
+
+  if (user?.emailNotifications?.paymentReceipt === false) {
+    payment.confirmationEmailSentAt = new Date();
+    await payment.save();
+    return;
+  }
+
+  const result = await sendPaymentConfirmationEmail({
+    toEmail,
+    firstName: user?.firstName || booking?.customerName?.split(' ')?.[0] || 'there',
+    amount: payment.amount,
+    currency: payment.currency || 'GBP',
+    reference: booking?._id ? String(booking._id) : String(payment._id),
+    paymentId: String(payment._id),
+    paymentType: 'booking',
+    serviceName: booking?.serviceName || payment.description || 'Cleaning booking',
+    cardBrand: payment.cardBrand,
+    cardLast4: payment.cardLast4,
+    processedAt: payment.processedAt || new Date(),
+  });
+
+  if (result.success) {
+    payment.confirmationEmailSentAt = new Date();
+    await payment.save();
+    console.log(`✓ Payment confirmation email sent to ${toEmail} (booking payment ${payment._id})`);
+  } else {
+    console.warn(`⚠️ Payment confirmation email failed for booking payment ${payment._id}:`, result.error);
   }
 }
 
@@ -965,21 +1039,13 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
       return;
     }
 
+    const wasAlreadySucceeded = payment.status === 'succeeded';
     payment.status = 'succeeded';
     payment.processedAt = new Date();
     payment.webhookReceived = true;
     payment.webhookReceivedAt = new Date();
 
-    if (paymentIntent.charges.data.length > 0) {
-      const charge = paymentIntent.charges.data[0];
-      payment.stripeChargeId = charge.id;
-      if (charge.payment_method_details?.card) {
-        const card = charge.payment_method_details.card;
-        payment.cardLast4 = card.last4;
-        payment.cardBrand = card.brand?.toUpperCase();
-        payment.cardExpiry = `${card.exp_month}/${card.exp_year}`;
-      }
-    }
+    applyCardDetailsFromIntent(payment, paymentIntent);
 
     await payment.save();
 
@@ -988,6 +1054,10 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     booking.paymentStatus = 'completed';
     booking.status = 'confirmed';
     await booking.save();
+
+    if (!wasAlreadySucceeded) {
+      await deliverBookingPaymentConfirmationEmail(payment, booking);
+    }
 
     emitPaymentSucceededEvent({
       paymentType: payment.bookingId ? 'booking' : 'unknown',

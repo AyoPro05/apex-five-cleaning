@@ -493,7 +493,7 @@ export const sendClientConfirmationEmail = async (toEmail, firstName, quoteId) =
 export const getQuoteApprovedTemplate = (firstName, quoteId) => {
   const brand = getBrandConfig();
   const clientUrl = (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
-  const signupUrl = `${clientUrl}/?signup=1`;
+  const signupUrl = `${clientUrl}/account?signup=1`;
   const safeName = escapeHtml(firstName);
   const safeQuoteId = escapeHtml(quoteId);
 
@@ -1416,6 +1416,158 @@ export const sendPaymentReminderEmail = async (toEmail, firstName, reference, ap
   };
   return sendWithRetry(`Payment reminder -> ${toEmail}`, action);
 };
+
+const SERVICE_LABELS = {
+  residential: 'Residential cleaning',
+  'end-of-tenancy': 'End of tenancy cleaning',
+  airbnb: 'Airbnb cleaning',
+  commercial: 'Commercial cleaning',
+};
+
+const formatMoney = (amount, currency = 'GBP') => {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return '—';
+  try {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: String(currency || 'GBP').toUpperCase(),
+    }).format(value);
+  } catch {
+    return `£${value.toFixed(2)}`;
+  }
+};
+
+const formatReceiptDate = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+};
+
+/**
+ * PAYMENT CONFIRMATION / RECEIPT — sent after a successful online payment.
+ */
+export const sendPaymentConfirmationEmail = async ({
+  toEmail,
+  firstName,
+  amount,
+  currency = 'GBP',
+  reference,
+  paymentId,
+  paymentType = 'quote',
+  serviceName,
+  cardBrand,
+  cardLast4,
+  processedAt,
+}) => {
+  initializeEmailProvider();
+  const brand = getBrandConfig();
+  const clientBase = (process.env.CLIENT_URL || brand.website).replace(/\/$/, '');
+  const dashboardUrl = `${clientBase}/dashboard`;
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const safeName = escapeHtml(firstName || 'there');
+  const safeRef = escapeHtml(reference || paymentId || '—');
+  const safeService = escapeHtml(
+    serviceName ||
+      (paymentType === 'booking' ? 'Cleaning booking' : 'Quote payment'),
+  );
+  const amountDisplay = formatMoney(amount, currency);
+  const paidAt = formatReceiptDate(processedAt);
+  const paymentMethod =
+    cardBrand && cardLast4
+      ? `${escapeHtml(cardBrand)} ending in ${escapeHtml(cardLast4)}`
+      : 'Card payment';
+  const subject = sanitizeEmailHeader(
+    `Payment received · ${reference || paymentId} · ${brand.companyName}`,
+  );
+  const html = `
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
+      .receipt-box { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+      .receipt-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+      .receipt-row:last-child { border-bottom: none; }
+      .receipt-label { color: #6b7280; }
+      .receipt-value { color: #111827; font-weight: 600; text-align: right; }
+      .amount-value { color: #0d9488; font-size: 24px; font-weight: 700; }
+    </style></head>
+    <body>
+      <div class="email-container">
+        ${getEmailHeader(brand, 'Payment received', 'Thank you — your payment was successful')}
+        <div class="email-content">
+          <p>Hi ${safeName},</p>
+          <p>We have received your payment. This email is your receipt for your records.</p>
+          <div class="receipt-box">
+            <div class="receipt-row">
+              <span class="receipt-label">Amount paid</span>
+              <span class="receipt-value amount-value">${escapeHtml(amountDisplay)}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">${paymentType === 'booking' ? 'Booking reference' : 'Quote reference'}</span>
+              <span class="receipt-value">${safeRef}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Service</span>
+              <span class="receipt-value">${safeService}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Payment method</span>
+              <span class="receipt-value">${paymentMethod}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Date &amp; time</span>
+              <span class="receipt-value">${escapeHtml(paidAt)}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Transaction ID</span>
+              <span class="receipt-value" style="font-family: monospace; font-size: 12px;">${escapeHtml(paymentId || '—')}</span>
+            </div>
+          </div>
+          <div style="text-align: center;">
+            <a href="${dashboardUrl}" class="cta-button">View my dashboard</a>
+          </div>
+          <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Need help with this payment?</p>
+          ${getSupportContactBlock(brand)}
+        </div>
+        ${getEmailFooter(brand, 'Payment receipt · please keep for your records')}
+      </div>
+    </body></html>`;
+  const text = `Hi ${firstName || 'there'},\n\nPayment received: ${amountDisplay}\nReference: ${reference || paymentId}\nService: ${serviceName || 'Cleaning service'}\nPayment method: ${cardBrand && cardLast4 ? `${cardBrand} ending in ${cardLast4}` : 'Card payment'}\nDate: ${paidAt}\nTransaction ID: ${paymentId || '—'}\n\nView your dashboard: ${dashboardUrl}\n\n${brand.companyName}`;
+
+  const action = () => {
+    if (EMAIL_PROVIDER === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      return sgMail.send({
+        to: toEmail,
+        from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+        text,
+      });
+    }
+    if (EMAIL_PROVIDER === 'smtp' && smtpTransport) {
+      return smtpTransport.sendMail({
+        to: toEmail,
+        from: `"${senderName}" <${senderEmail}>`,
+        replyTo: process.env.NOTIFY_EMAIL || senderEmail,
+        subject,
+        html,
+        text,
+      });
+    }
+    return Promise.reject(new Error('No email provider configured'));
+  };
+
+  return sendWithRetry(`Payment confirmation -> ${toEmail}`, action);
+};
+
+export { SERVICE_LABELS as PAYMENT_SERVICE_LABELS };
 
 export const sendPasswordResetEmail = async (toEmail, firstName, resetToken) => {
   initializeEmailProvider();

@@ -82,6 +82,8 @@ const paymentSchema = new mongoose.Schema({
   },
   processedAt: Date,
 
+  confirmationEmailSentAt: Date,
+
   // Webhook Tracking
   webhookReceived: {
     type: Boolean,

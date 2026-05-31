@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { buildAccountUrl } from '../utils/authRedirect'
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -14,7 +15,8 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" state={{ from: location }} replace />
+    const returnTo = `${location.pathname}${location.search}${location.hash}`
+    return <Navigate to={buildAccountUrl({ signIn: true, returnTo })} replace />
   }
 
   return children
