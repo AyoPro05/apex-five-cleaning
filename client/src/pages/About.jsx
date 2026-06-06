@@ -3,6 +3,7 @@ import { Crown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
+import { COMPANY_ADDRESS_LINE1, COMPANY_ADDRESS_LINE2 } from '../config/site'
 
 const About = () => {
   return (
@@ -18,7 +19,7 @@ const About = () => {
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">About Us</span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">About Apex Five Cleaning</h1>
         <p className="text-xl text-gray-600 mb-12">
-          We are a professional cleaning company built on trust, clear communication, and consistently high standards. Based at 91 Manor Road, Wallington SM6 0AP, Surrey, we support homes and businesses across London and the South East.
+          Based at {COMPANY_ADDRESS_LINE1}, {COMPANY_ADDRESS_LINE2}, we support homes and businesses across London and the South East.
         </p>
         </motion.div>
         

@@ -132,6 +132,7 @@ const getTabFromPath = (pathname = "") => {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const deepLinkQuoteId = (new URLSearchParams(location.search).get("quoteId") || "").trim();
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -151,6 +152,7 @@ const AdminDashboard = () => {
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [quoteImageUrls, setQuoteImageUrls] = useState({});
+  const [processedDeepLinkQuoteId, setProcessedDeepLinkQuoteId] = useState("");
 
   // Filters
   const [filters, setFilters] = useState({
@@ -270,6 +272,34 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  const openQuoteDetails = useCallback(
+    async (quoteOrId) => {
+      const quoteId = typeof quoteOrId === "string" ? quoteOrId : quoteOrId?._id;
+      if (!quoteId) return;
+
+      if (typeof quoteOrId === "object") {
+        setSelectedQuote(quoteOrId);
+        setAdminNote(quoteOrId.adminNotes || "");
+        setShowDetails(true);
+      }
+
+      try {
+        const data = await get(`/api/admin/quotes/${quoteId}`);
+        if (data.success && data.quote) {
+          setSelectedQuote(data.quote);
+          setAdminNote(data.quote.adminNotes || "");
+          setShowDetails(true);
+          return;
+        }
+        setError(data.error || "Failed to load quote details");
+      } catch (err) {
+        console.error("Failed to load quote details:", err);
+        setError(err.message || "Failed to load quote details");
+      }
+    },
+    [],
+  );
 
   // Fetch statistics
   const fetchStats = async () => {
@@ -803,6 +833,37 @@ const AdminDashboard = () => {
   useEffect(() => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!deepLinkQuoteId) setProcessedDeepLinkQuoteId("");
+  }, [deepLinkQuoteId]);
+
+  // Deep-link support: if email link points to /admin/?quoteId=..., route to quotes first.
+  useEffect(() => {
+    if (!adminToken || showTokenInput || !deepLinkQuoteId) return;
+    if (location.pathname.startsWith("/admin/quotes")) return;
+    navigate(`/admin/quotes?quoteId=${encodeURIComponent(deepLinkQuoteId)}`, { replace: true });
+  }, [adminToken, showTokenInput, deepLinkQuoteId, location.pathname, navigate]);
+
+  // Open the linked quote once the admin session is active and we're on the quotes tab.
+  useEffect(() => {
+    if (!adminToken || showTokenInput || !deepLinkQuoteId) return;
+    if (!location.pathname.startsWith("/admin/quotes")) return;
+    if (processedDeepLinkQuoteId === deepLinkQuoteId) return;
+
+    setProcessedDeepLinkQuoteId(deepLinkQuoteId);
+    openQuoteDetails(deepLinkQuoteId).finally(() => {
+      navigate("/admin/quotes", { replace: true });
+    });
+  }, [
+    adminToken,
+    showTokenInput,
+    deepLinkQuoteId,
+    location.pathname,
+    processedDeepLinkQuoteId,
+    openQuoteDetails,
+    navigate,
+  ]);
 
   // Load customers when switching to the Customers tab
   useEffect(() => {
@@ -1505,20 +1566,7 @@ const AdminDashboard = () => {
                               <td className="px-6 py-4 text-center">
                                 <div className="inline-flex items-center gap-3">
                                   <button
-                                    onClick={async () => {
-                                      setSelectedQuote(quote);
-                                      setAdminNote(quote.adminNotes || "");
-                                      setShowDetails(true);
-                                      try {
-                                        const data = await get(`/api/admin/quotes/${quote._id}`);
-                                        if (data.success && data.quote) {
-                                          setSelectedQuote(data.quote);
-                                          setAdminNote(data.quote.adminNotes || "");
-                                        }
-                                      } catch (err) {
-                                        console.error("Failed to load quote details:", err);
-                                      }
-                                    }}
+                                    onClick={() => openQuoteDetails(quote)}
                                     className="text-teal-600 hover:text-teal-700 font-semibold"
                                   >
                                     View

@@ -45,7 +45,7 @@ export default function AnnouncementBanner() {
         className="block w-full pr-8 hover:opacity-90 transition text-sm"
       >
         <span className="font-semibold">ANNOUNCEMENT: </span>
-        REFER A FRIEND AND BOTH SHARE £10! CLICK TO FIND OUT HOW.
+        REFER A FRIEND AND BOTH SHARE £10 DISCOUNT! CLICK TO FIND OUT HOW.
       </Link>
       <button
         onClick={handleDismiss}

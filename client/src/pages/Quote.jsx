@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { post } from "../utils/apiClient";
 import { scrollReveal } from "../utils/scrollReveal";
 import SEO from "../components/SEO";
@@ -9,8 +9,6 @@ import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
 import { getRecaptchaSiteKey, getRecaptchaToken, loadRecaptchaScript } from "../utils/recaptcha";
 import {
   getAttributionPayload,
-  loadQuoteDraft,
-  saveQuoteDraft,
   clearQuoteDraft,
   setServiceInterest,
   setServiceRegionFromPostcode,
@@ -37,29 +35,48 @@ const ADDITIONAL_SERVICES = [
 const getFirstErrorMessage = (errorMap = {}) =>
   Object.values(errorMap).filter(Boolean)[0] || "Please check the form for errors";
 
+const TOTAL_STEPS = 2;
+
+const FORM_LABEL = "block text-base font-semibold text-gray-900 mb-2";
+const FORM_HINT = "text-base text-gray-700 mb-4 leading-relaxed";
+const FORM_SECTION_TITLE = "text-2xl sm:text-3xl font-bold text-gray-900 mb-2";
+const FORM_ERROR = "text-red-700 text-base font-medium mt-2";
+const INPUT_BASE =
+  "w-full px-4 py-3.5 text-base text-gray-900 border-2 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/40";
+const BTN_PRIMARY =
+  "bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-xl font-semibold text-base transition min-h-[48px]";
+const BTN_SECONDARY =
+  "bg-gray-200 hover:bg-gray-300 text-gray-800 px-8 py-3.5 rounded-xl font-semibold text-base transition min-h-[48px]";
+
+const fieldClass = (errors, name) =>
+  `${INPUT_BASE} ${errors[name] ? "border-red-500 focus:border-red-600" : "border-gray-300 focus:border-teal-600"}`;
+
+const EMPTY_FORM = {
+  propertyType: "",
+  bedrooms: "",
+  bathrooms: "",
+  serviceType: "",
+  additionalServices: [],
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  address: "",
+  postcode: "",
+  preferredDate: "",
+  preferredTime: "",
+  additionalNotes: "",
+};
+
 const Quote = () => {
+  const location = useLocation();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [quoteReference, setQuoteReference] = useState("");
 
-  const [formData, setFormData] = useState({
-    propertyType: "",
-    bedrooms: "",
-    bathrooms: "",
-    serviceType: "",
-    additionalServices: [],
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    postcode: "",
-    preferredDate: "",
-    preferredTime: "",
-    additionalNotes: "",
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [selectedImages, setSelectedImages] = useState([]);
   const [imageUploadWarning, setImageUploadWarning] = useState("");
   const [isDragging, setIsDragging] = useState(false);
@@ -71,11 +88,21 @@ const Quote = () => {
     loadRecaptchaScript("quote-form");
   }, []);
 
+  // Fresh start every time the quote page is opened (no saved draft / step restore).
   useEffect(() => {
+    clearQuoteDraft();
+    setStep(1);
+    setSelectedImages([]);
+    setImageUploadWarning("");
+    setErrors({});
+    setSubmitError("");
+    setSuccessMessage("");
+    setQuoteReference("");
+
     const prefill = loadAndClearQuotePrefill();
     if (prefill) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
+        ...EMPTY_FORM,
         ...(prefill.firstName && { firstName: prefill.firstName }),
         ...(prefill.lastName && { lastName: prefill.lastName }),
         ...(prefill.email && { email: prefill.email }),
@@ -86,30 +113,17 @@ const Quote = () => {
         ...(prefill.propertyType && { propertyType: prefill.propertyType }),
         ...(prefill.bedrooms && { bedrooms: String(prefill.bedrooms) }),
         ...(prefill.bathrooms && { bathrooms: String(prefill.bathrooms) }),
-      }));
+      });
+    } else {
+      setFormData(EMPTY_FORM);
     }
-    const draft = loadQuoteDraft();
-    if (!draft) return;
-    setFormData((prev) => ({
-      ...prev,
-      ...(draft.propertyType && { propertyType: draft.propertyType }),
-      ...(draft.bedrooms && { bedrooms: draft.bedrooms }),
-      ...(draft.bathrooms && { bathrooms: draft.bathrooms }),
-      ...(draft.serviceType && { serviceType: draft.serviceType }),
-      ...(draft.additionalServices && { additionalServices: draft.additionalServices }),
-    }));
-    if (draft.step && draft.step >= 1 && draft.step <= 3) {
-      setStep(draft.step);
-    }
-  }, []);
+
+    return () => clearQuoteDraft();
+  }, [location.key]);
 
   useEffect(() => {
     if (formData.serviceType) setServiceInterest(formData.serviceType);
   }, [formData.serviceType]);
-
-  useEffect(() => {
-    saveQuoteDraft({ ...formData, step });
-  }, [formData, step]);
 
   // Client-side validation
   const validateStep = (stepNum) => {
@@ -133,15 +147,12 @@ const Quote = () => {
       ) {
         newErrors.bathrooms = "Please enter a valid number of bathrooms (1-20)";
       }
-    }
-
-    if (stepNum === 2) {
       if (!formData.serviceType) {
         newErrors.serviceType = "Please select a service type";
       }
     }
 
-    if (stepNum === 3) {
+    if (stepNum === 2) {
       if (!formData.firstName || formData.firstName.length < 2) {
         newErrors.firstName = "First name must be at least 2 characters";
       }
@@ -299,7 +310,7 @@ const Quote = () => {
     e.preventDefault();
     setSubmitError("");
 
-    if (!validateStep(3)) {
+    if (!validateStep(2)) {
       setSubmitError("Please check the highlighted fields");
       return;
     }
@@ -413,22 +424,7 @@ const Quote = () => {
 
   const resetForm = () => {
     setStep(1);
-    setFormData({
-      propertyType: "",
-      bedrooms: "",
-      bathrooms: "",
-      serviceType: "",
-      additionalServices: [],
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      address: "",
-      postcode: "",
-      preferredDate: "",
-      preferredTime: "",
-      additionalNotes: "",
-    });
+    setFormData(EMPTY_FORM);
     setSelectedImages([]);
     setImageUploadWarning("");
     setErrors({});
@@ -445,7 +441,7 @@ const Quote = () => {
         path="/request-a-quote"
       />
       <motion.section className="pt-32 pb-20 bg-gray-50 min-h-screen" {...scrollReveal}>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div className="text-center mb-8" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
             Get a Quote
@@ -458,21 +454,21 @@ const Quote = () => {
           </p>
         </motion.div>
 
-        {/* Progress Bar - 25%/50%/75% for steps 1-3, 100% on success */}
+        {/* Progress Bar — 50% step 1, 100% step 2, complete on success */}
         <div className="mb-8">
           <div className="flex justify-between mb-2">
             <span className="text-sm font-medium text-gray-600">
-              {step < 4 ? `Step ${step} of 3` : "Complete"}
+              {step < 4 ? `Step ${step} of ${TOTAL_STEPS}` : "Complete"}
             </span>
             <span className="text-sm font-medium text-gray-600">
-              {step < 4 ? Math.round((step / 3) * 100) : 100}%
+              {step < 4 ? Math.round((step / TOTAL_STEPS) * 100) : 100}%
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
-              className="bg-teal-600 h-2 rounded-full transition-all duration-300"
+              className="bg-teal-600 h-2.5 rounded-full transition-all duration-300"
               style={{
-                width: step < 4 ? `${(step / 3) * 100}%` : "100%",
+                width: step < 4 ? `${(step / TOTAL_STEPS) * 100}%` : "100%",
               }}
             ></div>
           </div>
@@ -535,7 +531,7 @@ const Quote = () => {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-2xl p-8 shadow-lg"
+            className="bg-white rounded-2xl p-6 sm:p-10 shadow-lg border border-gray-100"
           >
             {/* Error Alert */}
             {submitError && (
@@ -550,28 +546,20 @@ const Quote = () => {
               </div>
             )}
 
-            {/* Step 1: Property Details */}
+            {/* Step 1: Property & service */}
             {step === 1 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Property Details
-                </h2>
-                <p className="text-sm text-gray-600 -mt-2 mb-4">
-                  This helps us estimate time and team size accurately.
-                </p>
+              <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Type *
-                  </label>
+                  <h2 className={FORM_SECTION_TITLE}>Property details</h2>
+                  <p className={FORM_HINT}>This helps us estimate time and team size accurately.</p>
+                </div>
+                <div>
+                  <label className={FORM_LABEL}>Property type *</label>
                   <select
                     name="propertyType"
                     value={formData.propertyType}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.propertyType
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    className={fieldClass(errors, "propertyType")}
                   >
                     <option value="">Select property type</option>
                     <option value="house">House</option>
@@ -580,17 +568,11 @@ const Quote = () => {
                     <option value="commercial">Commercial</option>
                     <option value="sharehouse-room">Sharehouse/Room</option>
                   </select>
-                  {errors.propertyType && (
-                    <p className="text-red-600 text-sm mt-2">
-                      {errors.propertyType}
-                    </p>
-                  )}
+                  {errors.propertyType && <p className={FORM_ERROR}>{errors.propertyType}</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bedrooms *
-                    </label>
+                    <label className={FORM_LABEL}>Bedrooms *</label>
                     <input
                       type="number"
                       name="bedrooms"
@@ -598,22 +580,13 @@ const Quote = () => {
                       onChange={handleInputChange}
                       min="1"
                       max="20"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.bedrooms
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-gray-200 focus:border-teal-500"
-                      }`}
+                      inputMode="numeric"
+                      className={fieldClass(errors, "bedrooms")}
                     />
-                    {errors.bedrooms && (
-                      <p className="text-red-600 text-sm mt-2">
-                        {errors.bedrooms}
-                      </p>
-                    )}
+                    {errors.bedrooms && <p className={FORM_ERROR}>{errors.bedrooms}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bathrooms *
-                    </label>
+                    <label className={FORM_LABEL}>Bathrooms *</label>
                     <input
                       type="number"
                       name="bathrooms"
@@ -621,79 +594,39 @@ const Quote = () => {
                       onChange={handleInputChange}
                       min="1"
                       max="20"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.bathrooms
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-gray-200 focus:border-teal-500"
-                      }`}
+                      inputMode="numeric"
+                      className={fieldClass(errors, "bathrooms")}
                     />
-                    {errors.bathrooms && (
-                      <p className="text-red-600 text-sm mt-2">
-                        {errors.bathrooms}
-                      </p>
-                    )}
+                    {errors.bathrooms && <p className={FORM_ERROR}>{errors.bathrooms}</p>}
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {/* Step 2: Service Type */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Service Type
-                </h2>
-                <p className="text-sm text-gray-600 -mt-2 mb-4">
-                  Add photos and extras to get the most accurate first quote.
-                </p>
+                <hr className="border-gray-200" />
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    What service do you need? *
-                  </label>
+                  <h2 className={FORM_SECTION_TITLE}>Service & add-ons</h2>
+                  <p className={FORM_HINT}>Choose your service and add photos or extras for a more accurate quote.</p>
+                </div>
+                <div>
+                  <label className={FORM_LABEL}>What service do you need? *</label>
                   <select
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.serviceType
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    className={fieldClass(errors, "serviceType")}
                   >
                     <option value="">Select service</option>
-                    <option value="residential">
-                      Regular Residential Cleaning
-                    </option>
-                    <option value="end-of-tenancy">
-                      End of Tenancy Cleaning
-                    </option>
+                    <option value="residential">Regular Residential Cleaning</option>
+                    <option value="end-of-tenancy">End of Tenancy Cleaning</option>
                     <option value="airbnb">Airbnb Turnover Cleaning</option>
                     <option value="commercial">Commercial Cleaning</option>
                   </select>
-                  {errors.serviceType && (
-                    <p className="text-red-600 text-sm mt-2">
-                      {errors.serviceType}
-                    </p>
-                  )}
+                  {errors.serviceType && <p className={FORM_ERROR}>{errors.serviceType}</p>}
                 </div>
 
-                {/* Additional Services - Clickable list */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Add-ons (optional)
-                  </label>
-                  <p className="text-sm text-gray-500 mb-3">
-                    Click to add any of these services to your quote:
-                  </p>
+                  <label className={FORM_LABEL}>Add-ons (optional)</label>
+                  <p className="text-base text-gray-600 mb-3">Tap to add any extra services to your quote:</p>
                   <div className="flex flex-wrap gap-2">
                     {ADDITIONAL_SERVICES.filter((service) => {
                       if (service.id === "sanitizing-high-touch") {
@@ -707,46 +640,32 @@ const Quote = () => {
                           key={service.id}
                           type="button"
                           onClick={() => handleAdditionalServiceToggle(service.id)}
-                          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium transition-all min-h-[48px] ${
                             isSelected
                               ? "bg-teal-600 text-white shadow-md"
-                              : "bg-gray-100 text-gray-700 hover:bg-teal-50 hover:border-teal-300 border border-gray-200"
+                              : "bg-gray-100 text-gray-800 hover:bg-teal-50 border-2 border-gray-200"
                           }`}
                         >
-                          {isSelected ? (
-                            <X className="w-4 h-4" />
-                          ) : (
-                            <Plus className="w-4 h-4" />
-                          )}
+                          {isSelected ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           {service.label}
                         </button>
                       );
                     })}
                   </div>
                   {(formData.additionalServices || []).length > 0 && (
-                    <p className="text-xs text-teal-600 mt-2">
+                    <p className="text-base text-teal-700 font-medium mt-2">
                       {(formData.additionalServices || []).length} add-on(s) selected
-                    </p>
-                  )}
-                  {errors.additionalServices && (
-                    <p className="text-red-600 text-sm mt-2">
-                      {errors.additionalServices}
                     </p>
                   )}
                 </div>
 
-                {/* Image Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property photos (optional, max 5)
-                  </label>
-                  <p className="text-sm text-gray-500 mb-2">
-                    Drag and drop or click to upload images for a more accurate quote
-                  </p>
+                  <label className={FORM_LABEL}>Property photos (optional, max 5)</label>
+                  <p className="text-base text-gray-600 mb-3">Drag and drop or tap to upload photos</p>
                   <div className="flex flex-wrap gap-3">
                     {selectedImages.length < 5 && (
                       <label
-                        className={`flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-lg cursor-pointer transition ${
+                        className={`flex flex-col items-center justify-center w-36 h-36 border-2 border-dashed rounded-xl cursor-pointer transition ${
                           isDragging
                             ? "border-teal-500 bg-teal-50"
                             : "border-gray-300 hover:border-teal-500 hover:bg-teal-50/50"
@@ -755,9 +674,9 @@ const Quote = () => {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                       >
-                        <ImageIcon className="w-10 h-10 text-gray-400" />
-                        <span className="text-xs text-gray-500 mt-1">
-                          {isDragging ? "Drop here" : "Drop or click"}
+                        <ImageIcon className="w-10 h-10 text-gray-500" />
+                        <span className="text-sm text-gray-600 mt-2 text-center px-2">
+                          {isDragging ? "Drop here" : "Drop or tap to upload"}
                         </span>
                         <input
                           type="file"
@@ -771,7 +690,7 @@ const Quote = () => {
                     {selectedImages.map((file, i) => (
                       <div
                         key={i}
-                        className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 group"
+                        className="relative w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 group"
                       >
                         <img
                           src={URL.createObjectURL(file)}
@@ -781,248 +700,170 @@ const Quote = () => {
                         <button
                           type="button"
                           onClick={() => removeImage(i)}
-                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          className="absolute top-1 right-1 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"
                           aria-label="Remove image"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </button>
-                        <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-0.5 text-center truncate px-1">
-                          {file.name}
-                        </span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    JPG, PNG, GIF, WebP, or HEIC (iPhone). Max 3MB per image.
-                  </p>
                   {imageUploadWarning && (
-                    <p className="text-sm text-amber-700 mt-2">{imageUploadWarning}</p>
+                    <p className="text-base text-amber-800 font-medium mt-2">{imageUploadWarning}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Additional Notes (Optional)
-                  </label>
+                  <label className={FORM_LABEL}>Additional notes (optional)</label>
                   <textarea
                     name="additionalNotes"
                     value={formData.additionalNotes}
                     onChange={handleInputChange}
-                    placeholder="Tell us anything else that might help us provide an accurate quote..."
+                    placeholder="Anything else that helps us quote accurately..."
                     maxLength="500"
                     rows="4"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+                    className={`${INPUT_BASE} border-gray-300 focus:border-teal-600 min-h-[120px]`}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formData.additionalNotes.length}/500 characters
-                  </p>
                 </div>
 
-                <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold transition"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-                  >
-                    Next
+                <div className="flex justify-end pt-2">
+                  <button type="button" onClick={nextStep} className={BTN_PRIMARY}>
+                    Click next
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Contact Information */}
-            {step === 3 && (
+            {/* Step 2: Contact information */}
+            {step === 2 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Contact Information
-                </h2>
-                <p className="text-sm text-gray-600 -mt-2 mb-4">
-                  Final step. We use these details only to send your quote and booking options.
-                </p>
-                <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h2 className={FORM_SECTION_TITLE}>Your contact details</h2>
+                  <p className={FORM_HINT}>
+                    Final step. We use these details only to send your quote and booking options.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name *
-                    </label>
+                    <label className={FORM_LABEL}>First name *</label>
                     <input
                       type="text"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
                       placeholder="John"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.firstName
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-gray-200 focus:border-teal-500"
-                      }`}
+                      autoComplete="given-name"
+                      className={fieldClass(errors, "firstName")}
                     />
-                    {errors.firstName && (
-                      <p className="text-red-600 text-sm mt-2">
-                        {errors.firstName}
-                      </p>
-                    )}
+                    {errors.firstName && <p className={FORM_ERROR}>{errors.firstName}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name *
-                    </label>
+                    <label className={FORM_LABEL}>Last name *</label>
                     <input
                       type="text"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
                       placeholder="Smith"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                        errors.lastName
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-gray-200 focus:border-teal-500"
-                      }`}
+                      autoComplete="family-name"
+                      className={fieldClass(errors, "lastName")}
                     />
-                    {errors.lastName && (
-                      <p className="text-red-600 text-sm mt-2">
-                        {errors.lastName}
-                      </p>
-                    )}
+                    {errors.lastName && <p className={FORM_ERROR}>{errors.lastName}</p>}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
+                  <label className={FORM_LABEL}>Email address *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="john@example.com"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.email
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    autoComplete="email"
+                    className={fieldClass(errors, "email")}
                   />
-                  {errors.email && (
-                    <p className="text-red-600 text-sm mt-2">{errors.email}</p>
-                  )}
+                  {errors.email && <p className={FORM_ERROR}>{errors.email}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
+                  <label className={FORM_LABEL}>Phone number *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="01234 567890 or +44 1234 567890"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.phone
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    autoComplete="tel"
+                    className={fieldClass(errors, "phone")}
                   />
-                  {errors.phone && (
-                    <p className="text-red-600 text-sm mt-2">{errors.phone}</p>
-                  )}
+                  {errors.phone && <p className={FORM_ERROR}>{errors.phone}</p>}
                 </div>
 
-                {/* Preferred Date & Time - visible without scrolling */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Date
-                    </label>
+                    <label className={FORM_LABEL}>Preferred date</label>
                     <div className="relative">
                       <input
                         type="date"
                         name="preferredDate"
                         value={formData.preferredDate}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+                        className={`${INPUT_BASE} border-gray-300 focus:border-teal-600 pr-12`}
                       />
-                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Time
-                    </label>
+                    <label className={FORM_LABEL}>Preferred time</label>
                     <div className="relative">
                       <input
                         type="time"
                         name="preferredTime"
                         value={formData.preferredTime}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+                        className={`${INPUT_BASE} border-gray-300 focus:border-teal-600 pr-12`}
                       />
-                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Address *
-                  </label>
+                  <label className={FORM_LABEL}>Property address *</label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
                     placeholder="123 Main Street, Town or City"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.address
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    autoComplete="street-address"
+                    className={fieldClass(errors, "address")}
                   />
-                  {errors.address && (
-                    <p className="text-red-600 text-sm mt-2">
-                      {errors.address}
-                    </p>
-                  )}
+                  {errors.address && <p className={FORM_ERROR}>{errors.address}</p>}
                 </div>
-                <div className="max-w-[12rem]">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Postcode *
-                  </label>
+                <div className="max-w-xs">
+                  <label className={FORM_LABEL}>Postcode *</label>
                   <input
                     type="text"
                     name="postcode"
                     value={formData.postcode}
                     onChange={handleInputChange}
                     placeholder="ME11 2BY"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none ${
-                      errors.postcode
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-teal-500"
-                    }`}
+                    autoComplete="postal-code"
+                    className={fieldClass(errors, "postcode")}
                   />
-                  {errors.postcode && (
-                    <p className="text-red-600 text-sm mt-2">
-                      {errors.postcode}
-                    </p>
-                  )}
+                  {errors.postcode && <p className={FORM_ERROR}>{errors.postcode}</p>}
                 </div>
 
-                {/* CAPTCHA Notice */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                   {getRecaptchaSiteKey() ? (
-                    <p className="text-sm text-blue-700">
-                      <span className="font-medium">Protected by reCAPTCHA:</span>{" "}
+                    <p className="text-base text-blue-900">
+                      <span className="font-semibold">Protected by reCAPTCHA:</span>{" "}
                       This site is protected by reCAPTCHA and the Google{" "}
                       <a
                         href="https://policies.google.com/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline"
+                        className="underline font-medium"
                       >
                         Privacy Policy
                       </a>{" "}
@@ -1031,40 +872,30 @@ const Quote = () => {
                         href="https://policies.google.com/terms"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline"
+                        className="underline font-medium"
                       >
                         Terms of Service
                       </a>{" "}
                       apply.
                     </p>
                   ) : (
-                    <p className="text-sm text-blue-700">
+                    <p className="text-base text-blue-900">
                       CAPTCHA is currently unavailable in this environment.
                     </p>
                   )}
-                  {errors.captchaToken && (
-                    <p className="text-red-600 text-sm mt-2">{errors.captchaToken}</p>
-                  )}
+                  {errors.captchaToken && <p className={FORM_ERROR}>{errors.captchaToken}</p>}
                 </div>
 
-                <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold transition"
-                  >
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2">
+                  <button type="button" onClick={prevStep} className={BTN_SECONDARY}>
                     Back
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className={`px-6 py-3 rounded-lg font-semibold transition ${
-                      submitting
-                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                        : "bg-teal-600 hover:bg-teal-700 text-white"
-                    }`}
+                    className={`${BTN_PRIMARY} disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto`}
                   >
-                    {submitting ? "Submitting..." : "Submit Request"}
+                    {submitting ? "Submitting..." : "Submit quote request"}
                   </button>
                 </div>
               </div>

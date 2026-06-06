@@ -19,7 +19,7 @@ Set these on your **API** service (Render → Environment):
 | `NOTIFY_EMAIL` | `info@apexfivecleaning.co.uk` | Admin quote notifications (inbox only — not shown to customers) |
 | `COMPANY_EMAIL` | `info@apexfivecleaning.co.uk` | Contact email in verification and other customer emails |
 | `COMPANY_TAGLINE` | `Professional Eco-Friendly Cleaning Services in UK` | Email footer tagline |
-| `COMPANY_ADDRESS` | `91 Manor Road, Wallington SM6 0AP, Surrey` | Email footer address |
+| `COMPANY_ADDRESS` | `91 Manor Road, Wallington\nSM6 0AP, Surrey` (use `\n` between lines in env) | Email footer address |
 
 **Single mailbox:** Use `info@apexfivecleaning.co.uk` for `SMTP_USER`, `SMTP_FROM_EMAIL`, `COMPANY_EMAIL`, `NOTIFY_EMAIL`, and `CUSTOMER_FROM_EMAIL`. Do not use `admin@` or other addresses — only `info@` is active on IONOS.
 

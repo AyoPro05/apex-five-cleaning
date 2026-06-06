@@ -20,3 +20,10 @@ const DEFAULT_WHATSAPP_TEXT = "Hi Apex Five Cleaning, I'd like to enquire about 
 export function whatsappHref(text = DEFAULT_WHATSAPP_TEXT) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 }
+
+/** Registered office — display on two lines site-wide */
+export const COMPANY_ADDRESS_LINE1 = '91 Manor Road, Wallington'
+export const COMPANY_ADDRESS_LINE2 = 'SM6 0AP, Surrey'
+export const COMPANY_ADDRESS_SINGLE_LINE = `${COMPANY_ADDRESS_LINE1}, ${COMPANY_ADDRESS_LINE2}`
+export const GOOGLE_MAPS_URL =
+  'https://www.google.com/maps/search/?api=1&query=91+Manor+Road,+Wallington+SM6+0AP,+Surrey'

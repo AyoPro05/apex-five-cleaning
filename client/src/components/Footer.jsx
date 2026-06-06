@@ -3,6 +3,7 @@ import ScrollRestoringLink from './ScrollRestoringLink'
 import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
 import { useCookieConsent } from '../context/CookieConsentContext'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
+import CompanyAddress from './CompanyAddress'
 
 const Footer = () => {
   const { openPreferences } = useCookieConsent()
@@ -76,14 +77,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
-                <a
-                  href="https://www.google.com/maps/search/?api=1&query=91+Manor+Road,+Wallington+SM6+0AP,+Surrey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-teal-500 transition"
-                >
-                  91 Manor Road, Wallington SM6 0AP, Surrey
-                </a>
+                <CompanyAddress linkClassName="hover:text-teal-500 transition" />
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-teal-500" />

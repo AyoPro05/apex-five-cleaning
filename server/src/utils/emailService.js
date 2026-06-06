@@ -250,7 +250,9 @@ const getBrandConfig = () => {
     email: process.env.COMPANY_EMAIL || DEFAULT_MAILBOX,
     phone: process.env.COMPANY_PHONE || '020 3535 6331',
     phoneTel: process.env.COMPANY_PHONE_TEL || '+442035356331',
-    address: process.env.COMPANY_ADDRESS || '91 Manor Road, Wallington SM6 0AP, Surrey',
+    addressLine1: '91 Manor Road, Wallington',
+    addressLine2: 'SM6 0AP, Surrey',
+    address: process.env.COMPANY_ADDRESS || '91 Manor Road, Wallington<br>SM6 0AP, Surrey',
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'
   };
@@ -286,7 +288,7 @@ const getEmailFooter = (brand, extraNote = '') => {
       <p class="email-footer-tagline">${brand.tagline}</p>
       ${getSupportContactBlock(brand)}
       <p class="email-footer-contact email-footer-website"><a href="${brand.website}">${brand.websiteDisplay}</a></p>
-      <p class="email-footer-address">${brand.address}</p>
+      <p class="email-footer-address">${brand.addressLine1 || brand.address}<br>${brand.addressLine2 || ''}</p>
       ${extraNote ? `<p class="email-footer-note">${extraNote}</p>` : ''}
       <p class="email-footer-copy">© ${new Date().getFullYear()} ${brand.legalName}. All rights reserved.</p>
     </div>
@@ -392,7 +394,9 @@ export const getAdminNotificationTemplate = (quoteData) => {
     'sharehouse-room': 'Sharehouse/Room'
   };
   const brand = getBrandConfig();
-  const adminUrl = `${brand.website.replace(/\/?$/, '')}/admin/quotes/${quoteData._id}`;
+  const adminUrl = quoteData?._id
+    ? `${buildAdminBaseUrl()}/admin/?quoteId=${encodeURIComponent(String(quoteData._id))}`
+    : `${buildAdminBaseUrl()}/admin/`;
   const safeFirst = escapeHtml(quoteData.firstName);
   const safeLast = escapeHtml(quoteData.lastName);
   const safeEmail = escapeHtml(quoteData.email);

@@ -5,6 +5,7 @@ import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { buildLocalBusinessSchema } from '../config/seoSchemas'
 import { CONTACT_EMAIL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
+import CompanyAddress from '../components/CompanyAddress'
 import { post } from '../utils/apiClient'
 import { getRecaptchaSiteKey, getRecaptchaToken, loadRecaptchaScript } from '../utils/recaptcha'
 import { createIdempotencyKey, withIdempotency } from '../utils/idempotency'
@@ -179,14 +180,7 @@ const Contact = () => {
                 <MapPin className="w-6 h-6 text-teal-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Address</h3>
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=91+Manor+Road,+Wallington+SM6+0AP,+Surrey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-teal-600 hover:text-teal-700 font-medium block"
-                  >
-                    91 Manor Road, Wallington SM6 0AP, Surrey
-                  </a>
+                  <CompanyAddress linkClassName="text-teal-600 hover:text-teal-700 font-medium block" />
                   <p className="text-gray-500 text-sm mt-1">Serving Kent, Essex, Greater London & surrounding areas</p>
                 </div>
               </div>
