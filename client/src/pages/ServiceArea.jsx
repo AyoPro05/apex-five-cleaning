@@ -4,14 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
 import { scrollReveal } from "../utils/scrollReveal";
-import SEO from "../components/SEO";
-import {
-  buildServiceAreaMetaDescription,
-  buildServiceAreaPageSchemas,
-  primaryRegionLabel,
-} from "../config/seoSchemas";
-import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from "../config/site";
+import { SITE_URL } from "../config/site";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -26,50 +19,310 @@ const ServiceArea = () => {
   const navigate = useNavigate();
   const [heroImage, setHeroImage] = useState("");
 
-  const area = SERVICE_AREAS_BY_SLUG[areaSlug];
+  // Service areas data with local information
+  const serviceAreas = {
+    // Kent - Canterbury & Surrounding
+    canterbury: {
+      name: "Canterbury",
+      region: "Kent",
+      coverage: "Canterbury, Whitstable, Herne Bay, Faversham",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Serving the historic Canterbury area and surrounding communities for over 5 years.",
+      highlights: [
+        "Same-day quotes for local properties",
+        "Quick response times in central Canterbury",
+        "Specialist in period property cleaning",
+        "Regular discounts for local residents",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.2793, lng: 1.0832 },
+    },
+    dover: {
+      name: "Dover",
+      region: "Kent",
+      coverage: "Dover, Folkestone, Deal, Walmer",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Professional cleaning services across Dover and the surrounding coastal communities.",
+      highlights: [
+        "Coastal property specialists",
+        "Salt-spray cleaning expertise",
+        "Fast turnaround for seasonal rentals",
+        "Port area property experience",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.1289, lng: 1.3127 },
+    },
+    maidstone: {
+      name: "Maidstone",
+      region: "Kent",
+      coverage: "Maidstone, Ashford, Sittingbourne",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Trusted cleaning partner for Maidstone homeowners and property managers.",
+      highlights: [
+        "Large house specialists",
+        "Multiple property management support",
+        "End-of-tenancy deposit recovery specialists",
+        "Commercial property experience",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.2707, lng: 0.5197 },
+    },
+    "tunbridge-wells": {
+      name: "Tunbridge Wells",
+      region: "Kent",
+      coverage: "Tunbridge Wells, Sevenoaks, Royal Tunbridge Wells",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Premium cleaning services for the affluent Tunbridge Wells community.",
+      highlights: [
+        "Luxury property specialists",
+        "Attention to detail for high-value homes",
+        "Flexible scheduling for busy professionals",
+        "Discretion and reliability guaranteed",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1517841905240-74f67b4dcb80?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.1829, lng: 0.274 },
+    },
+    sevenoaks: {
+      name: "Sevenoaks",
+      region: "Kent",
+      coverage: "Sevenoaks, Orpington, Eynsford",
+      responseTime: "24 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Serving affluent Sevenoaks and surrounding villages with premium cleaning services.",
+      highlights: [
+        "Large estate property expertise",
+        "Village property specialists",
+        "Extensive references available",
+        "Eco-friendly premium service",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1507995881394-2c58d5d0d81c?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.1544, lng: 0.1759 },
+    },
+    ashford: {
+      name: "Ashford",
+      region: "Kent",
+      coverage: "Ashford, Tenterden, Charing",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Comprehensive cleaning solutions for Ashford and surrounding rural communities.",
+      highlights: [
+        "Rural property specialists",
+        "Flexible scheduling for remote properties",
+        "Agricultural property experience",
+        "Community-focused service",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.1447, lng: 0.8738 },
+    },
+    // Swale - Sheerness, Sittingbourne, etc.
+    sheerness: {
+      name: "Sheerness-on-Sea",
+      region: "Swale, Kent",
+      coverage: "Sheerness-on-Sea, Queenborough, Minster-on-Sea",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Specialist coastal cleaning for Sheerness and Isle of Sheppey communities.",
+      highlights: [
+        "Seaside property specialists",
+        "Salt-air cleaning expertise",
+        "Holiday let specialists",
+        "Quick turnaround cleaning",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.4421, lng: 0.7491 },
+    },
+    sittingbourne: {
+      name: "Sittingbourne",
+      region: "Swale, Kent",
+      coverage: "Sittingbourne, Faversham, Whitstable",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Professional cleaning services across Swale including Sittingbourne and Faversham.",
+      highlights: [
+        "Family home specialists",
+        "End-of-tenancy deposit recovery focus",
+        "Regular customer loyalty discounts",
+        "Eco-friendly service provider",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.3462, lng: 0.7417 },
+    },
+    axminster: {
+      name: "Axminster",
+      region: "Swale, Kent",
+      coverage: "Axminster, Minster-on-Sea",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Quality cleaning services serving Axminster and surrounding rural areas.",
+      highlights: [
+        "Rural property experience",
+        "Flexible appointment scheduling",
+        "Personalized service approach",
+        "Professional and trustworthy team",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1507995881394-2c58d5d0d81c?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.3789, lng: 0.9147 },
+    },
+    "minster-on-sea": {
+      name: "Minster-on-Sea",
+      region: "Swale, Kent",
+      coverage: "Minster-on-Sea, Sittingbourne, Isle of Sheppey",
+      responseTime: "24-48 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Specialist coastal and rural cleaning services for Minster-on-Sea and surrounding areas.",
+      highlights: [
+        "Coastal property specialists",
+        "Rural and village expertise",
+        "Fast response times",
+        "Customer-focused service",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.4176, lng: 0.8447 },
+    },
+    // London - Croydon & Surrounding
+    croydon: {
+      name: "Croydon",
+      region: "Greater London, Surrey",
+      coverage: "Croydon, Coulsdon, Sanderstead, Purley",
+      responseTime: "24 hours",
+      servicesCovered: [
+        "Residential Cleaning",
+        "End of Tenancy",
+        "Airbnb Turnover",
+      ],
+      localInfo:
+        "Premium cleaning services for South London and Greater London areas.",
+      highlights: [
+        "London property specialists",
+        "Rapid response times (24 hours)",
+        "Professional team experienced with city properties",
+        "Flexible weekend scheduling available",
+      ],
+      image:
+        "https://images.unsplash.com/photo-1517841905240-74f67b4dcb80?w=1200&h=600&fit=crop",
+      coordinates: { lat: 51.3758, lng: -0.1045 },
+    },
+  };
+
+  const area = serviceAreas[areaSlug];
 
   if (!area) {
     return (
-      <>
-        <SEO
-          title="Service area not found"
-          description="This service area page is not available."
-          path={`/service-areas/${areaSlug ?? ""}`}
-          noindex
-        />
-        <section className="pt-32 pb-20 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">
-              Area Not Found
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              We're sorry, but we couldn't find that service area.
-            </p>
-            <button
-              onClick={() => navigate("/service-areas")}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-lg font-bold"
-            >
-              View All Service Areas
-            </button>
-          </div>
-        </section>
-      </>
+      <section className="pt-32 pb-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-6">
+            Area Not Found
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">
+            We're sorry, but we couldn't find that service area.
+          </p>
+          <button
+            onClick={() => navigate("/service-areas")}
+            className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-lg font-bold"
+          >
+            View All Service Areas
+          </button>
+        </div>
+      </section>
     );
   }
 
-  const regionTitle = primaryRegionLabel(area.region);
-  const pageTitle = `Cleaning Services in ${area.name}, ${regionTitle}`;
-  const areaSchemas = buildServiceAreaPageSchemas(areaSlug, area);
+  // Local schema markup
+  const localSchema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: `Apex Five Cleaning - ${area.name}`,
+    image: area.image,
+    description: area.localInfo,
+    address: {
+      "@type": "PostalAddress",
+      addressRegion: area.region,
+      addressLocality: area.name,
+      addressCountry: "GB",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: area.coordinates.lat,
+      longitude: area.coordinates.lng,
+    },
+    telephone: "+447377280558",
+    url: `${SITE_URL}/service-areas/${areaSlug}`,
+    priceRange: "£45-£250",
+    areaServed: {
+      "@type": "City",
+      name: area.name,
+    },
+    serviceType: area.servicesCovered,
+  };
 
   return (
     <>
-      <SEO
-        title={pageTitle}
-        description={buildServiceAreaMetaDescription(area)}
-        path={`/service-areas/${areaSlug}`}
-        image={area.image}
-        jsonLd={areaSchemas}
-      />
+      {/* Schema Markup */}
+      <script type="application/ld+json">{JSON.stringify(localSchema)}</script>
 
       <section
         className="relative min-h-96 py-20 mb-20 overflow-hidden"
@@ -120,7 +373,7 @@ const ServiceArea = () => {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href={PHONE_MAIN_HREF}
+                href="tel:+447377280558"
                 className="bg-white text-teal-700 px-8 py-3 rounded-lg font-bold transition text-center hover:bg-gray-50"
               >
                 Call Now
@@ -229,13 +482,13 @@ const ServiceArea = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href={PHONE_MAIN_HREF}
+              href="tel:+447377280558"
               className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition text-center"
             >
-              Call: {PHONE_MAIN_DISPLAY}
+              Call: +44 7377 280558
             </a>
             <a
-              href={whatsappHref(`Hi Apex Five Cleaning, I'd like a quote for services in ${area.name}`)}
+              href={`https://wa.me/447377280558?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20a%20quote%20for%20services%20in%20${area.name}`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold transition text-center"
