@@ -27,6 +27,7 @@ export default function SignUpForm({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [registeredEmail, setRegisteredEmail] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMessage, setResendMessage] = useState('')
@@ -44,25 +45,45 @@ export default function SignUpForm({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }))
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess(false)
-    if (formData.password !== formData.passwordConfirm) {
-      setError('Passwords do not match')
-      return
+    const nextFieldErrors = {}
+    if (!formData.firstName.trim()) nextFieldErrors.firstName = 'First name is required.'
+    if (!formData.lastName.trim()) nextFieldErrors.lastName = 'Last name is required.'
+    if (!formData.email.trim()) {
+      nextFieldErrors.email = 'Email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      nextFieldErrors.email = 'Enter a valid email address.'
     }
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
+    if (!formData.phone.trim()) {
+      nextFieldErrors.phone = 'Phone number is required.'
+    }
+    if (!formData.password) {
+      nextFieldErrors.password = 'Password is required.'
+    } else if (formData.password.length < 8) {
+      nextFieldErrors.password = 'Password must be at least 8 characters.'
+    }
+    if (!formData.passwordConfirm) {
+      nextFieldErrors.passwordConfirm = 'Please confirm your password.'
+    } else if (formData.password !== formData.passwordConfirm) {
+      nextFieldErrors.passwordConfirm = 'Passwords do not match.'
     }
     const phoneClean = formData.phone.replace(/\D/g, '')
     if (phoneClean.length < 10 || phoneClean.length > 15) {
-      setError('Please enter a valid UK phone number (10-15 digits)')
+      nextFieldErrors.phone = 'Enter a valid UK phone number (10-15 digits).'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
       return
     }
+    setFieldErrors({})
     setLoading(true)
     try {
       await register({
@@ -167,6 +188,7 @@ export default function SignUpForm({
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
               />
             </div>
+            {fieldErrors.firstName && <p className="mt-1 text-sm text-red-600">{fieldErrors.firstName}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Last name</label>
@@ -183,6 +205,7 @@ export default function SignUpForm({
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
               />
             </div>
+            {fieldErrors.lastName && <p className="mt-1 text-sm text-red-600">{fieldErrors.lastName}</p>}
           </div>
         </div>
         <div>
@@ -200,6 +223,7 @@ export default function SignUpForm({
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
@@ -216,6 +240,7 @@ export default function SignUpForm({
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
@@ -233,6 +258,7 @@ export default function SignUpForm({
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
@@ -249,6 +275,9 @@ export default function SignUpForm({
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          {fieldErrors.passwordConfirm && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.passwordConfirm}</p>
+          )}
         </div>
         <div className="flex items-center">
           <input

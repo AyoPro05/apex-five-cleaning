@@ -10,6 +10,7 @@ import ChatWidget from "./components/ChatWidget";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CookieConsent from "./components/CookieConsent";
 import AttributionCapture from "./components/AttributionCapture";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Eager load – above-the-fold / high-traffic
 import Home from "./pages/Home";
@@ -38,6 +39,8 @@ const PaymentPending = lazy(() => import("./pages/PaymentPending"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const SentryTest = lazy(() => import("./pages/SentryTest"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader() {
   return (
@@ -56,51 +59,64 @@ function App() {
       <AttributionCapture />
       <CookieConsent />
       <AnnouncementBanner />
-      <Navbar />
-      <main className={bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'}>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/services/:serviceId" element={<ServiceDetail />} />
-          <Route path="/service-areas" element={<ServiceAreas />} />
-          <Route path="/service-areas/:areaSlug" element={<ServiceArea />} />
-          <Route path="/testimonials" element={<Testimonials />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/pay-online" element={<PayOnline />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-error" element={<PaymentError />} />
-          <Route path="/payment-pending" element={<PaymentPending />} />
-          <Route path="/request-a-quote" element={<Quote />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/cookie-policy" element={<CookiePolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <CustomerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/quotes" element={<AdminDashboard />} />
-          <Route path="/admin/customers" element={<AdminDashboard />} />
-          <Route path="/admin/chat-leads" element={<AdminDashboard />} />
-          <Route path="/admin/staff" element={<AdminDashboard />} />
-          </Routes>
-        </Suspense>
-      </main>
-      <TrustSection />
-      <Footer />
-      <ChatWidget />
+      <ErrorBoundary title="Navigation unavailable" description="The top menu failed to load. Try again to recover it.">
+        <Navbar />
+      </ErrorBoundary>
+      <ErrorBoundary
+        title="Page content unavailable"
+        description="This section failed unexpectedly. Try again to reload this page."
+      >
+        <main className={bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'}>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/services/:serviceId" element={<ServiceDetail />} />
+            <Route path="/service-areas" element={<ServiceAreas />} />
+            <Route path="/service-areas/:areaSlug" element={<ServiceArea />} />
+            <Route path="/testimonials" element={<Testimonials />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/pay-online" element={<PayOnline />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-error" element={<PaymentError />} />
+            <Route path="/payment-pending" element={<PaymentPending />} />
+            <Route path="/request-a-quote" element={<Quote />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/__debug/sentry" element={<SentryTest />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <CustomerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/quotes" element={<AdminDashboard />} />
+            <Route path="/admin/customers" element={<AdminDashboard />} />
+            <Route path="/admin/chat-leads" element={<AdminDashboard />} />
+            <Route path="/admin/staff" element={<AdminDashboard />} />
+            <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </ErrorBoundary>
+      <ErrorBoundary title="Footer unavailable" description="The footer failed to load. Try again to restore it.">
+        <TrustSection />
+        <Footer />
+      </ErrorBoundary>
+      <ErrorBoundary title="Chat unavailable" description="The chat widget failed to load. Try again to restore it.">
+        <ChatWidget />
+      </ErrorBoundary>
     </div>
   );
 }

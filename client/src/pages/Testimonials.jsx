@@ -6,6 +6,7 @@ import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import SEO from '../components/SEO'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 import { buildBreadcrumbSchema } from '../config/seoSchemas'
+import FallbackImage from '../components/FallbackImage'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -166,7 +167,7 @@ const Testimonials = () => {
 
               {/* Author */}
               <div className="flex items-center gap-4">
-                <img
+                <FallbackImage
                   src={testimonial.image}
                   alt={testimonial.name}
                   className="w-12 h-12 rounded-full object-cover"
@@ -196,7 +197,7 @@ const Testimonials = () => {
 
             {/* Author */}
             <div className="flex items-center gap-4">
-              <img
+              <FallbackImage
                 src={testimonials[currentSlide].image}
                 alt={testimonials[currentSlide].name}
                 className="w-12 h-12 rounded-full object-cover"

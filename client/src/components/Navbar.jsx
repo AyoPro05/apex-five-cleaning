@@ -7,6 +7,7 @@ import { useAnnouncement } from '../context/AnnouncementContext'
 import SearchModal from './SearchModal'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 import { buildAccountUrl } from '../utils/authRedirect'
+import FallbackImage from './FallbackImage'
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -62,7 +63,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-24 md:h-28">
           {/* Logo - 3 steps back from nav menus */}
           <ScrollRestoringLink to="/" className="flex items-center mr-12 lg:mr-16" aria-label="Home">
-            <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-16 md:h-20 w-auto object-contain" />
+            <FallbackImage src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-16 md:h-20 w-auto object-contain" />
           </ScrollRestoringLink>
 
           {/* Desktop Navigation */}

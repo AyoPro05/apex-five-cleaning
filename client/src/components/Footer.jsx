@@ -4,6 +4,7 @@ import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
 import { useCookieConsent } from '../context/CookieConsentContext'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from '../config/site'
 import CompanyAddress from './CompanyAddress'
+import FallbackImage from './FallbackImage'
 
 const Footer = () => {
   const { openPreferences } = useCookieConsent()
@@ -14,7 +15,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="inline-flex items-center mb-4 bg-white rounded-lg px-3 py-2 shadow-sm">
-              <img src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
+              <FallbackImage src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Professional eco-friendly cleaning services across Kent, London, and Essex.

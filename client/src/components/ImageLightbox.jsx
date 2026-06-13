@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import FallbackImage from "./FallbackImage";
 
 export default function ImageLightbox({ image, alt, onClose }) {
   const closeButtonRef = useRef(null);
@@ -45,7 +46,7 @@ export default function ImageLightbox({ image, alt, onClose }) {
       >
         Close
       </button>
-      <img
+      <FallbackImage
         src={image}
         alt={alt || "Expanded image"}
         className="max-h-[90vh] max-w-[95vw] rounded-xl object-contain"

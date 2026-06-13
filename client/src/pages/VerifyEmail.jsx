@@ -11,6 +11,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate()
   const [status, setStatus] = useState('loading') // 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     const token = searchParams.get('token')
@@ -37,7 +38,7 @@ export default function VerifyEmail() {
     }
 
     verify()
-  }, [searchParams])
+  }, [searchParams, retryCount])
 
   const isLoading = status === 'loading'
   const isSuccess = status === 'success'
@@ -103,6 +104,18 @@ export default function VerifyEmail() {
                 If the link has expired, you can request a new verification email from your account or when you try to
                 pay online.
               </p>
+              {searchParams.get('token') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatus('loading')
+                    setRetryCount((prev) => prev + 1)
+                  }}
+                  className="mt-2 inline-flex items-center justify-center px-6 py-3 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 font-semibold"
+                >
+                  Retry verification
+                </button>
+              )}
             </div>
           )}
         </div>

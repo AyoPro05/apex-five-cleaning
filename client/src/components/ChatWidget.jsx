@@ -5,6 +5,7 @@ import { getBotResponse } from '../data/websiteContent'
 import { post } from '../utils/apiClient'
 import { trackEvent } from '../utils/analytics'
 import { createIdempotencyKey, withIdempotency } from '../utils/idempotency'
+import FallbackImage from './FallbackImage'
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -21,6 +22,7 @@ const ChatWidget = () => {
   const [leadSaving, setLeadSaving] = useState(false)
   const [leadError, setLeadError] = useState('')
   const [leadSaved, setLeadSaved] = useState(false)
+  const [leadFieldErrors, setLeadFieldErrors] = useState({})
   const [leadForm, setLeadForm] = useState({
     name: '',
     email: '',
@@ -142,6 +144,19 @@ const ChatWidget = () => {
     e.preventDefault()
     setLeadError('')
     setLeadSaved(false)
+    const nextFieldErrors = {}
+    if (!leadForm.name.trim()) nextFieldErrors.name = 'Name is required.'
+    if (!leadForm.email.trim() && !leadForm.phone.trim()) {
+      nextFieldErrors.contact = 'Provide at least an email or phone number.'
+    }
+    if (leadForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadForm.email.trim())) {
+      nextFieldErrors.email = 'Enter a valid email address.'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setLeadFieldErrors(nextFieldErrors)
+      return
+    }
+    setLeadFieldErrors({})
     setLeadSaving(true)
     try {
       const payload = {
@@ -177,6 +192,7 @@ const ChatWidget = () => {
         serviceType: '',
         message: ''
       })
+      setLeadFieldErrors({})
     } catch (err) {
       setLeadError(err?.message || 'Could not submit your details right now.')
       trackEvent('chat_lead_submit_failed', { conversation_id: conversationId })
@@ -194,7 +210,7 @@ const ChatWidget = () => {
           <div className="hero-gradient px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                <img src="/apex-five-logo.png" alt="Apex Assistant" className="w-8 h-8 object-contain" />
+                <FallbackImage src="/apex-five-logo.png" alt="Apex Assistant" className="w-8 h-8 object-contain" />
               </div>
               <div>
                 <h3 className="text-white font-semibold text-sm">Apex Assistant</h3>
@@ -218,7 +234,7 @@ const ChatWidget = () => {
               >
                 {message.type === 'ai' && (
                   <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border border-teal-100">
-                    <img src="/apex-five-logo.png" alt="" className="w-5 h-5 object-contain" />
+                    <FallbackImage src="/apex-five-logo.png" alt="" className="w-5 h-5 object-contain" />
                   </div>
                 )}
                 <div
@@ -278,7 +294,7 @@ const ChatWidget = () => {
             {isTyping && (
               <div className="flex justify-start fade-in">
                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border border-teal-100">
-                  <img src="/apex-five-logo.png" alt="" className="w-5 h-5 object-contain" />
+                  <FallbackImage src="/apex-five-logo.png" alt="" className="w-5 h-5 object-contain" />
                 </div>
                 <div className="bg-white rounded-r-2xl rounded-tr-2xl shadow-sm p-3 max-w-[85%] mr-2">
                   <p className="text-sm text-gray-500">Typing...</p>
@@ -293,26 +309,48 @@ const ChatWidget = () => {
               <p className="text-xs font-semibold text-gray-700">Share your details for follow-up</p>
               <input
                 value={leadForm.name}
-                onChange={(e) => setLeadForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) => {
+                  setLeadForm((p) => ({ ...p, name: e.target.value }))
+                  if (leadFieldErrors.name) {
+                    setLeadFieldErrors((prev) => ({ ...prev, name: '' }))
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                 placeholder="Name *"
                 required
               />
+              {leadFieldErrors.name && <p className="text-[11px] text-red-600">{leadFieldErrors.name}</p>}
               <div className="grid grid-cols-2 gap-2">
                 <input
                   value={leadForm.email}
-                  onChange={(e) => setLeadForm((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(e) => {
+                    setLeadForm((p) => ({ ...p, email: e.target.value }))
+                    if (leadFieldErrors.email || leadFieldErrors.contact) {
+                      setLeadFieldErrors((prev) => ({ ...prev, email: '', contact: '' }))
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                   placeholder="Email"
                   type="email"
                 />
                 <input
                   value={leadForm.phone}
-                  onChange={(e) => setLeadForm((p) => ({ ...p, phone: e.target.value }))}
+                  onChange={(e) => {
+                    setLeadForm((p) => ({ ...p, phone: e.target.value }))
+                    if (leadFieldErrors.contact) {
+                      setLeadFieldErrors((prev) => ({ ...prev, contact: '' }))
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                   placeholder="Phone"
                 />
               </div>
+              {(leadFieldErrors.email || leadFieldErrors.contact) && (
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[11px] text-red-600">{leadFieldErrors.email || ''}</p>
+                  <p className="text-[11px] text-red-600">{leadFieldErrors.contact || ''}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <input
                   value={leadForm.postcode}

@@ -31,6 +31,7 @@ const Contact = () => {
   })
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey())
 
@@ -55,34 +56,38 @@ const Contact = () => {
       ...prev,
       [name]: value
     }))
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: '' }))
+    }
     if (error) setError('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const nextFieldErrors = {}
 
     // Validation
     if (!formData.name.trim()) {
-      setError('Please enter your name')
-      return
+      nextFieldErrors.name = 'Please enter your name.'
     }
     if (!formData.email.trim()) {
-      setError('Please enter your email')
-      return
+      nextFieldErrors.email = 'Please enter your email.'
     }
-    if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address')
-      return
+    if (formData.email.trim() && !validateEmail(formData.email)) {
+      nextFieldErrors.email = 'Please enter a valid email address.'
     }
     if (formData.phone && !validatePhone(formData.phone)) {
-      setError('Please enter a valid phone number')
-      return
+      nextFieldErrors.phone = 'Please enter a valid phone number.'
     }
     if (!formData.message.trim()) {
-      setError('Please enter a message')
+      nextFieldErrors.message = 'Please enter a message.'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
       return
     }
+    setFieldErrors({})
 
     setLoading(true)
     try {
@@ -263,6 +268,7 @@ const Contact = () => {
                   placeholder="Your name"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
                 />
+                {fieldErrors.name && <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
@@ -275,6 +281,7 @@ const Contact = () => {
                   placeholder="your@email.com"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
                 />
+                {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
@@ -286,6 +293,7 @@ const Contact = () => {
                   placeholder="+44 (optional)"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
                 />
+                {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
@@ -314,6 +322,7 @@ const Contact = () => {
                   placeholder="Tell us about your cleaning needs..."
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
                 ></textarea>
+                {fieldErrors.message && <p className="mt-1 text-sm text-red-600">{fieldErrors.message}</p>}
               </div>
               {getRecaptchaSiteKey() && (
                 <p className="text-xs text-gray-500">

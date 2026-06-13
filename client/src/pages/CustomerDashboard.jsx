@@ -159,6 +159,10 @@ export default function CustomerDashboard() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tabLoading, setTabLoading] = useState(false)
+  const [tabError, setTabError] = useState('')
+  const [overviewError, setOverviewError] = useState('')
+  const [tabReloadKey, setTabReloadKey] = useState(0)
+  const [overviewReloadKey, setOverviewReloadKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [copied, setCopied] = useState(false)
@@ -191,6 +195,8 @@ export default function CustomerDashboard() {
     isDefault: false,
   })
   const [editingAddressId, setEditingAddressId] = useState(null)
+  const [profileErrors, setProfileErrors] = useState({})
+  const [addressErrors, setAddressErrors] = useState({})
   const [showAddressForm, setShowAddressForm] = useState(false)
 
   const setTab = useCallback(
@@ -313,26 +319,30 @@ export default function CustomerDashboard() {
     if (!token) return
     const loadTab = async () => {
       setTabLoading(true)
+      setTabError('')
       try {
         if (activeTab === 'bookings') {
           const d = await get('/api/bookings')
           if (d.success) setBookings(d.bookings || [])
+          else setTabError(d.error || 'Could not load bookings.')
         }
         if (activeTab === 'payments') {
           const d = await get('/api/payments')
           if (d.success) setPayments(d.payments || [])
+          else setTabError(d.message || 'Could not load payment history.')
         }
         if (activeTab === 'quotes') {
           const d = await get('/api/customer/quotes')
           if (d.success) setQuotes(d.quotes || [])
+          else setTabError(d.error || 'Could not load quotes.')
         }
-      } catch {
-        /* tab-specific errors shown inline */
+      } catch (err) {
+        setTabError(apiErrorMessage(err))
       }
       setTabLoading(false)
     }
     if (['bookings', 'payments', 'quotes'].includes(activeTab)) loadTab()
-  }, [activeTab, token])
+  }, [activeTab, token, tabReloadKey])
 
   const defaultAddress = useMemo(
     () => addresses.find((a) => a.isDefault) || addresses[0],
@@ -365,13 +375,22 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     if (activeTab !== 'overview' || !token) return
+    setOverviewError('')
     get('/api/bookings')
       .then((d) => d.success && setBookings(d.bookings || []))
-      .catch(() => {})
+      .catch((err) => setOverviewError((prev) => prev || apiErrorMessage(err)))
     get('/api/customer/quotes')
       .then((d) => d.success && setQuotes(d.quotes || []))
-      .catch(() => {})
-  }, [activeTab, token])
+      .catch((err) => setOverviewError((prev) => prev || apiErrorMessage(err)))
+  }, [activeTab, token, overviewReloadKey])
+
+  const retryCurrentDataLoad = () => {
+    if (activeTab === 'overview') {
+      setOverviewReloadKey((prev) => prev + 1)
+      return
+    }
+    setTabReloadKey((prev) => prev + 1)
+  }
 
   const goToQuote = (extra = {}) => {
     setQuotePrefill({ ...buildQuotePrefillFromUser(profile || user, defaultAddress), ...extra })
@@ -387,6 +406,19 @@ export default function CustomerDashboard() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
+    const nextErrors = {}
+    if (!profileForm.firstName.trim()) nextErrors.firstName = 'First name is required.'
+    if (!profileForm.lastName.trim()) nextErrors.lastName = 'Last name is required.'
+    const phoneDigits = profileForm.phone.replace(/\D/g, '')
+    if (!phoneDigits) nextErrors.phone = 'Phone number is required.'
+    else if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      nextErrors.phone = 'Enter a valid phone number (10-15 digits).'
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setProfileErrors(nextErrors)
+      return
+    }
+    setProfileErrors({})
     setSaving(true)
     setMessage({ type: '', text: '' })
     try {
@@ -448,10 +480,20 @@ export default function CustomerDashboard() {
       isDefault: addresses.length === 0,
     })
     setEditingAddressId(null)
+    setAddressErrors({})
   }
 
   const handleSaveAddress = async (e) => {
     e.preventDefault()
+    const nextErrors = {}
+    if (!addressForm.street.trim()) nextErrors.street = 'Street is required.'
+    if (!addressForm.city.trim()) nextErrors.city = 'City is required.'
+    if (!addressForm.postCode.trim()) nextErrors.postCode = 'Postcode is required.'
+    if (Object.keys(nextErrors).length > 0) {
+      setAddressErrors(nextErrors)
+      return
+    }
+    setAddressErrors({})
     setSaving(true)
     setMessage({ type: '', text: '' })
     try {
@@ -607,6 +649,18 @@ export default function CustomerDashboard() {
 
             {activeTab === 'overview' && !loading && (
               <div className="space-y-8">
+                {overviewError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-red-800">{overviewError}</p>
+                    <button
+                      type="button"
+                      onClick={retryCurrentDataLoad}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-4">At a glance</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -757,6 +811,18 @@ export default function CustomerDashboard() {
                     </button>
                   )}
                 </div>
+                {tabError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-red-800">{tabError}</p>
+                    <button
+                      type="button"
+                      onClick={retryCurrentDataLoad}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 {tabLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
@@ -802,6 +868,18 @@ export default function CustomerDashboard() {
             {activeTab === 'payments' && (
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Payment history</h2>
+                {tabError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-red-800">{tabError}</p>
+                    <button
+                      type="button"
+                      onClick={retryCurrentDataLoad}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 {tabLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
@@ -856,9 +934,15 @@ export default function CustomerDashboard() {
                         type="text"
                         required
                         value={profileForm.firstName}
-                        onChange={(e) => setProfileForm((f) => ({ ...f, firstName: e.target.value }))}
+                        onChange={(e) => {
+                          setProfileForm((f) => ({ ...f, firstName: e.target.value }))
+                          if (profileErrors.firstName) {
+                            setProfileErrors((prev) => ({ ...prev, firstName: '' }))
+                          }
+                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
                       />
+                      {profileErrors.firstName && <p className="mt-1 text-sm text-red-600">{profileErrors.firstName}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
@@ -866,9 +950,15 @@ export default function CustomerDashboard() {
                         type="text"
                         required
                         value={profileForm.lastName}
-                        onChange={(e) => setProfileForm((f) => ({ ...f, lastName: e.target.value }))}
+                        onChange={(e) => {
+                          setProfileForm((f) => ({ ...f, lastName: e.target.value }))
+                          if (profileErrors.lastName) {
+                            setProfileErrors((prev) => ({ ...prev, lastName: '' }))
+                          }
+                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
                       />
+                      {profileErrors.lastName && <p className="mt-1 text-sm text-red-600">{profileErrors.lastName}</p>}
                     </div>
                   </div>
                   <div>
@@ -889,9 +979,15 @@ export default function CustomerDashboard() {
                       type="tel"
                       required
                       value={profileForm.phone}
-                      onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+                      onChange={(e) => {
+                        setProfileForm((f) => ({ ...f, phone: e.target.value }))
+                        if (profileErrors.phone) {
+                          setProfileErrors((prev) => ({ ...prev, phone: '' }))
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
                     />
+                    {profileErrors.phone && <p className="mt-1 text-sm text-red-600">{profileErrors.phone}</p>}
                   </div>
                   <fieldset className="border-t border-gray-100 pt-4">
                     <legend className="text-sm font-medium text-gray-900 mb-3">Home address</legend>
@@ -977,7 +1073,10 @@ export default function CustomerDashboard() {
                       type="text"
                       placeholder="Label (e.g. Home)"
                       value={addressForm.label}
-                      onChange={(e) => setAddressForm((f) => ({ ...f, label: e.target.value }))}
+                      onChange={(e) => {
+                        setAddressForm((f) => ({ ...f, label: e.target.value }))
+                        if (addressErrors.label) setAddressErrors((prev) => ({ ...prev, label: '' }))
+                      }}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                     />
                     <input
@@ -985,16 +1084,23 @@ export default function CustomerDashboard() {
                       required
                       placeholder="Street"
                       value={addressForm.street}
-                      onChange={(e) => setAddressForm((f) => ({ ...f, street: e.target.value }))}
+                      onChange={(e) => {
+                        setAddressForm((f) => ({ ...f, street: e.target.value }))
+                        if (addressErrors.street) setAddressErrors((prev) => ({ ...prev, street: '' }))
+                      }}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                     />
+                    {addressErrors.street && <p className="mt-1 text-sm text-red-600">{addressErrors.street}</p>}
                     <div className="grid sm:grid-cols-2 gap-3">
                       <input
                         type="text"
                         required
                         placeholder="City"
                         value={addressForm.city}
-                        onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))}
+                        onChange={(e) => {
+                          setAddressForm((f) => ({ ...f, city: e.target.value }))
+                          if (addressErrors.city) setAddressErrors((prev) => ({ ...prev, city: '' }))
+                        }}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                       />
                       <input
@@ -1002,10 +1108,19 @@ export default function CustomerDashboard() {
                         required
                         placeholder="Postcode"
                         value={addressForm.postCode}
-                        onChange={(e) => setAddressForm((f) => ({ ...f, postCode: e.target.value }))}
+                        onChange={(e) => {
+                          setAddressForm((f) => ({ ...f, postCode: e.target.value }))
+                          if (addressErrors.postCode) setAddressErrors((prev) => ({ ...prev, postCode: '' }))
+                        }}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg"
                       />
                     </div>
+                    {(addressErrors.city || addressErrors.postCode) && (
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <p className="text-sm text-red-600">{addressErrors.city || ''}</p>
+                        <p className="text-sm text-red-600">{addressErrors.postCode || ''}</p>
+                      </div>
+                    )}
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input
                         type="checkbox"
@@ -1232,6 +1347,18 @@ export default function CustomerDashboard() {
                     New quote request
                   </button>
                 </div>
+                {tabError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-red-800">{tabError}</p>
+                    <button
+                      type="button"
+                      onClick={retryCurrentDataLoad}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 {tabLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />

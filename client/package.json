@@ -11,6 +11,7 @@
     "test:watch": "vitest --environment jsdom"
   },
   "dependencies": {
+    "@sentry/react": "^10.57.0",
     "@stripe/react-stripe-js": "^5.6.0",
     "@stripe/stripe-js": "^8.7.0",
     "axios": "^1.13.5",

@@ -45,11 +45,18 @@ import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService
 import { handleStripeWebhook } from "./routes/payments.js";
 import { startScheduler } from "./jobs/scheduler.js";
 import chatopsRouter from "./routes/chatops.js";
+import {
+  captureServerException,
+  initServerSentry,
+  isServerSentryEnabled,
+  sentryRequestContext,
+} from "./utils/sentry.js";
 
 // Fail fast instead of waiting for Mongoose operation buffering timeouts
 mongoose.set("bufferCommands", false);
 
 const app = express();
+const sentryEnabled = initServerSentry();
 // Render (and similar) terminate TLS and set X-Forwarded-*. Required for correct req.ip and express-rate-limit.
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -131,6 +138,7 @@ app.use("/api/chatops", chatopsRouter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ limit: "10kb", extended: true }));
+app.use(sentryRequestContext);
 
 // API rate limiting – apply before routes to intercept all incoming requests
 app.use(apiRateLimiter);
@@ -194,6 +202,31 @@ app.use("/api/uploads", uploadsRouter);
 app.use("/api/contact", contactRouter);
 app.use("/api/chat", chatRouter);
 
+if (process.env.ENABLE_SENTRY_TEST_ENDPOINT === "true") {
+  app.get("/api/debug/sentry-test", (req, res) => {
+    const error = new Error("Server Sentry test error");
+    req.captureException?.(error, { tags: { test: "server-sentry" } });
+    return res.status(500).json({
+      success: false,
+      message: "Triggered test error. Check Sentry Issues for 'Server Sentry test error'.",
+    });
+  });
+}
+
+app.use((err, req, res, next) => {
+  req.captureException?.(err, { tags: { source: "express-error-middleware" } });
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(err.status || 500).json({
+    error: "Server error",
+    message:
+      process.env.NODE_ENV === "production"
+        ? "An unexpected error occurred."
+        : err.message || "An unexpected error occurred.",
+  });
+});
+
 // Database connection
 const connectDB = async () => {
   const uri =
@@ -256,8 +289,21 @@ const startServer = async () => {
     console.log(
       `✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`,
     );
+    if (sentryEnabled) {
+      console.log("✓ Sentry monitoring enabled");
+    }
   });
 };
+
+process.on("uncaughtExceptionMonitor", (error) => {
+  if (!isServerSentryEnabled()) return;
+  captureServerException(error, { tags: { source: "uncaughtExceptionMonitor" } });
+});
+
+process.on("unhandledRejection", (reason) => {
+  if (!isServerSentryEnabled()) return;
+  captureServerException(reason, { tags: { source: "unhandledRejection" } });
+});
 
 startServer();
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { get, post, patch, getBlob, del } from "../utils/apiClient";
+import FallbackImage from "../components/FallbackImage";
 import {
   useAdminInactivityLogout,
   clearAdminActivityTimestamp,
@@ -1332,7 +1333,16 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">Unable to load analytics</div>
+                  <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                    <p>Unable to load analytics</p>
+                    <button
+                      type="button"
+                      onClick={fetchAnalytics}
+                      className="mt-3 inline-flex items-center justify-center px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold"
+                    >
+                      Retry
+                    </button>
+                  </div>
                 )}
               </>
             )}
@@ -1362,8 +1372,15 @@ const AdminDashboard = () => {
 
                 {/* Error Message */}
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p className="text-red-800">{error}</p>
+                    <button
+                      type="button"
+                      onClick={fetchQuotes}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-semibold hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
 
@@ -1671,8 +1688,15 @@ const AdminDashboard = () => {
 
                 {/* Error Message */}
                 {customersError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p className="text-red-800">{customersError}</p>
+                    <button
+                      type="button"
+                      onClick={() => fetchCustomers({ page: customerPagination.page || 1 })}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-semibold hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
 
@@ -1849,8 +1873,15 @@ const AdminDashboard = () => {
                 </div>
 
                 {chatLeadsError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p className="text-red-800">{chatLeadsError}</p>
+                    <button
+                      type="button"
+                      onClick={fetchChatLeads}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-semibold hover:bg-red-100"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
 
@@ -2092,9 +2123,18 @@ const AdminDashboard = () => {
 	                  </p>
 	                </div>
 	                {staffError && (
-	                  <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
-	                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-	                    <p className="text-sm text-red-700">{staffError}</p>
+	                  <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+	                    <div className="flex gap-3 items-start">
+	                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+	                      <p className="text-sm text-red-700">{staffError}</p>
+	                    </div>
+	                    <button
+	                      type="button"
+	                      onClick={refreshStaffOperations}
+	                      className="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-semibold hover:bg-red-100"
+	                    >
+	                      Retry
+	                    </button>
 	                  </div>
 	                )}
 
@@ -2911,7 +2951,7 @@ const AdminDashboard = () => {
                             }}
                           >
                             {imageUrl ? (
-                              <img
+                              <FallbackImage
                                 src={imageUrl}
                                 alt={label}
                                 className="w-full h-full object-cover"

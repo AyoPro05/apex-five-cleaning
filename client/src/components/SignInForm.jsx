@@ -22,6 +22,8 @@ export default function SignInForm({
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [forgotEmailError, setForgotEmailError] = useState('')
 
   const isUnverifiedError = error && /verify|verification/i.test(error)
   const rememberId = `${idPrefix}-remember`
@@ -30,6 +32,20 @@ export default function SignInForm({
     e.preventDefault()
     setError('')
     setResendMessage('')
+    const nextFieldErrors = {}
+    if (!email.trim()) {
+      nextFieldErrors.email = 'Email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      nextFieldErrors.email = 'Enter a valid email address.'
+    }
+    if (!password) {
+      nextFieldErrors.password = 'Password is required.'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
+      return
+    }
+    setFieldErrors({})
     setLoading(true)
     try {
       await login(email, password, rememberMe)
@@ -61,7 +77,15 @@ export default function SignInForm({
 
   const handleForgotPassword = async (e) => {
     e.preventDefault()
-    if (!forgotEmail.trim()) return
+    if (!forgotEmail.trim()) {
+      setForgotEmailError('Email is required.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail.trim())) {
+      setForgotEmailError('Enter a valid email address.')
+      return
+    }
+    setForgotEmailError('')
     setForgotLoading(true)
     setForgotMessage('')
     try {
@@ -104,12 +128,16 @@ export default function SignInForm({
               <input
                 type="email"
                 value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
+                onChange={(e) => {
+                  setForgotEmail(e.target.value)
+                  if (forgotEmailError) setForgotEmailError('')
+                }}
                 placeholder="you@example.com"
                 required
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
+            {forgotEmailError && <p className="mt-1 text-sm text-red-600">{forgotEmailError}</p>}
           </div>
           {forgotMessage && (
             <div
@@ -172,13 +200,19 @@ export default function SignInForm({
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (fieldErrors.email) {
+                  setFieldErrors((prev) => ({ ...prev, email: '' }))
+                }
+              }}
               required
               autoComplete="email"
               placeholder="you@example.com"
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
+          {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
@@ -187,13 +221,19 @@ export default function SignInForm({
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (fieldErrors.password) {
+                  setFieldErrors((prev) => ({ ...prev, password: '' }))
+                }
+              }}
               required
               autoComplete="current-password"
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
+          {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
           <p className="mt-1 text-right">
             <button
               type="button"

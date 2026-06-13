@@ -7,7 +7,10 @@ import { AnnouncementProvider } from './context/AnnouncementContext'
 import { CookieConsentProvider } from './context/CookieConsentContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import App from './App'
+import { initClientSentry } from './monitoring/sentry'
 import './index.css'
+
+initClientSentry()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -14,9 +14,13 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchPaymentDetails = async () => {
+      setLoading(true);
+      setError(null);
+      setPaymentDetails(null);
       try {
         const paymentId = searchParams.get('payment_id');
         const bookingId = searchParams.get('booking_id');
@@ -58,7 +62,7 @@ const PaymentSuccess = () => {
     };
 
     fetchPaymentDetails();
-  }, [searchParams]);
+  }, [searchParams, retryCount]);
 
   if (loading) {
     return (
@@ -102,6 +106,13 @@ const PaymentSuccess = () => {
           >
             {isGuest ? 'Back to Pay Online' : 'My Dashboard'}
           </Link>
+          <button
+            type="button"
+            onClick={() => setRetryCount((prev) => prev + 1)}
+            className="ml-3 inline-block border border-emerald-600 text-emerald-600 px-6 py-2 rounded-lg hover:bg-emerald-50 transition"
+          >
+            Retry
+          </button>
           </div>
         </div>
       </>

@@ -15,6 +15,7 @@ export default function ResetPassword() {
   const [status, setStatus] = useState('form') // 'form' | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
 
   useEffect(() => {
     if (!token) {
@@ -26,14 +27,22 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (password !== passwordConfirm) {
-      setError('Passwords do not match')
+    const nextFieldErrors = {}
+    if (!password) {
+      nextFieldErrors.password = 'Password is required.'
+    } else if (password.length < 8) {
+      nextFieldErrors.password = 'Password must be at least 8 characters.'
+    }
+    if (!passwordConfirm) {
+      nextFieldErrors.passwordConfirm = 'Please confirm your password.'
+    } else if (password !== passwordConfirm) {
+      nextFieldErrors.passwordConfirm = 'Passwords do not match.'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
       return
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
-    }
+    setFieldErrors({})
 
     setStatus('loading')
     try {
@@ -101,13 +110,19 @@ export default function ResetPassword() {
                   <input
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (fieldErrors.password) {
+                        setFieldErrors((prev) => ({ ...prev, password: '' }))
+                      }
+                    }}
                     placeholder="Min 8 characters"
                     minLength={8}
                     required
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
+                {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
@@ -116,12 +131,20 @@ export default function ResetPassword() {
                   <input
                     type="password"
                     value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    onChange={(e) => {
+                      setPasswordConfirm(e.target.value)
+                      if (fieldErrors.passwordConfirm) {
+                        setFieldErrors((prev) => ({ ...prev, passwordConfirm: '' }))
+                      }
+                    }}
                     placeholder="Re-enter password"
                     required
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
+                {fieldErrors.passwordConfirm && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.passwordConfirm}</p>
+                )}
               </div>
               <button
                 type="submit"

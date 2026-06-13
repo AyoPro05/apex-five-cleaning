@@ -169,6 +169,7 @@ export default function PayOnline() {
   const [step, setStep] = useState('lookup')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [quote, setQuote] = useState(null)
   const [clientSecret, setClientSecret] = useState(null)
   const [paymentId, setPaymentId] = useState(null)
@@ -181,8 +182,22 @@ export default function PayOnline() {
   const handleLookup = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
+    const nextFieldErrors = {}
+    if (!quoteRef.trim()) {
+      nextFieldErrors.quoteRef = 'Quote reference is required.'
+    }
     const lookupEmail = (isAuthenticated && user?.email) ? user.email : email.trim()
+    if (!lookupEmail) {
+      nextFieldErrors.email = 'Email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lookupEmail)) {
+      nextFieldErrors.email = 'Enter a valid email address.'
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
+      return
+    }
+    setFieldErrors({})
+    setLoading(true)
     try {
       const data = await get(`/api/payments/guest/lookup?quoteId=${encodeURIComponent(quoteRef.trim())}&email=${encodeURIComponent(lookupEmail)}`)
       if (data.success) {
@@ -306,22 +321,34 @@ export default function PayOnline() {
                   <input
                     type="text"
                     value={quoteRef}
-                    onChange={(e) => setQuoteRef(e.target.value)}
+                    onChange={(e) => {
+                      setQuoteRef(e.target.value)
+                      if (fieldErrors.quoteRef) {
+                        setFieldErrors((prev) => ({ ...prev, quoteRef: '' }))
+                      }
+                    }}
                     placeholder="e.g. AP12345678"
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
+                  {fieldErrors.quoteRef && <p className="mt-1 text-sm text-red-600">{fieldErrors.quoteRef}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (fieldErrors.email) {
+                        setFieldErrors((prev) => ({ ...prev, email: '' }))
+                      }
+                    }}
                     placeholder="you@example.com"
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
+                  {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
                 </div>
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -466,23 +493,35 @@ export default function PayOnline() {
               <input
                 type="text"
                 value={quoteRef}
-                onChange={(e) => setQuoteRef(e.target.value)}
+                onChange={(e) => {
+                  setQuoteRef(e.target.value)
+                  if (fieldErrors.quoteRef) {
+                    setFieldErrors((prev) => ({ ...prev, quoteRef: '' }))
+                  }
+                }}
                 placeholder="e.g. 698cb13e54164c3526c0f8e5"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
+              {fieldErrors.quoteRef && <p className="mt-1 text-sm text-red-600">{fieldErrors.quoteRef}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
               <input
                 type="email"
                 value={user?.email || email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: '' }))
+                  }
+                }}
                 placeholder="you@example.com"
                 required
                 readOnly={!!user?.email}
                 className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${user?.email ? 'bg-gray-50' : ''}`}
               />
+              {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
               {user?.email && (
                 <p className="text-xs text-gray-500 mt-1">Using your account email</p>
               )}
