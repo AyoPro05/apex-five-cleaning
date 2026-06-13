@@ -23,6 +23,7 @@ import {
   guestPaymentIntentRateLimiter,
   guestPaymentConfirmRateLimiter,
   guestPaymentDetailsRateLimiter,
+  paidApiRateLimiter,
 } from '../middleware/rateLimiter.js';
 import { idempotency } from '../middleware/idempotency.js';
 import { emitEvent } from '../utils/eventBus.js';
@@ -222,7 +223,7 @@ router.get('/guest/lookup', guestPaymentLookupRateLimiter, async (req, res) => {
  * GUEST: Create payment intent (no auth)
  * POST /api/payments/guest/create-intent
  */
-router.post('/guest/create-intent', guestPaymentIntentRateLimiter, idempotency(), async (req, res) => {
+router.post('/guest/create-intent', guestPaymentIntentRateLimiter, paidApiRateLimiter, idempotency(), async (req, res) => {
   try {
     if (!stripe) {
       return res.status(503).json({ success: false, message: 'Payment system unavailable' });
@@ -339,15 +340,21 @@ router.get('/guest/:paymentId', guestPaymentDetailsRateLimiter, async (req, res)
  * GUEST: Confirm payment (no auth)
  * POST /api/payments/guest/confirm
  */
-router.post('/guest/confirm', guestPaymentConfirmRateLimiter, async (req, res) => {
+router.post('/guest/confirm', guestPaymentConfirmRateLimiter, paidApiRateLimiter, async (req, res) => {
   try {
-    const { paymentIntentId, paymentId } = req.body;
-    if (!paymentIntentId || !paymentId) {
+    const { paymentIntentId, paymentId, email } = req.body;
+    if (!paymentIntentId || !paymentId || !email) {
       return res.status(400).json({ success: false, message: 'Payment details required' });
     }
 
-    const quotePayment = await QuotePayment.findById(paymentId);
+    const quotePayment = await QuotePayment.findById(paymentId).populate("quoteId", "email");
     if (!quotePayment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const paymentEmail = String(quotePayment.email || "").trim().toLowerCase();
+    const quoteEmail = String(quotePayment.quoteId?.email || "").trim().toLowerCase();
+    if (normalizedEmail !== paymentEmail && normalizedEmail !== quoteEmail) {
       return res.status(404).json({ success: false, message: 'Payment not found' });
     }
     if (quotePayment.stripePaymentIntentId !== paymentIntentId) {
@@ -394,7 +401,7 @@ router.post('/guest/confirm', guestPaymentConfirmRateLimiter, async (req, res) =
  * POST /api/payments/create-intent
  * Creates a Stripe PaymentIntent for booking
  */
-router.post('/create-intent', authMiddleware, async (req, res) => {
+router.post('/create-intent', authMiddleware, paidApiRateLimiter, async (req, res) => {
   try {
     const { bookingId } = req.body;
 
@@ -509,7 +516,7 @@ router.post('/create-intent', authMiddleware, async (req, res) => {
  * POST /api/payments/confirm
  * Confirms payment after Stripe processes it
  */
-router.post('/confirm', authMiddleware, async (req, res) => {
+router.post('/confirm', authMiddleware, paidApiRateLimiter, async (req, res) => {
   try {
     const { paymentIntentId, paymentId } = req.body;
 

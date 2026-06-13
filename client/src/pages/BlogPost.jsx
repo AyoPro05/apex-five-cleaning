@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Clock, User, Share2, ArrowLeft } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import { SITE_URL, PHONE_MAIN_HREF } from '../config/site'
 import BlogImage from '../components/BlogImage'
@@ -275,6 +276,7 @@ const BlogPost = () => {
   }
 
   const post = blogDatabase[slug]
+  const sanitizedContent = post ? DOMPurify.sanitize(post.content) : ''
 
   if (!post) {
     return (
@@ -383,8 +385,7 @@ const BlogPost = () => {
 
           {/* Article Content */}
           <div className="prose prose-lg max-w-none mb-12">
-            {/* Content is from app-controlled blogDatabase only – not user input – so safe for dangerouslySetInnerHTML. If you later load from CMS/API, sanitize HTML. */}
-            <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
           </div>
 
           {/* Share Section */}

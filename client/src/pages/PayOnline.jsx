@@ -21,7 +21,7 @@ const cardElementOptions = {
   },
 }
 
-function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
+function GuestCardForm({ quote, clientSecret, paymentId, payerEmail, onSuccess, onError }) {
   const stripe = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
@@ -71,6 +71,7 @@ function GuestCardForm({ quote, clientSecret, paymentId, onSuccess, onError }) {
       const confirmData = await post('/api/payments/guest/confirm', {
         paymentIntentId: paymentIntent.id,
         paymentId,
+        email: String(payerEmail || '').trim(),
       })
 
       if (confirmData.success) {
@@ -278,6 +279,7 @@ export default function PayOnline() {
                 quote={quote}
                 clientSecret={clientSecret}
                 paymentId={paymentId}
+                payerEmail={user?.email || email}
                 onSuccess={handleSuccess}
                 onError={setError}
               />

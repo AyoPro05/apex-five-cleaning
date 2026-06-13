@@ -15,6 +15,7 @@
     "@stripe/react-stripe-js": "^5.6.0",
     "@stripe/stripe-js": "^8.7.0",
     "axios": "^1.13.5",
+    "dompurify": "^3.4.10",
     "framer-motion": "^10.16.16",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",

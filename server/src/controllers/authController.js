@@ -9,6 +9,14 @@ import Referral from '../../models/Referral.js';
 import Booking from '../../models/Booking.js';
 import { sendVerificationEmail, isEmailConfigured, sendPasswordResetEmail } from '../utils/emailService.js';
 import { sanitizeUserForClient } from '../utils/userSanitize.js';
+import {
+  validateForgotPasswordPayload,
+  validateLoginPayload,
+  validateRefreshTokenPayload,
+  validateRegisterPayload,
+  validateResetPasswordPayload,
+  validateUpdateMePayload,
+} from '../utils/authValidation.js';
 import crypto from 'crypto';
 
 /**
@@ -39,15 +47,14 @@ const generateRefreshToken = (userId, role) => {
  */
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, passwordConfirm, referralCode } = req.body;
-
-    // Validation
-    if (!firstName || !lastName || !email || !phone || !password || !passwordConfirm) {
+    const { error, value } = validateRegisterPayload(req.body);
+    if (error) {
       return res.status(400).json({
         error: 'Validation error',
-        message: 'Please provide all required fields'
+        message: error.details[0]?.message || 'Please provide valid registration details.',
       });
     }
+    const { firstName, lastName, email, phone, password, passwordConfirm, referralCode } = value;
 
     if (password !== passwordConfirm) {
       return res.status(400).json({
@@ -173,15 +180,14 @@ export const register = async (req, res) => {
  */
 export const login = async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body;
-
-    // Validation
-    if (!email || !password) {
+    const { error, value } = validateLoginPayload(req.body);
+    if (error) {
       return res.status(400).json({
         error: 'Validation error',
-        message: 'Please provide email and password'
+        message: error.details[0]?.message || 'Please provide email and password',
       });
     }
+    const { email, password, rememberMe } = value;
 
     // Find user and select password
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
@@ -262,14 +268,14 @@ export const login = async (req, res) => {
  */
 export const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
+    const { error, value } = validateRefreshTokenPayload(req.body);
+    if (error) {
       return res.status(400).json({
         error: 'Validation error',
-        message: 'Refresh token is required'
+        message: error.details[0]?.message || 'Refresh token is required',
       });
     }
+    const { refreshToken } = value;
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
@@ -331,13 +337,20 @@ export const getMe = async (req, res) => {
  */
 export const updateMe = async (req, res) => {
   try {
+    const { error, value } = validateUpdateMePayload(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.details[0]?.message || 'Invalid profile payload',
+      });
+    }
     const allowed = ['firstName', 'lastName', 'phone', 'address'];
     const updates = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) {
-        if (key === 'phone') updates[key] = String(req.body[key]).replace(/\D/g, '');
-        else if (key === 'address') updates[key] = req.body[key];
-        else updates[key] = req.body[key];
+      if (value[key] !== undefined) {
+        if (key === 'phone') updates[key] = String(value[key]).replace(/\D/g, '');
+        else if (key === 'address') updates[key] = value[key];
+        else updates[key] = value[key];
       }
     }
     const user = await User.findByIdAndUpdate(
@@ -377,15 +390,15 @@ export const logout = (req, res) => {
  */
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-
-    if (!email || !email.trim()) {
+    const { error, value } = validateForgotPasswordPayload(req.body);
+    if (error) {
       return res.status(400).json({
         success: false,
-        error: 'Missing email',
-        message: 'Email address is required.'
+        error: 'Validation error',
+        message: error.details[0]?.message || 'Email address is required.',
       });
     }
+    const email = value.email;
 
     const user = await User.findOne({ email: email.toLowerCase() });
     // Don't reveal if user exists (security best practice)
@@ -435,37 +448,21 @@ export const forgotPassword = async (req, res) => {
  */
 export const resetPassword = async (req, res) => {
   try {
-    const { token, password, passwordConfirm } = req.body;
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing token',
-        message: 'Reset token is required.'
-      });
-    }
-
-    if (!password || !passwordConfirm) {
+    const { error, value } = validateResetPasswordPayload(req.body);
+    if (error) {
       return res.status(400).json({
         success: false,
         error: 'Validation error',
-        message: 'Password and confirmation are required.'
+        message: error.details[0]?.message || 'Invalid password reset payload.',
       });
     }
+    const { token, password, passwordConfirm } = value;
 
     if (password !== passwordConfirm) {
       return res.status(400).json({
         success: false,
         error: 'Validation error',
         message: 'Passwords do not match.'
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        message: 'Password must be at least 8 characters.'
       });
     }
 

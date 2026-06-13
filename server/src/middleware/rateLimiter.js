@@ -44,25 +44,37 @@ export const emailRateLimiter = rateLimit({
 
 // General API rate limiter: prevent abuse
 export const apiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // Limit each IP to 60 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.isAdmin === true
+  skip: (req) => req.isAdmin === true,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Rate limit exceeded. Please wait before making more requests.',
+    });
+  },
 });
 
 // Stricter limiter for password reset / sensitive endpoints
 export const strictRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 requests per hour
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per 15 minutes
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many sensitive requests. Please try again later.',
+    });
+  },
 });
 
 // Login: tighter controls to reduce credential stuffing
 export const authLoginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -80,7 +92,7 @@ export const authLoginRateLimiter = rateLimit({
 // Register: prevent account-creation abuse from a single source
 export const authRegisterRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 8,
+  max: 3,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -195,7 +207,7 @@ export const resendVerificationRateLimiter = rateLimit({
 
 export const refreshTokenRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -221,13 +233,27 @@ export const guestPaymentDetailsRateLimiter = rateLimit({
 
 export const guestPaymentConfirmRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
       message: 'Too many confirmation attempts. Please try again shortly.',
+    });
+  },
+});
+
+// Paid/external API calls (e.g. Stripe intent/confirm, paid providers)
+export const paidApiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many paid API requests. Please wait and try again.',
     });
   },
 });
@@ -262,4 +288,5 @@ export default {
   guestPaymentLookupRateLimiter,
   guestPaymentIntentRateLimiter,
   guestPaymentConfirmRateLimiter,
+  paidApiRateLimiter,
 };

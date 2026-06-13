@@ -15,7 +15,10 @@ function generateRef() {
 }
 
 async function main() {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/apex-cleaning';
+  const uri = process.env.MONGODB_URI || process.env.MONGODB_URI_DEV;
+  if (!uri) {
+    throw new Error('Missing MONGODB_URI (or MONGODB_URI_DEV) in environment');
+  }
   await mongoose.connect(uri);
   const db = mongoose.connection.db;
   const quotes = db.collection('quotes');

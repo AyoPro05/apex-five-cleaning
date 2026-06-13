@@ -99,17 +99,15 @@ if (process.env.ADDITIONAL_CORS_ORIGINS) {
       if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
     });
 }
-// Production: allow custom domain + known Render static hostnames
-if (process.env.NODE_ENV === "production") {
-  [
-    "https://www.apexfivecleaning.co.uk",
-    "https://apexfivecleaning.co.uk",
-    "https://apex-five-cleaning-api.onrender.com",
-    "https://apex-five-cleaning-1.onrender.com",
-    "https://apex-five-cleaning-2.onrender.com",
-  ].forEach((origin) => {
-    if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
-  });
+// Optional explicit allow-list for production origins.
+// Example: PRODUCTION_CORS_ORIGINS=https://www.example.com,https://app.example.com
+if (process.env.NODE_ENV === "production" && process.env.PRODUCTION_CORS_ORIGINS) {
+  process.env.PRODUCTION_CORS_ORIGINS.split(",")
+    .map((s) => s.trim().replace(/\/$/, ""))
+    .filter(Boolean)
+    .forEach((origin) => {
+      if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
+    });
 }
 app.use(
   cors({
@@ -233,7 +231,7 @@ const connectDB = async () => {
     process.env.MONGODB_URI ||
     (process.env.NODE_ENV === "production"
       ? null
-      : "mongodb://localhost:27017/apex-cleaning");
+      : process.env.MONGODB_URI_DEV || null);
   if (!uri) {
     dbConnected = false;
     console.error("✗ MongoDB URI missing (MONGODB_URI).");
