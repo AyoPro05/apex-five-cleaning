@@ -1157,24 +1157,55 @@ async function handleChargeRefunded(charge) {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { limit = 50, skip = 0, status } = req.query;
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+    const parsedSkip = Math.max(parseInt(skip, 10) || 0, 0);
+    const pageWindow = parsedLimit + parsedSkip;
+
     const filter = { userId: req.user.id };
 
     if (status) {
       filter.status = status;
     }
 
-    const payments = await Payment.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(skip))
-      .populate('bookingId', 'serviceName serviceArea date totalPrice status');
+    const user = await User.findById(req.user.id).select('email').lean();
+    if (!user?.email) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
 
-    const total = await Payment.countDocuments(filter);
+    const quoteFilter = { email: String(user.email).trim().toLowerCase() };
+    if (status) {
+      quoteFilter.status = status;
+    }
 
-    res.json({
-      success: true,
-      payments: payments.map(p => ({
+    const [bookingPayments, quotePayments, bookingTotal, quoteTotal] = await Promise.all([
+      Payment.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(pageWindow)
+        .populate('bookingId', 'serviceName serviceArea date totalPrice status'),
+      QuotePayment.find(quoteFilter)
+        .sort({ createdAt: -1 })
+        .limit(pageWindow)
+        .populate('quoteId', 'serviceType reference'),
+      Payment.countDocuments(filter),
+      QuotePayment.countDocuments(quoteFilter),
+    ]);
+
+    const quoteStatusLabel = (s) =>
+      ({
+        pending: '⏳ Pending',
+        processing: '⚙️ Processing',
+        succeeded: '✅ Succeeded',
+        failed: '❌ Failed',
+        refunded: '↩️ Refunded',
+      }[s] || s);
+
+    const mergedPayments = [
+      ...bookingPayments.map((p) => ({
         id: p._id,
+        paymentType: 'booking',
         status: p.status,
         statusLabel: p.getStatusLabel(),
         amount: p.amount,
@@ -1182,12 +1213,40 @@ router.get('/', authMiddleware, async (req, res) => {
         cardLast4: p.cardLast4,
         cardBrand: p.cardBrand,
         createdAt: p.createdAt,
-        booking: p.bookingId
+        booking: p.bookingId,
       })),
+      ...quotePayments.map((p) => ({
+        id: p._id,
+        paymentType: 'quote',
+        status: p.status,
+        statusLabel: quoteStatusLabel(p.status),
+        amount: p.amount,
+        amountDisplay: `£${formatAmount(Math.round(p.amount * 100))}`,
+        cardLast4: p.cardLast4,
+        cardBrand: p.cardBrand,
+        createdAt: p.createdAt,
+        quoteReference: p.quoteId?.reference,
+        booking: {
+          serviceName: formatServiceLabel(p.quoteId?.serviceType, 'Quote payment'),
+          serviceArea: '-',
+          date: '-',
+          totalPrice: p.amount,
+          status: p.quoteId?.status,
+        },
+      })),
+    ]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(parsedSkip, parsedSkip + parsedLimit);
+
+    const total = bookingTotal + quoteTotal;
+
+    res.json({
+      success: true,
+      payments: mergedPayments,
       pagination: {
         total,
-        limit: parseInt(limit),
-        skip: parseInt(skip)
+        limit: parsedLimit,
+        skip: parsedSkip,
       }
     });
   } catch (error) {

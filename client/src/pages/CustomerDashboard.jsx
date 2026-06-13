@@ -49,6 +49,16 @@ const SERVICE_LABELS = {
   commercial: 'Commercial',
 }
 
+const BOOKING_STATUS_META = {
+  draft: { label: 'Awaiting schedule', className: 'bg-amber-100 text-amber-800' },
+  pending: { label: 'Pending', className: 'bg-gray-100 text-gray-800' },
+  confirmed: { label: 'Confirmed', className: 'bg-blue-100 text-blue-800' },
+  'in-progress': { label: 'In progress', className: 'bg-indigo-100 text-indigo-800' },
+  completed: { label: 'Completed', className: 'bg-green-100 text-green-800' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-800' },
+  rescheduled: { label: 'Rescheduled', className: 'bg-purple-100 text-purple-800' },
+}
+
 function formatDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -760,33 +770,30 @@ export default function CustomerDashboard() {
                   />
                 ) : (
                   <div className="space-y-3">
-                    {bookings.map((b) => (
-                      <div
-                        key={b._id}
-                        className="border rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
-                      >
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {b.serviceName || SERVICE_LABELS[b.serviceId] || 'Cleaning'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {formatDate(b.date)}
-                            {b.totalPrice != null ? ` · £${Number(b.totalPrice).toFixed(2)}` : ''}
-                          </p>
-                        </div>
-                        <span
-                          className={`self-start px-3 py-1 rounded-full text-sm capitalize ${
-                            b.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : b.status === 'confirmed'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                          }`}
+                    {bookings.map((b) => {
+                      const statusMeta = BOOKING_STATUS_META[b.status] || BOOKING_STATUS_META.pending
+                      return (
+                        <div
+                          key={b._id}
+                          className="border rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
                         >
-                          {b.status}
-                        </span>
-                      </div>
-                    ))}
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {b.serviceName || SERVICE_LABELS[b.serviceId] || 'Cleaning'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {formatDate(b.date)}
+                              {b.totalPrice != null ? ` · £${Number(b.totalPrice).toFixed(2)}` : ''}
+                            </p>
+                          </div>
+                          <span
+                            className={`self-start px-3 py-1 rounded-full text-sm ${statusMeta.className}`}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

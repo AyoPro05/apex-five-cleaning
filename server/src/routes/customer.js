@@ -10,6 +10,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 import User from '../../models/User.js';
 import Booking from '../../models/Booking.js';
 import Payment from '../../models/Payment.js';
+import QuotePayment from '../../models/QuotePayment.js';
 import Quote from '../models/Quote.js';
 import Referral from '../../models/Referral.js';
 import Address from '../../models/Address.js';
@@ -52,11 +53,30 @@ router.get('/dashboard', async (req, res) => {
   try {
     const userId = req.user.id;
     const oid = new mongoose.Types.ObjectId(userId);
-    const [bookingsCount, paymentsCount, totalResult, referrals, addressCount] = await Promise.all([
+    const emailOwner = await User.findById(userId).select('email').lean();
+    if (!emailOwner?.email) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    const customerEmail = String(emailOwner.email).trim().toLowerCase();
+
+    const [
+      bookingsCount,
+      bookingPaymentsCount,
+      quotePaymentsCount,
+      bookingTotalResult,
+      quoteTotalResult,
+      referrals,
+      addressCount,
+    ] = await Promise.all([
       Booking.countDocuments({ userId }),
       Payment.countDocuments({ userId, status: 'succeeded' }),
+      QuotePayment.countDocuments({ email: customerEmail, status: 'succeeded' }),
       Payment.aggregate([
         { $match: { userId: oid, status: 'succeeded' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+      QuotePayment.aggregate([
+        { $match: { email: customerEmail, status: 'succeeded' } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Referral.countDocuments({ referrerId: userId, status: 'completed' }),
@@ -65,7 +85,8 @@ router.get('/dashboard', async (req, res) => {
 
     const user = await ensureReferralCode(userId);
 
-    const totalSpent = totalResult[0]?.total || 0;
+    const totalSpent = (bookingTotalResult[0]?.total || 0) + (quoteTotalResult[0]?.total || 0);
+    const paymentsCount = bookingPaymentsCount + quotePaymentsCount;
 
     res.json({
       success: true,
