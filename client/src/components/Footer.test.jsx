@@ -14,15 +14,22 @@ describe("Footer", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTitle("Facebook").getAttribute("href")).toBe(
+    const facebookLink = screen.getByRole("link", { name: /facebook/i });
+    const instagramLink = screen.getByRole("link", { name: /instagram/i });
+    const tiktokLink = screen.getByRole("link", { name: /tiktok/i });
+
+    expect(facebookLink.getAttribute("href")).toBe(
       "https://www.facebook.com/people/Apex-Five-Cleaning-Services/61590339615849/",
     );
-    expect(screen.getByTitle("Instagram").getAttribute("href")).toBe(
+    expect(instagramLink.getAttribute("href")).toBe(
       "https://www.instagram.com/apex.fivecleaning/",
     );
-    expect(screen.getByTitle("TikTok").getAttribute("href")).toBe(
+    expect(tiktokLink.getAttribute("href")).toBe(
       "https://www.tiktok.com/@apex_fivecleaningservice",
     );
+    expect(facebookLink.textContent).toContain("Facebook");
+    expect(instagramLink.textContent).toContain("Instagram");
+    expect(tiktokLink.textContent).toContain("TikTok");
     expect(screen.queryByTitle("X (Twitter)")).toBeNull();
   });
 });

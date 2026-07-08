@@ -12,4 +12,7 @@ test("email footer includes official social profiles", () => {
   );
   assert.match(html, /https:\/\/www\.instagram\.com\/apex\.fivecleaning\//);
   assert.match(html, /https:\/\/www\.tiktok\.com\/@apex_fivecleaningservice/);
+  assert.match(html, /📘 Facebook/);
+  assert.match(html, /📸 Instagram/);
+  assert.match(html, /🎵 TikTok/);
 });

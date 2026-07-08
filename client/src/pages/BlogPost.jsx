@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, User, Share2, ArrowLeft } from 'lucide-react'
+import { Clock, User, ArrowLeft } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
 import { SITE_URL, PHONE_MAIN_HREF } from '../config/site'
 import BlogImage from '../components/BlogImage'
 import SEO from '../components/SEO'
+import SocialBrandIcon from '../components/SocialBrandIcon'
 import { buildBreadcrumbSchema } from '../config/seoSchemas'
 
 const BlogPost = () => {
@@ -400,17 +401,19 @@ const BlogPost = () => {
                   href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE_URL}/blog/${slug}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1877F2] text-white shadow-sm transition hover:opacity-90"
+                  aria-label="Share on Facebook"
                 >
-                  <Share2 className="w-5 h-5" />
+                  <SocialBrandIcon type="facebook" className="h-5 w-5" />
                 </a>
                 <a
                   href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_URL}/blog/${slug}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-black hover:bg-gray-800 text-white p-3 rounded-lg transition"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white shadow-sm transition hover:opacity-90"
+                  aria-label="Share on X"
                 >
-                  <Share2 className="w-5 h-5" />
+                  <SocialBrandIcon type="tiktok" className="h-5 w-5" />
                 </a>
               </div>
             </div>

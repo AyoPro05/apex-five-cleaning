@@ -1,29 +1,11 @@
 import { Link } from 'react-router-dom'
 import ScrollRestoringLink from './ScrollRestoringLink'
-import { MapPin, Phone, Mail, Facebook, Instagram } from 'lucide-react'
+import { MapPin, Phone, Mail } from 'lucide-react'
 import { useCookieConsent } from '../context/CookieConsentContext'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, SOCIAL_LINKS, whatsappHref } from '../config/site'
 import CompanyAddress from './CompanyAddress'
 import FallbackImage from './FallbackImage'
-
-const SocialIcon = ({ type }) => {
-  if (type === 'facebook') return <Facebook className="w-5 h-5" aria-hidden="true" />
-  if (type === 'instagram') return <Instagram className="w-5 h-5" aria-hidden="true" />
-  if (type === 'tiktok') {
-    return (
-      <svg
-        className="w-5 h-5"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.1 1.72 2.89 2.89 0 0 1 5.1-1.72V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 9 20.1a6.34 6.34 0 0 0 5.29-2.61 6.27 6.27 0 0 0 1.19-3.63v-6.16a7.28 7.28 0 0 0 4.81 1.65c.18 0 .37 0 .56-.01v-3.4a4.9 4.9 0 0 1-.56.03z"/>
-      </svg>
-    )
-  }
-  return null
-}
+import SocialBrandIcon from './SocialBrandIcon'
 
 const Footer = () => {
   const { openPreferences } = useCookieConsent()
@@ -40,18 +22,29 @@ const Footer = () => {
               Professional eco-friendly cleaning services across Kent, London, and Essex.
               We bring clarity, trust, and exceptional service to every clean.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               {SOCIAL_LINKS.map(({ key, label, url }) => (
                 <a
                   key={key}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-teal-500 transition"
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-700 bg-gray-800/90 px-4 py-2 text-sm font-medium text-gray-200 shadow-sm transition hover:border-teal-500 hover:bg-teal-500 hover:text-white"
                   title={label}
                   aria-label={label}
                 >
-                  <SocialIcon type={key} />
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                      key === 'facebook'
+                        ? 'bg-[#1877F2] text-white'
+                        : key === 'instagram'
+                          ? 'bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white'
+                          : 'bg-black text-white'
+                    }`}
+                  >
+                    <SocialBrandIcon type={key} className="h-5 w-5" />
+                  </span>
+                  <span>{label}</span>
                 </a>
               ))}
             </div>
