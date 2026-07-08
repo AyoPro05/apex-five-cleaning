@@ -1,4 +1,4 @@
-import { SITE_NAME, SITE_URL } from "./site";
+import { SITE_NAME, SITE_URL, SOCIAL_LINKS } from "./site";
 import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
 
 const BUSINESS_NAME = SITE_NAME;
@@ -114,6 +114,7 @@ export const buildLocalBusinessSchema = (overrides = {}) => ({
   priceRange: "£45-£250",
   address: BUSINESS_ADDRESS,
   areaServed: SERVICE_AREAS,
+  sameAs: SOCIAL_LINKS.map(({ url }) => url),
   ...overrides,
 });
 

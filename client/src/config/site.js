@@ -6,6 +6,24 @@ export const SITE_URL = 'https://www.apexfivecleaning.co.uk'
 export const SITE_NAME = 'Apex Five Cleaning'
 export const CONTACT_EMAIL = 'info@apexfivecleaning.co.uk'
 
+export const SOCIAL_LINKS = [
+  {
+    key: 'facebook',
+    label: 'Facebook',
+    url: 'https://www.facebook.com/people/Apex-Five-Cleaning-Services/61590339615849/',
+  },
+  {
+    key: 'instagram',
+    label: 'Instagram',
+    url: 'https://www.instagram.com/apex.fivecleaning/',
+  },
+  {
+    key: 'tiktok',
+    label: 'TikTok',
+    url: 'https://www.tiktok.com/@apex_fivecleaningservice',
+  },
+]
+
 /** Main landline — call / contact on site and in emails */
 export const PHONE_MAIN_DISPLAY = '020 3535 6331'
 export const PHONE_MAIN_TEL = '+442035356331'

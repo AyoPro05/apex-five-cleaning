@@ -13,6 +13,21 @@ import { notifyAdminAlert } from './leadWebhook.js';
 /** Only active mailbox — all defaults and fallbacks use this address */
 const DEFAULT_MAILBOX = 'info@apexfivecleaning.co.uk';
 
+const SOCIAL_LINKS = [
+  {
+    label: 'Facebook',
+    url: 'https://www.facebook.com/people/Apex-Five-Cleaning-Services/61590339615849/',
+  },
+  {
+    label: 'Instagram',
+    url: 'https://www.instagram.com/apex.fivecleaning/',
+  },
+  {
+    label: 'TikTok',
+    url: 'https://www.tiktok.com/@apex_fivecleaningservice',
+  },
+];
+
 const getNotificationInbox = () =>
   process.env.NOTIFY_EMAIL || process.env.COMPANY_EMAIL || DEFAULT_MAILBOX;
 
@@ -253,6 +268,7 @@ const getBrandConfig = () => {
     addressLine1: '91 Manor Road, Wallington',
     addressLine2: 'SM6 0AP, Surrey',
     address: process.env.COMPANY_ADDRESS || '91 Manor Road, Wallington<br>SM6 0AP, Surrey',
+    socialLinks: SOCIAL_LINKS,
     brandColor: '#14b8a6',
     brandColorDark: '#0d9488'
   };
@@ -282,11 +298,19 @@ const getSupportContactBlock = (brand, options = {}) => {
 };
 
 const getEmailFooter = (brand, extraNote = '') => {
+  const socialLinks = (brand.socialLinks || [])
+    .map(
+      ({ label, url }) =>
+        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`,
+    )
+    .join(' · ');
+
   return `
     <div class="email-footer">
       <div class="email-footer-brand">${brand.companyName}</div>
       <p class="email-footer-tagline">${brand.tagline}</p>
       ${getSupportContactBlock(brand)}
+      ${socialLinks ? `<p class="email-footer-social">${socialLinks}</p>` : ''}
       <p class="email-footer-contact email-footer-website"><a href="${brand.website}">${brand.websiteDisplay}</a></p>
       <p class="email-footer-address">${brand.addressLine1 || brand.address}<br>${brand.addressLine2 || ''}</p>
       ${extraNote ? `<p class="email-footer-note">${extraNote}</p>` : ''}
@@ -311,6 +335,8 @@ const getEmailBaseStyles = () => `
   .email-contact-line { display: block; margin: 4px 0; font-size: 13px; color: #14b8a6; }
   .email-contact-line a { color: #14b8a6; text-decoration: none; }
   .email-footer-contact a { color: #14b8a6; text-decoration: none; }
+  .email-footer-social { margin: 10px 0 4px 0; color: #14b8a6; }
+  .email-footer-social a { color: #14b8a6; text-decoration: none; }
   .email-footer-website { margin-top: 8px; }
   .email-footer-address { margin: 4px 0; color: #9ca3af; font-size: 11px; }
   .email-footer-note { margin: 12px 0 0 0; color: #9ca3af; font-size: 11px; }
