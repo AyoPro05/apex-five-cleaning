@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Muddy baby buggy before cleaning by Apex Five">
+  <defs>
+    <linearGradient id="bgBefore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef2f2"/>
+      <stop offset="100%" stop-color="#fee2e2"/>
+    </linearGradient>
+    <linearGradient id="frameBefore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9ca3af"/>
+      <stop offset="100%" stop-color="#6b7280"/>
+    </linearGradient>
+    <linearGradient id="hoodBefore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4b5563"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+    <pattern id="mud" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="12" r="5" fill="#7c2d12" opacity="0.55"/>
+      <circle cx="28" cy="22" r="3" fill="#78350f" opacity="0.6"/>
+      <circle cx="18" cy="32" r="4" fill="#92400e" opacity="0.5"/>
+      <circle cx="34" cy="6" r="2" fill="#7c2d12" opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#bgBefore)"/>
+
+  <!-- messy splats background -->
+  <g opacity="0.4">
+    <ellipse cx="180" cy="200" rx="50" ry="22" fill="#7c2d12"/>
+    <ellipse cx="600" cy="160" rx="60" ry="25" fill="#78350f"/>
+    <ellipse cx="100" cy="450" rx="45" ry="18" fill="#92400e"/>
+  </g>
+
+  <!-- shadow -->
+  <ellipse cx="400" cy="510" rx="220" ry="18" fill="#1f2937" opacity="0.18"/>
+
+  <!-- buggy frame (greying, dull) -->
+  <path d="M250 480 Q245 380 290 360 L510 360 Q555 380 550 480"
+        fill="none" stroke="url(#frameBefore)" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- hood -->
+  <path d="M540 360 Q560 240 470 230 Q380 225 320 270 Q280 300 285 360 Z" fill="url(#hoodBefore)"/>
+
+  <!-- seat liner (stained yellow) -->
+  <path d="M295 360 Q300 290 400 285 Q500 290 505 360 Z" fill="#a16207"/>
+  <path d="M340 320 Q380 315 420 325" stroke="#78350f" stroke-width="6" fill="none" opacity="0.7"/>
+  <path d="M360 340 Q400 335 430 345" stroke="#78350f" stroke-width="5" fill="none" opacity="0.7"/>
+
+  <!-- harness -->
+  <path d="M340 360 L360 295" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+  <path d="M460 360 L440 295" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- handlebar (sticky smudge) -->
+  <path d="M545 360 Q580 350 585 320" stroke="url(#frameBefore)" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <path d="M575 320 Q610 310 615 280" stroke="#111827" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <ellipse cx="617" cy="276" rx="14" ry="8" fill="#78350f" opacity="0.65" transform="rotate(-30 617 276)"/>
+
+  <!-- wheels (mud-splattered) -->
+  <circle cx="320" cy="495" r="55" fill="#111827"/>
+  <circle cx="320" cy="495" r="38" fill="#374151"/>
+  <circle cx="320" cy="495" r="38" fill="url(#mud)"/>
+
+  <circle cx="490" cy="495" r="55" fill="#111827"/>
+  <circle cx="490" cy="495" r="38" fill="#374151"/>
+  <circle cx="490" cy="495" r="38" fill="url(#mud)"/>
+
+  <!-- mud splash on frame -->
+  <g opacity="0.75">
+    <ellipse cx="280" cy="420" rx="14" ry="9" fill="#7c2d12"/>
+    <ellipse cx="520" cy="420" rx="20" ry="12" fill="#78350f"/>
+    <ellipse cx="380" cy="380" rx="10" ry="6" fill="#92400e"/>
+  </g>
+
+  <!-- badge -->
+  <g transform="translate(560,90)">
+    <rect x="0" y="0" width="180" height="56" rx="28" fill="#b91c1c"/>
+    <text x="90" y="35" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">BEFORE</text>
+  </g>
+</svg>

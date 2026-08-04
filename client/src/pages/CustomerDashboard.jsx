@@ -929,8 +929,8 @@ export default function CustomerDashboard() {
                 <form onSubmit={handleSaveProfile} className="space-y-4 max-w-lg">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
-                      <input
+                      <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                      <input id="first-name"
                         type="text"
                         required
                         value={profileForm.firstName}
@@ -945,8 +945,8 @@ export default function CustomerDashboard() {
                       {profileErrors.firstName && <p className="mt-1 text-sm text-red-600">{profileErrors.firstName}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
-                      <input
+                      <label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                      <input id="last-name"
                         type="text"
                         required
                         value={profileForm.lastName}
@@ -962,8 +962,8 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input id="email"
                       type="email"
                       readOnly
                       value={profile?.email || user?.email || ''}
@@ -974,8 +974,8 @@ export default function CustomerDashboard() {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input id="phone"
                       type="tel"
                       required
                       value={profileForm.phone}

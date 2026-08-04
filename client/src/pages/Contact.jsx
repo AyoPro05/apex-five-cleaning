@@ -250,6 +250,7 @@ const Contact = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
+                id="_website"
                 type="text"
                 name="_website"
                 tabIndex={-1}
@@ -258,8 +259,8 @@ const Contact = () => {
                 aria-hidden="true"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                <input
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input id="name"
                   type="text"
                   name="name"
                   value={formData.name}
@@ -271,8 +272,8 @@ const Contact = () => {
                 {fieldErrors.name && <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input id="email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -284,8 +285,8 @@ const Contact = () => {
                 {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input id="phone"
                   type="tel"
                   name="phone"
                   value={formData.phone}
@@ -296,8 +297,8 @@ const Contact = () => {
                 {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                <select
+                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <select id="subject"
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
@@ -312,8 +313,8 @@ const Contact = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-                <textarea
+                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                <textarea id="message"
                   name="message"
                   value={formData.message}
                   onChange={handleChange}

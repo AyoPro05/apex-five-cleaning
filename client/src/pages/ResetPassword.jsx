@@ -104,10 +104,11 @@ export default function ResetPassword() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New password</label>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">New password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    id="newPassword"
                     type="password"
                     value={password}
                     onChange={(e) => {
@@ -125,10 +126,11 @@ export default function ResetPassword() {
                 {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    id="confirmPassword"
                     type="password"
                     value={passwordConfirm}
                     onChange={(e) => {

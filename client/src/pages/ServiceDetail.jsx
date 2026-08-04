@@ -15,7 +15,7 @@ import SmartImage from "../components/SmartImage";
 import ImageLightbox from "../components/ImageLightbox";
 import { SERVICES_BY_ID } from "../data/servicesCatalog";
 import { buildBreadcrumbSchema } from "../config/seoSchemas";
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from "../config/site";
 import { scrollReveal, scrollRevealVisible } from "../utils/scrollReveal";
 
 const LEGACY_ID_MAP = {
@@ -24,6 +24,9 @@ const LEGACY_ID_MAP = {
   airbnb: "airbnb-cleaning",
   commercial: "commercial-cleaning",
 };
+
+const BUGGY_WHATSAPP_TEXT =
+  "Hi Apex Five Cleaning, I'd like to book your buggy, car seat & toy cleaning service (with the Posh loaner pram). Please give me a call back.";
 
 export default function ServiceDetail() {
   const { serviceId } = useParams();
@@ -122,20 +125,42 @@ export default function ServiceDetail() {
                 </div>
               </div>
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate("/request-a-quote")}
-                  className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
-                >
-                  Get a Quote
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <a
-                  href={PHONE_MAIN_HREF}
-                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
-                >
-                  Call {PHONE_MAIN_DISPLAY}
-                </a>
+                {service.ctaMode === "phone-only" ? (
+                  <>
+                    <a
+                      href={whatsappHref(BUGGY_WHATSAPP_TEXT)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
+                    >
+                      WhatsApp Us
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                    <a
+                      href={PHONE_MAIN_HREF}
+                      className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
+                    >
+                      Call {PHONE_MAIN_DISPLAY}
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/request-a-quote")}
+                      className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
+                    >
+                      Get a Quote
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={PHONE_MAIN_HREF}
+                      className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
+                    >
+                      Call {PHONE_MAIN_DISPLAY}
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
@@ -196,63 +221,65 @@ export default function ServiceDetail() {
             </p>
           </motion.div>
 
-          <motion.div {...scrollReveal} className="rounded-2xl border border-gray-200 p-6 mb-8 bg-white">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Before and after example</h2>
-            <p className="text-gray-600 mb-5">
-              A clear visual example of the level of transformation this service is designed to achieve.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-xl overflow-hidden border border-gray-200">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setLightboxImage(service.beforeAfter.beforeImage)}
-                    className="w-full group relative"
-                  >
-                    <SmartImage
-                      src={service.beforeAfter.beforeImage}
-                      alt={`${service.title} before cleaning`}
-                      className="aspect-[4/3]"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      loading="lazy"
-                    />
-                    <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                      View full image
+          {service.beforeAfter && (
+            <motion.div {...scrollReveal} className="rounded-2xl border border-gray-200 p-6 mb-8 bg-white">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Before and after example</h2>
+              <p className="text-gray-600 mb-5">
+                A clear visual example of the level of transformation this service is designed to achieve.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.beforeImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.beforeImage}
+                        alt={`${service.title} before cleaning`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                    <span className="absolute top-3 left-3 bg-gray-900/80 text-white text-xs px-2 py-1 rounded">
+                      Before
                     </span>
-                  </button>
-                  <span className="absolute top-3 left-3 bg-gray-900/80 text-white text-xs px-2 py-1 rounded">
-                    Before
-                  </span>
+                  </div>
+                  <div className="p-3 text-sm text-gray-600">{service.beforeAfter.beforeLabel}</div>
                 </div>
-                <div className="p-3 text-sm text-gray-600">{service.beforeAfter.beforeLabel}</div>
-              </div>
-              <div className="rounded-xl overflow-hidden border border-teal-200">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setLightboxImage(service.beforeAfter.afterImage)}
-                    className="w-full group relative"
-                  >
-                    <SmartImage
-                      src={service.beforeAfter.afterImage}
-                      alt={`${service.title} after cleaning`}
-                      className="aspect-[4/3]"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      loading="lazy"
-                    />
-                    <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                      View full image
+                <div className="rounded-xl overflow-hidden border border-teal-200">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(service.beforeAfter.afterImage)}
+                      className="w-full group relative"
+                    >
+                      <SmartImage
+                        src={service.beforeAfter.afterImage}
+                        alt={`${service.title} after cleaning`}
+                        className="aspect-[4/3]"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                        View full image
+                      </span>
+                    </button>
+                    <span className="absolute top-3 left-3 bg-teal-700/90 text-white text-xs px-2 py-1 rounded">
+                      After
                     </span>
-                  </button>
-                  <span className="absolute top-3 left-3 bg-teal-700/90 text-white text-xs px-2 py-1 rounded">
-                    After
-                  </span>
+                  </div>
+                  <div className="p-3 text-sm text-teal-700 font-medium">{service.beforeAfter.afterLabel}</div>
                 </div>
-                <div className="p-3 text-sm text-teal-700 font-medium">{service.beforeAfter.afterLabel}</div>
               </div>
-            </div>
-            <p className="mt-4 text-center text-xs text-gray-500 md:hidden">Tap any image to zoom</p>
-          </motion.div>
+              <p className="mt-4 text-center text-xs text-gray-500 md:hidden">Tap any image to zoom</p>
+            </motion.div>
+          )}
 
           <motion.div {...scrollReveal} className="rounded-2xl border border-gray-200 p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Service FAQs</h2>
@@ -272,22 +299,45 @@ export default function ServiceDetail() {
           >
             <h2 className="text-3xl font-bold text-white">Ready to book {service.title}?</h2>
             <p className="text-teal-50 mt-3 text-lg">
-              Request a quote now and we’ll respond with clear next steps.
+              {service.ctaMode === "phone-only"
+                ? "Call or WhatsApp us to confirm a drop-off slot and we'll have a loaner ready."
+                : "Request a quote now and we'll respond with clear next steps."}
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                type="button"
-                onClick={() => navigate("/request-a-quote")}
-                className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
-              >
-                Get a Free Quote
-              </button>
-              <a
-                href={PHONE_MAIN_HREF}
-                className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-7 py-3 rounded-lg font-semibold"
-              >
-                Call Now
-              </a>
+              {service.ctaMode === "phone-only" ? (
+                <>
+                  <a
+                    href={PHONE_MAIN_HREF}
+                    className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-7 py-3 rounded-lg font-semibold"
+                  >
+                    Call Now
+                  </a>
+                  <a
+                    href={whatsappHref(BUGGY_WHATSAPP_TEXT)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
+                  >
+                    WhatsApp Us
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/request-a-quote")}
+                    className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
+                  >
+                    Get a Free Quote
+                  </button>
+                  <a
+                    href={PHONE_MAIN_HREF}
+                    className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-7 py-3 rounded-lg font-semibold"
+                  >
+                    Call Now
+                  </a>
+                </>
+              )}
             </div>
           </motion.div>
         </div>

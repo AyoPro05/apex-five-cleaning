@@ -298,6 +298,71 @@ export const SERVICES = [
       afterLabel: "After: gleaming floors, polished displays, client-ready",
     },
   },
+  {
+    id: "buggy-toy-cleaning",
+    title: "Buggy, Car Seat & Toy Cleaning",
+    bestFor: "Parents and families",
+    shortDescription:
+      "Drop off your pram, car seat, or little one's toys and we deep clean them to a hygienic finish. We loan you a clean, premium 'Posh' pram to use while you wait.",
+    image: "/images/services/Niche_Buggy_Cleaning.svg",
+    priceGuide: "From £30",
+    typicalDuration: "Same-day for most buggies; toys within 24 to 48 hours",
+    ctaMode: "phone-only",
+    whoFor:
+      "Busy parents who want hygienic prams, car seats, and toys without the hassle of doing it themselves, with the convenience of a clean loaner pram for the day.",
+    includes: [
+      "Pram and buggy frame degrease, sanitise, and wheel scrub",
+      "Fabric seat, hood, and harness deep clean and stain removal",
+      "Car seat shell, straps, and fabric deep clean and sanitise",
+      "Toy sanitising for plastic, plush, and wooden items",
+      "Hypoallergenic, baby-safe, non-toxic products only",
+      "Free 'Posh' premium loaner pram to use while yours is being cleaned",
+    ],
+    benefits: [
+      "Hygienic finish safe for babies and toddlers",
+      "No downtime — keep your routine going with our loaner pram",
+      "Baby-safe, non-toxic, hypoallergenic products only",
+      "Convenient drop-off and same-day collection for most buggies",
+    ],
+    priceFactors: [
+      "Type and size of item (buggy, car seat, or quantity of toys)",
+      "Level of soiling and stain treatment required",
+      "Optional add-ons such as additional toy bundles",
+    ],
+    faqs: [
+      {
+        q: "How does the 'Posh' loaner pram work?",
+        a: "When you drop off your buggy for cleaning, we hand you a clean, premium pram to use for the day. You simply return the loaner when you collect your freshly-cleaned buggy.",
+      },
+      {
+        q: "What products do you use?",
+        a: "We use baby-safe, hypoallergenic, non-toxic products — safe for little ones and tough on grime.",
+      },
+      {
+        q: "How long does it take?",
+        a: "Most buggies are ready same-day. Toy bundles typically take 24 to 48 hours depending on the materials.",
+      },
+      {
+        q: "Do you clean car seats too?",
+        a: "Yes. We deep clean car seat shells, straps, and fabric, then sanitise the full unit.",
+      },
+      {
+        q: "How do I book?",
+        a: "Just call us or message us on WhatsApp — we'll confirm a drop-off slot and have a 'Posh' loaner pram ready for you.",
+      },
+    ],
+    testimonial: {
+      quote:
+        "Spotless pram, lovely loaner for the day, and the toys look brand new. Such a relief with a little one at home.",
+      by: "Nadia P. · Mum of two",
+    },
+    beforeAfter: {
+      beforeImage: "/images/services/Niche_Buggy_Before.svg",
+      afterImage: "/images/services/Niche_Buggy_After.svg",
+      beforeLabel: "Before: muddy wheels, stained fabric, sticky handles",
+      afterLabel: "After: fresh frame, clean fabric, sanitised and ready",
+    },
+  },
 ];
 
 export const SERVICES_BY_ID = Object.fromEntries(SERVICES.map((service) => [service.id, service]));

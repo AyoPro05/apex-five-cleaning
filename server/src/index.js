@@ -109,12 +109,24 @@ if (process.env.NODE_ENV === "production" && process.env.PRODUCTION_CORS_ORIGINS
       if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
     });
 }
-app.use(
-  cors({
-    origin: corsOrigins,
-    credentials: true,
-  }),
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS origin denied: ${origin}`), false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  exposedHeaders: ["Content-Length", "X-Kuma-Revision"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Stripe webhooks require the raw body for signature verification (must run before express.json)
 app.post(

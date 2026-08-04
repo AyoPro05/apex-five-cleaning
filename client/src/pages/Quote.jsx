@@ -554,8 +554,9 @@ const Quote = () => {
                   <p className={FORM_HINT}>This helps us estimate time and team size accurately.</p>
                 </div>
                 <div>
-                  <label className={FORM_LABEL}>Property type *</label>
+                  <label htmlFor="propertyType" className={FORM_LABEL}>Property type *</label>
                   <select
+                    id="propertyType"
                     name="propertyType"
                     value={formData.propertyType}
                     onChange={handleInputChange}
@@ -572,8 +573,9 @@ const Quote = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className={FORM_LABEL}>Bedrooms *</label>
+                    <label htmlFor="bedrooms" className={FORM_LABEL}>Bedrooms *</label>
                     <input
+                      id="bedrooms"
                       type="number"
                       name="bedrooms"
                       value={formData.bedrooms}
@@ -586,8 +588,9 @@ const Quote = () => {
                     {errors.bedrooms && <p className={FORM_ERROR}>{errors.bedrooms}</p>}
                   </div>
                   <div>
-                    <label className={FORM_LABEL}>Bathrooms *</label>
+                    <label htmlFor="bathrooms" className={FORM_LABEL}>Bathrooms *</label>
                     <input
+                      id="bathrooms"
                       type="number"
                       name="bathrooms"
                       value={formData.bathrooms}
@@ -608,8 +611,9 @@ const Quote = () => {
                   <p className={FORM_HINT}>Choose your service and add photos or extras for a more accurate quote.</p>
                 </div>
                 <div>
-                  <label className={FORM_LABEL}>What service do you need? *</label>
+                  <label htmlFor="serviceType" className={FORM_LABEL}>What service do you need? *</label>
                   <select
+                    id="serviceType"
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleInputChange}
@@ -714,8 +718,9 @@ const Quote = () => {
                 </div>
 
                 <div>
-                  <label className={FORM_LABEL}>Additional notes (optional)</label>
+                  <label htmlFor="additionalNotes" className={FORM_LABEL}>Additional notes (optional)</label>
                   <textarea
+                    id="additionalNotes"
                     name="additionalNotes"
                     value={formData.additionalNotes}
                     onChange={handleInputChange}
@@ -745,8 +750,9 @@ const Quote = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className={FORM_LABEL}>First name *</label>
+                    <label htmlFor="firstName" className={FORM_LABEL}>First name *</label>
                     <input
+                      id="firstName"
                       type="text"
                       name="firstName"
                       value={formData.firstName}
@@ -758,8 +764,9 @@ const Quote = () => {
                     {errors.firstName && <p className={FORM_ERROR}>{errors.firstName}</p>}
                   </div>
                   <div>
-                    <label className={FORM_LABEL}>Last name *</label>
+                    <label htmlFor="lastName" className={FORM_LABEL}>Last name *</label>
                     <input
+                      id="lastName"
                       type="text"
                       name="lastName"
                       value={formData.lastName}
@@ -772,8 +779,9 @@ const Quote = () => {
                   </div>
                 </div>
                 <div>
-                  <label className={FORM_LABEL}>Email address *</label>
+                  <label htmlFor="email" className={FORM_LABEL}>Email address *</label>
                   <input
+                    id="email"
                     type="email"
                     name="email"
                     value={formData.email}
@@ -785,8 +793,9 @@ const Quote = () => {
                   {errors.email && <p className={FORM_ERROR}>{errors.email}</p>}
                 </div>
                 <div>
-                  <label className={FORM_LABEL}>Phone number *</label>
+                  <label htmlFor="phone" className={FORM_LABEL}>Phone number *</label>
                   <input
+                    id="phone"
                     type="tel"
                     name="phone"
                     value={formData.phone}
@@ -800,9 +809,10 @@ const Quote = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className={FORM_LABEL}>Preferred date</label>
+                    <label htmlFor="preferredDate" className={FORM_LABEL}>Preferred date</label>
                     <div className="relative">
                       <input
+                        id="preferredDate"
                         type="date"
                         name="preferredDate"
                         value={formData.preferredDate}
@@ -813,9 +823,10 @@ const Quote = () => {
                     </div>
                   </div>
                   <div>
-                    <label className={FORM_LABEL}>Preferred time</label>
+                    <label htmlFor="preferredTime" className={FORM_LABEL}>Preferred time</label>
                     <div className="relative">
                       <input
+                        id="preferredTime"
                         type="time"
                         name="preferredTime"
                         value={formData.preferredTime}
@@ -828,8 +839,9 @@ const Quote = () => {
                 </div>
 
                 <div>
-                  <label className={FORM_LABEL}>Property address *</label>
+                  <label htmlFor="address" className={FORM_LABEL}>Property address *</label>
                   <input
+                    id="address"
                     type="text"
                     name="address"
                     value={formData.address}
@@ -841,8 +853,9 @@ const Quote = () => {
                   {errors.address && <p className={FORM_ERROR}>{errors.address}</p>}
                 </div>
                 <div className="max-w-xs">
-                  <label className={FORM_LABEL}>Postcode *</label>
+                  <label htmlFor="postcode" className={FORM_LABEL}>Postcode *</label>
                   <input
+                    id="postcode"
                     type="text"
                     name="postcode"
                     value={formData.postcode}

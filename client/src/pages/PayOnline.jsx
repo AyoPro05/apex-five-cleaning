@@ -126,8 +126,10 @@ function GuestCardForm({ quote, clientSecret, paymentId, payerEmail, onSuccess, 
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
+          <label htmlFor="postcode" className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
           <input
+            id="postcode"
+            name="postcode"
             type="text"
             value={postcode}
             onChange={(e) => setPostcode(e.target.value)}
@@ -319,8 +321,8 @@ export default function PayOnline() {
               </p>
               <form onSubmit={handleLookup} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Quote reference (e.g. AP12345678)</label>
-                  <input
+                  <label htmlFor="quote-reference-eg-ap12345678" className="block text-sm font-medium text-gray-700 mb-2">Quote reference (e.g. AP12345678)</label>
+                  <input id="quote-reference-eg-ap12345678"
                     type="text"
                     value={quoteRef}
                     onChange={(e) => {
@@ -336,8 +338,8 @@ export default function PayOnline() {
                   {fieldErrors.quoteRef && <p className="mt-1 text-sm text-red-600">{fieldErrors.quoteRef}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
-                  <input
+                  <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                  <input id="email-address"
                     type="email"
                     value={email}
                     onChange={(e) => {
@@ -491,8 +493,8 @@ export default function PayOnline() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <form onSubmit={handleLookup} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quote reference (e.g. AP12345678)</label>
-              <input
+              <label htmlFor="quote-reference-eg-ap12345678-2" className="block text-sm font-medium text-gray-700 mb-2">Quote reference (e.g. AP12345678)</label>
+              <input id="quote-reference-eg-ap12345678-2"
                 type="text"
                 value={quoteRef}
                 onChange={(e) => {
@@ -508,8 +510,8 @@ export default function PayOnline() {
               {fieldErrors.quoteRef && <p className="mt-1 text-sm text-red-600">{fieldErrors.quoteRef}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
-              <input
+              <label htmlFor="email-address-2" className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+              <input id="email-address-2"
                 type="email"
                 value={user?.email || email}
                 onChange={(e) => {

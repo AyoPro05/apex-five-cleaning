@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/200/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Freshly cleaned baby buggy from Apex Five Cleaning">
+  <defs>
+    <linearGradient id="bgBuggy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0fdfa"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
+    </linearGradient>
+    <linearGradient id="frameBuggy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="hoodBuggy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f2937"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="sparkle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fef3c7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#bgBuggy)"/>
+
+  <!-- soft decorative blobs -->
+  <circle cx="120" cy="120" r="70" fill="#5eead4" opacity="0.25"/>
+  <circle cx="680" cy="500" r="90" fill="#5eead4" opacity="0.2"/>
+
+  <!-- shadow under buggy -->
+  <ellipse cx="400" cy="510" rx="220" ry="18" fill="#0f766e" opacity="0.18"/>
+
+  <!-- buggy frame (rounded) -->
+  <path d="M250 480 Q245 380 290 360 L510 360 Q555 380 550 480"
+        fill="none" stroke="url(#frameBuggy)" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- hood -->
+  <path d="M540 360 Q560 240 470 230 Q380 225 320 270 Q280 300 285 360 Z" fill="url(#hoodBuggy)"/>
+  <!-- hood highlight -->
+  <path d="M340 270 Q400 245 460 260" stroke="#374151" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- seat liner -->
+  <path d="M295 360 Q300 290 400 285 Q500 290 505 360 Z" fill="#fde68a"/>
+  <path d="M295 360 Q300 290 400 285 Q500 290 505 360" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.4"/>
+
+  <!-- harness straps -->
+  <path d="M340 360 L360 295" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+  <path d="M460 360 L440 295" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="360" cy="295" r="6" fill="#1f2937"/>
+  <circle cx="440" cy="295" r="6" fill="#1f2937"/>
+  <rect x="392" y="335" width="16" height="28" rx="3" fill="#1f2937"/>
+
+  <!-- handlebar -->
+  <path d="M545 360 Q580 350 585 320" stroke="url(#frameBuggy)" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <path d="M575 320 Q610 310 615 280" stroke="#111827" stroke-width="14" stroke-linecap="round" fill="none"/>
+
+  <!-- wheels -->
+  <circle cx="320" cy="495" r="55" fill="#111827"/>
+  <circle cx="320" cy="495" r="38" fill="#374151"/>
+  <circle cx="320" cy="495" r="14" fill="#5eead4"/>
+
+  <circle cx="490" cy="495" r="55" fill="#111827"/>
+  <circle cx="490" cy="495" r="38" fill="#374151"/>
+  <circle cx="490" cy="495" r="14" fill="#5eead4"/>
+
+  <!-- sparkle stars (cleanliness) -->
+  <g fill="#fcd34d">
+    <path d="M180 230 L188 250 L208 258 L188 266 L180 286 L172 266 L152 258 L172 250 Z"/>
+    <path d="M620 180 L625 192 L637 197 L625 202 L620 214 L615 202 L603 197 L615 192 Z" opacity="0.85"/>
+    <path d="M650 380 L655 392 L667 397 L655 402 L650 414 L645 402 L633 397 L645 392 Z" opacity="0.7"/>
+  </g>
+  <circle cx="160" cy="380" r="35" fill="url(#sparkle)"/>
+  <circle cx="640" cy="260" r="40" fill="url(#sparkle)"/>
+
+  <!-- badge -->
+  <g transform="translate(560,90)">
+    <rect x="0" y="0" width="180" height="56" rx="28" fill="#0d9488"/>
+    <text x="90" y="35" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">APEX FIVE CLEAN</text>
+  </g>
+</svg>

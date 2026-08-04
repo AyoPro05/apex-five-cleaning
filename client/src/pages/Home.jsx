@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Leaf,
   MapPin,
+  MessageCircle,
   Phone,
   ShieldCheck,
   Star,
@@ -15,8 +16,11 @@ import ServiceAreaMap from "../components/ServiceAreaMap";
 import SmartImage from "../components/SmartImage";
 import ImageLightbox from "../components/ImageLightbox";
 import { buildLocalBusinessSchema, buildWebSiteSchema } from "../config/seoSchemas";
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, WHATSAPP_DISPLAY, whatsappHref } from "../config/site";
 import { SERVICES } from "../data/servicesCatalog";
+
+const BUGGY_TEASER_WHATSAPP_TEXT =
+  "Hi Apex Five Cleaning, I'd like to book your buggy, car seat & toy cleaning service (with the Posh loaner pram). Please give me a call back.";
 
 const serviceCards = [
   {
@@ -333,6 +337,102 @@ export default function Home() {
             >
               <Phone className="w-4 h-4" />
               Call {PHONE_MAIN_DISPLAY}
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-white border-y border-teal-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-8">
+            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Also new at Apex Five</p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-2">Buggy, car seat & toy cleaning — with a free loaner pram</h2>
+            <p className="text-gray-600 mt-3 max-w-3xl mx-auto">
+              Drop off your pram, car seat, or little one's toys and we deep clean them to a hygienic finish. While you wait, we loan you a clean, premium 'Posh' pram to keep your routine going.
+            </p>
+          </motion.div>
+          <div className="grid sm:grid-cols-2 gap-6">
+            <motion.button
+              {...fadeUp}
+              type="button"
+              onClick={() => setLightboxImage("/images/services/Niche_Buggy_Cleaning.svg")}
+              className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 text-left"
+            >
+              <SmartImage
+                src="/images/services/Niche_Buggy_Cleaning.svg"
+                alt="Cleaned baby buggy and pram from Apex Five Cleaning"
+                className="aspect-[4/3] group-hover:scale-[1.02] transition-transform duration-500"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                loading="lazy"
+              />
+              <span className="absolute top-3 left-3 text-xs bg-teal-700/90 text-white px-2.5 py-1 rounded">
+                Buggies & Prams
+              </span>
+              <span className="absolute bottom-3 right-3 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                View full image
+              </span>
+            </motion.button>
+            <motion.button
+              {...fadeUp}
+              type="button"
+              onClick={() => setLightboxImage("/images/services/Niche_Toy_Cleaning.svg")}
+              className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 text-left"
+            >
+              <SmartImage
+                src="/images/services/Niche_Toy_Cleaning.svg"
+                alt="Sanitised children's toys and Posh loaner pram"
+                className="aspect-[4/3] group-hover:scale-[1.02] transition-transform duration-500"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                loading="lazy"
+              />
+              <span className="absolute top-3 left-3 text-xs bg-teal-700/90 text-white px-2.5 py-1 rounded">
+                Toys & Posh Loaner Pram
+              </span>
+              <span className="absolute bottom-3 right-3 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
+                View full image
+              </span>
+            </motion.button>
+          </div>
+
+          <motion.div {...fadeUp} className="mt-7 grid sm:grid-cols-3 gap-3">
+            <div className="rounded-xl bg-teal-50 p-4 text-center">
+              <p className="text-sm font-semibold text-teal-800">From £30 per clean</p>
+              <p className="text-xs text-teal-700 mt-1">Same-day on most buggies</p>
+            </div>
+            <div className="rounded-xl bg-teal-50 p-4 text-center">
+              <p className="text-sm font-semibold text-teal-800">Free 'Posh' loaner pram</p>
+              <p className="text-xs text-teal-700 mt-1">Keep moving while we clean</p>
+            </div>
+            <div className="rounded-xl bg-teal-50 p-4 text-center">
+              <p className="text-sm font-semibold text-teal-800">Baby-safe products</p>
+              <p className="text-xs text-teal-700 mt-1">Non-toxic & hypoallergenic</p>
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => navigate("/services/buggy-toy-cleaning")}
+              className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
+            >
+              See full service
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-amber-400 text-gray-900 hover:bg-amber-300 font-semibold"
+            >
+              <Phone className="w-4 h-4" />
+              Call {PHONE_MAIN_DISPLAY}
+            </a>
+            <a
+              href={whatsappHref(BUGGY_TEASER_WHATSAPP_TEXT)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
+            >
+              <MessageCircle className="w-4 h-4" />
+              WhatsApp {WHATSAPP_DISPLAY}
             </a>
           </motion.div>
         </div>

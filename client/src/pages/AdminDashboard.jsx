@@ -989,10 +989,12 @@ const AdminDashboard = () => {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="adminToken" className="block text-sm font-medium text-gray-700 mb-2">
                 Admin Token
               </label>
               <input
+                id="adminToken"
+                name="adminToken"
                 type="password"
                 value={adminToken}
                 onChange={(e) => {
