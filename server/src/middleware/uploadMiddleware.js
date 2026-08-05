@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import os from "os";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
@@ -8,7 +9,10 @@ const __dirname = path.dirname(__filename);
 
 // Resolve to server/uploads/quotes (same path as routes/uploads.js serves from)
 const serverRoot = path.resolve(__dirname, "..", "..");
-export const quotesUploadDir = path.join(serverRoot, "uploads", "quotes");
+const isServerless = process.env.VERCEL === "1";
+export const quotesUploadDir = isServerless
+  ? path.join(os.tmpdir(), "uploads", "quotes")
+  : path.join(serverRoot, "uploads", "quotes");
 const uploadDir = quotesUploadDir;
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
