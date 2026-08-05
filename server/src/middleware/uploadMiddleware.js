@@ -1,34 +1,12 @@
 import multer from "multer";
 import path from "path";
 import os from "os";
-import fs from "fs";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Resolve to server/uploads/quotes (same path as routes/uploads.js serves from)
-const serverRoot = path.resolve(__dirname, "..", "..");
-const isServerless = process.env.VERCEL === "1";
-export const quotesUploadDir = isServerless
-  ? path.join(os.tmpdir(), "uploads", "quotes")
-  : path.join(serverRoot, "uploads", "quotes");
-const uploadDir = quotesUploadDir;
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure storage - save to uploads/quotes/
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, `quote-${uniqueSuffix}${ext}`);
-  },
-});
+// Disk path is no longer created or written to in serverless (read-only FS).
+// Kept as a constant for legacy disk-fallback readers (uploads route / quoteImages),
+// which gracefully fall back to the MongoDB-stored base64 payload when the file
+// is absent on disk.
+export const quotesUploadDir = path.join(os.tmpdir(), "uploads", "quotes");
 
 // Filter: allowlisted extensions only (no image/* wildcard — blocks SVG etc.)
 const fileFilter = (req, file, cb) => {
@@ -41,9 +19,12 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Max 5 images, 3MB each
+// Memory storage — required for Vercel serverless (read-only filesystem).
+// Uploaded files are exposed as buffers on req.file / req.files (.buffer).
 export const quoteImageUpload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
-  limits: { fileSize: 3 * 1024 * 1024, files: 5 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 5 },
 });
+
+export default quoteImageUpload;

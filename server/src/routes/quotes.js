@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import fs from "fs/promises";
 import path from "path";
 import Quote from "../models/Quote.js";
 import {
@@ -16,7 +15,7 @@ import {
   quoteRateLimiter,
   emailRateLimiter,
 } from "../middleware/rateLimiter.js";
-import { quoteImageUpload, quotesUploadDir } from "../middleware/uploadMiddleware.js";
+import { quoteImageUpload } from "../middleware/uploadMiddleware.js";
 import { validateQuoteImageBuffer } from "../utils/imageValidation.js";
 import { verifyCaptcha } from "../middleware/captchaMiddleware.js";
 import { idempotency } from "../middleware/idempotency.js";
@@ -96,35 +95,34 @@ const submitQuoteHandler = async (req, res) => {
     value.phone = sanitizePhoneNumber(value.phone);
     if (value.postcode) value.postcode = value.postcode.trim().toUpperCase();
 
-    // Build images array from uploaded files (persist base64 for ephemeral hosts like Render)
+    // Build images array from in-memory uploaded buffers (memoryStorage on Vercel)
     const images = [];
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+        const ext = path.extname(file.originalname || "") || ".jpg";
+        const filename = `quote-${uniqueSuffix}${ext}`;
         const entry = {
-          url: `/uploads/quotes/${file.filename}`,
+          url: `/uploads/quotes/${filename}`,
           filename: file.originalname,
           mimeType: file.mimetype || "image/jpeg",
         };
-        try {
-          const filePath = path.join(quotesUploadDir, file.filename);
-          const buffer = await fs.readFile(filePath);
+        const buffer = file.buffer;
+        if (buffer && buffer.length) {
           const imageCheck = validateQuoteImageBuffer(buffer);
           if (!imageCheck.ok) {
-            await fs.unlink(filePath).catch(() => {});
             return res.status(400).json({
               success: false,
               error: "Invalid image file. Please upload JPEG, PNG, GIF, WebP, or HEIC only.",
             });
           }
           entry.mimeType = imageCheck.mimeType;
-          // Cap stored size for MongoDB (16MB doc limit); disk copy still used when available
+          // Cap stored size for MongoDB (16MB doc limit)
           if (buffer.length <= 2.5 * 1024 * 1024) {
             entry.data = buffer.toString("base64");
           } else {
-            console.warn(`Quote image ${file.filename} too large to store in DB; disk only`);
+            console.warn(`Quote image ${filename} too large to store in DB; skipped`);
           }
-        } catch (readErr) {
-          console.warn("Quote image read for persistence failed:", readErr?.message || readErr);
         }
         images.push(entry);
       }
@@ -228,7 +226,7 @@ const submitQuoteHandler = async (req, res) => {
   } catch (error) {
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ success: false, error: "Each image must be under 3MB" });
+        return res.status(400).json({ success: false, error: "Each image must be under 5MB" });
       }
       if (error.code === "LIMIT_FILE_COUNT") {
         return res.status(400).json({ success: false, error: "Maximum 5 images allowed" });
