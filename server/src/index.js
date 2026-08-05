@@ -81,8 +81,18 @@ const corsOrigins = [
   "http://127.0.0.1:5173",
   "http://127.0.0.1:3000",
 ];
+
+const productionFrontendOrigins = [
+  "https://www.apexfivecleaning.co.uk",
+  "https://apexfivecleaning.co.uk",
+];
+
 if (process.env.CLIENT_URL) {
   const url = process.env.CLIENT_URL.replace(/\/$/, "");
+  if (!corsOrigins.includes(url)) corsOrigins.push(url);
+}
+if (process.env.VERCEL_URL) {
+  const url = `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
   if (!corsOrigins.includes(url)) corsOrigins.push(url);
 }
 // Render injects this URL for the current web service (no need to hardcode *.onrender.com per deploy)
@@ -101,7 +111,7 @@ if (process.env.ADDITIONAL_CORS_ORIGINS) {
 }
 // Optional explicit allow-list for production origins.
 // Example: PRODUCTION_CORS_ORIGINS=https://www.example.com,https://app.example.com
-if (process.env.NODE_ENV === "production" && process.env.PRODUCTION_CORS_ORIGINS) {
+if (process.env.PRODUCTION_CORS_ORIGINS) {
   process.env.PRODUCTION_CORS_ORIGINS.split(",")
     .map((s) => s.trim().replace(/\/$/, ""))
     .filter(Boolean)
@@ -109,6 +119,11 @@ if (process.env.NODE_ENV === "production" && process.env.PRODUCTION_CORS_ORIGINS
       if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
     });
 }
+productionFrontendOrigins.forEach((origin) => {
+  if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
+});
+
+console.log("✓ CORS allowed origins:", corsOrigins);
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) {
@@ -293,16 +308,20 @@ const startServer = async () => {
       );
     }
   }
-  app.listen(PORT, () => {
-    console.log(`\n✓ Server running on http://localhost:${PORT}`);
-    console.log(`✓ Environment: ${NODE_ENV}`);
-    console.log(
-      `✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`,
-    );
-    if (sentryEnabled) {
-      console.log("✓ Sentry monitoring enabled");
-    }
-  });
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, () => {
+      console.log(`\n✓ Server running on http://localhost:${PORT}`);
+      console.log(`✓ Environment: ${NODE_ENV}`);
+      console.log(
+        `✓ Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}\n`,
+      );
+      if (sentryEnabled) {
+        console.log("✓ Sentry monitoring enabled");
+      }
+    });
+  } else {
+    console.log("✓ Running as a Vercel serverless function");
+  }
 };
 
 process.on("uncaughtExceptionMonitor", (error) => {
