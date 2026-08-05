@@ -25,15 +25,11 @@ export const verifyCaptcha = async (req, res, next) => {
   try {
     const secret = process.env.RECAPTCHA_SECRET_KEY;
     if (!secret) {
-      if (process.env.NODE_ENV === "production") {
-        console.error("CAPTCHA: RECAPTCHA_SECRET_KEY is not set");
-        return res.status(500).json({
-          success: false,
-          error: "CAPTCHA is not configured. Please contact support.",
-        });
-      }
-      req.captcha = { verified: false, score: 1, action: "dev-skip" };
-      return next();
+      console.error("FATAL: RECAPTCHA_SECRET_KEY environment variable missing");
+      return res.status(500).json({
+        success: false,
+        error: "CAPTCHA is not configured. Please contact support.",
+      });
     }
 
     const token = req.body?.captchaToken;
@@ -62,7 +58,7 @@ export const verifyCaptcha = async (req, res, next) => {
       console.warn("reCAPTCHA verify failed, error-codes:", errorCodes);
       return res.status(400).json({
         success: false,
-        error: captchaErrorMessage(errorCodes),
+        message: "reCAPTCHA verification failed",
       });
     }
 

@@ -45,6 +45,8 @@ import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService
 import { handleStripeWebhook } from "./routes/payments.js";
 import { startScheduler } from "./jobs/scheduler.js";
 import chatopsRouter from "./routes/chatops.js";
+import { connectDbMiddleware, connectToDatabase, isMongoReady } from "./middleware/dbMiddleware.js";
+import { buildCorsOptions, getCorsOrigins } from "./config/corsConfig.js";
 import {
   captureServerException,
   initServerSentry,
@@ -74,71 +76,9 @@ app.use(
   }),
 );
 
-// CORS: localhost for dev, CLIENT_URL for production
-const corsOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-];
-
-const productionFrontendOrigins = [
-  "https://www.apexfivecleaning.co.uk",
-  "https://apexfivecleaning.co.uk",
-];
-
-if (process.env.CLIENT_URL) {
-  const url = process.env.CLIENT_URL.replace(/\/$/, "");
-  if (!corsOrigins.includes(url)) corsOrigins.push(url);
-}
-if (process.env.VERCEL_URL) {
-  const url = `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
-  if (!corsOrigins.includes(url)) corsOrigins.push(url);
-}
-// Render injects this URL for the current web service (no need to hardcode *.onrender.com per deploy)
-if (process.env.RENDER_EXTERNAL_URL) {
-  const url = process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "");
-  if (!corsOrigins.includes(url)) corsOrigins.push(url);
-}
-// Optional: comma-separated origins (e.g. preview URLs)
-if (process.env.ADDITIONAL_CORS_ORIGINS) {
-  process.env.ADDITIONAL_CORS_ORIGINS.split(",")
-    .map((s) => s.trim().replace(/\/$/, ""))
-    .filter(Boolean)
-    .forEach((origin) => {
-      if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
-    });
-}
-// Optional explicit allow-list for production origins.
-// Example: PRODUCTION_CORS_ORIGINS=https://www.example.com,https://app.example.com
-if (process.env.PRODUCTION_CORS_ORIGINS) {
-  process.env.PRODUCTION_CORS_ORIGINS.split(",")
-    .map((s) => s.trim().replace(/\/$/, ""))
-    .filter(Boolean)
-    .forEach((origin) => {
-      if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
-    });
-}
-productionFrontendOrigins.forEach((origin) => {
-  if (!corsOrigins.includes(origin)) corsOrigins.push(origin);
-});
-
+const corsOrigins = getCorsOrigins();
 console.log("✓ CORS allowed origins:", corsOrigins);
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-    if (corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS origin denied: ${origin}`), false);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-  exposedHeaders: ["Content-Length", "X-Kuma-Revision"],
-};
+const corsOptions = buildCorsOptions();
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
@@ -177,10 +117,6 @@ app.get("/", (req, res) => {
   });
 });
 
-let dbConnected = false;
-
-const isMongoReady = () => mongoose.connection.readyState === 1 && dbConnected;
-
 // Health check for ops/monitoring (no secrets). Email status shows if verification/quote emails can be sent.
 // Returns 503 if MongoDB is not connected so load balancers can mark instance unhealthy.
 app.get("/health", (req, res) => {
@@ -205,15 +141,7 @@ app.get("/health", (req, res) => {
 });
 
 // Guard all API requests from hanging when MongoDB temporarily disconnects
-app.use("/api", (req, res, next) => {
-  if (!isMongoReady()) {
-    return res.status(503).json({
-      error: "Service unavailable",
-      message: "Database temporarily unavailable. Please retry in a few seconds.",
-    });
-  }
-  next();
-});
+app.use("/api", connectDbMiddleware);
 
 // Routes
 app.use("/api/auth", authRouter);
@@ -256,14 +184,21 @@ app.use((err, req, res, next) => {
 const connectDB = async () => {
   const uri =
     process.env.MONGODB_URI ||
+    process.env.DATABASE_URL ||
     (process.env.NODE_ENV === "production"
       ? null
       : process.env.MONGODB_URI_DEV || null);
+
   if (!uri) {
     dbConnected = false;
-    console.error("✗ MongoDB URI missing (MONGODB_URI).");
+    if (process.env.VERCEL === "1") {
+      console.error("FATAL: MONGODB_URI environment variable is not defined in Vercel runtime.");
+    } else {
+      console.error("✗ MongoDB URI missing (MONGODB_URI).");
+    }
     return;
   }
+
   try {
     await mongoose.connect(uri);
     dbConnected = true;
@@ -299,7 +234,12 @@ const connectDB = async () => {
 };
 
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    console.error("Startup DB connection failed:", error.message || error);
+  }
+
   if (NODE_ENV === "production") {
     const cu = process.env.CLIENT_URL || "";
     if (!cu || /localhost|127\.0\.0\.1/.test(cu)) {

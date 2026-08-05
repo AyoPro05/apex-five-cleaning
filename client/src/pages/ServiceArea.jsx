@@ -5,7 +5,6 @@ import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
 import { scrollReveal } from "../utils/scrollReveal";
 import { SITE_URL } from "../config/site";
-import FallbackImage from "../components/FallbackImage";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -413,7 +412,7 @@ const ServiceArea = () => {
                 className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition"
               >
                 {SERVICE_IMAGES[service] && (
-                  <FallbackImage
+                  <img
                     src={SERVICE_IMAGES[service]}
                     alt={service}
                     className="w-full h-40 object-cover"
