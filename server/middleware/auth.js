@@ -14,7 +14,14 @@ export const authMiddleware = async (req, res, next) => {
     // Get token from header
     const authHeader = req.headers.authorization || '';
     const parts = authHeader.split(' ');
-    const token = parts.length === 2 && parts[0] === 'Bearer' ? parts[1] : null;
+    let token = parts.length === 2 && parts[0] === 'Bearer' ? parts[1] : null;
+
+    // If no Authorization header, try HttpOnly cookie named `admin_jwt` (admin sessions)
+    if (!token && req.headers && req.headers.cookie) {
+      const raw = String(req.headers.cookie || '');
+      const match = raw.match(/(?:^|; )admin_jwt=([^;]+)/);
+      if (match) token = decodeURIComponent(match[1]);
+    }
 
     if (!token) {
       return res.status(401).json({

@@ -159,6 +159,8 @@ const AdminDashboard = () => {
   const [quoteImageUrls, setQuoteImageUrls] = useState({});
   const [processedDeepLinkQuoteId, setProcessedDeepLinkQuoteId] = useState("");
 
+  const adminAuthenticated = Boolean(adminToken) || Boolean(sessionStorage.getItem('adminSession'));
+
   // Filters
   const [filters, setFilters] = useState({
     status: "new",
@@ -213,7 +215,7 @@ const AdminDashboard = () => {
 	  });
 
   useEffect(() => {
-    if (!showDetails || !selectedQuote?._id || !selectedQuote.images?.length || !adminToken) {
+    if (!showDetails || !selectedQuote?._id || !selectedQuote.images?.length || !adminAuthenticated) {
       setQuoteImageUrls({});
       return undefined;
     }
@@ -244,7 +246,7 @@ const AdminDashboard = () => {
 
   // Fetch quotes
   const fetchQuotes = async () => {
-    if (!adminToken) {
+    if (!adminAuthenticated) {
       setError("Admin token required");
       return;
     }
@@ -308,7 +310,7 @@ const AdminDashboard = () => {
 
   // Fetch statistics
   const fetchStats = async () => {
-    if (!adminToken) return;
+    if (!adminAuthenticated) return;
 
     try {
       const data = await get("/api/admin/stats");
@@ -322,7 +324,7 @@ const AdminDashboard = () => {
 
   // Fetch analytics for dashboard tab
   const fetchAnalytics = async () => {
-    if (!adminToken) return;
+    if (!adminAuthenticated) return;
     setAnalyticsLoading(true);
     try {
       const data = await get("/api/admin/analytics");
@@ -486,7 +488,7 @@ const AdminDashboard = () => {
 	  };
 
   const fetchChatLeads = async (options = {}) => {
-    if (!adminToken) return;
+    if (!adminAuthenticated) return;
     const page = options.page || chatLeadsPagination.page || 1;
     const limit = options.limit || chatLeadsPagination.limit || 20;
     setChatLeadsLoading(true);
@@ -798,7 +800,7 @@ const AdminDashboard = () => {
 
   // Export to CSV
   const exportToCSV = async () => {
-    if (!adminToken) return;
+    if (!adminAuthenticated) return;
 
     try {
       const params = new URLSearchParams({
@@ -821,18 +823,18 @@ const AdminDashboard = () => {
 
   // Initial load
   useEffect(() => {
-    if (adminToken) {
+    if (adminAuthenticated) {
       fetchQuotes();
       fetchStats();
     }
-  }, [adminToken]);
+  }, [adminAuthenticated]);
 
   // Refetch when filters change
   useEffect(() => {
-    if (adminToken && !showTokenInput) {
+    if (adminAuthenticated && !showTokenInput) {
       fetchQuotes();
     }
-  }, [filters, adminToken]);
+  }, [filters, adminAuthenticated, showTokenInput]);
 
   // Keep active tab in sync with URL path.
   useEffect(() => {
@@ -845,14 +847,14 @@ const AdminDashboard = () => {
 
   // Deep-link support: if email link points to /admin/?quoteId=..., route to quotes first.
   useEffect(() => {
-    if (!adminToken || showTokenInput || !deepLinkQuoteId) return;
+    if (!adminAuthenticated || showTokenInput || !deepLinkQuoteId) return;
     if (location.pathname.startsWith("/admin/quotes")) return;
     navigate(`/admin/quotes?quoteId=${encodeURIComponent(deepLinkQuoteId)}`, { replace: true });
-  }, [adminToken, showTokenInput, deepLinkQuoteId, location.pathname, navigate]);
+  }, [adminAuthenticated, showTokenInput, deepLinkQuoteId, location.pathname, navigate]);
 
   // Open the linked quote once the admin session is active and we're on the quotes tab.
   useEffect(() => {
-    if (!adminToken || showTokenInput || !deepLinkQuoteId) return;
+    if (!adminAuthenticated || showTokenInput || !deepLinkQuoteId) return;
     if (!location.pathname.startsWith("/admin/quotes")) return;
     if (processedDeepLinkQuoteId === deepLinkQuoteId) return;
 
@@ -860,42 +862,34 @@ const AdminDashboard = () => {
     openQuoteDetails(deepLinkQuoteId).finally(() => {
       navigate("/admin/quotes", { replace: true });
     });
-  }, [
-    adminToken,
-    showTokenInput,
-    deepLinkQuoteId,
-    location.pathname,
-    processedDeepLinkQuoteId,
-    openQuoteDetails,
-    navigate,
-  ]);
+  }, [adminAuthenticated, showTokenInput, deepLinkQuoteId, location.pathname, processedDeepLinkQuoteId, openQuoteDetails, navigate]);
 
   // Load customers when switching to the Customers tab
   useEffect(() => {
-    if (adminToken && !showTokenInput && activeTab === "customers") {
+    if (adminAuthenticated && !showTokenInput && activeTab === "customers") {
       fetchCustomers();
     }
-  }, [activeTab, adminToken, showTokenInput]);
+  }, [activeTab, adminAuthenticated, showTokenInput]);
 
   useEffect(() => {
-    if (adminToken && !showTokenInput && activeTab === "chat-leads") {
+    if (adminAuthenticated && !showTokenInput && activeTab === "chat-leads") {
       fetchChatLeads();
     }
-  }, [activeTab, adminToken, showTokenInput, chatLeadStatusFilter, chatLeadSearch, chatLeadsPagination.page, chatLeadsPagination.limit]);
+  }, [activeTab, adminAuthenticated, showTokenInput, chatLeadStatusFilter, chatLeadSearch, chatLeadsPagination.page, chatLeadsPagination.limit]);
 
 	  // Load analytics when switching to the Dashboard tab
-	  useEffect(() => {
-	    if (adminToken && !showTokenInput && activeTab === "dashboard") {
-	      fetchAnalytics();
-	    }
-	  }, [activeTab, adminToken, showTokenInput]);
+    useEffect(() => {
+      if (adminAuthenticated && !showTokenInput && activeTab === "dashboard") {
+        fetchAnalytics();
+      }
+    }, [activeTab, adminAuthenticated, showTokenInput]);
 
 	  // Load staff operations when switching to Staff
-	  useEffect(() => {
-	    if (adminToken && !showTokenInput && activeTab === "staff") {
-	      refreshStaffOperations();
-	    }
-	  }, [activeTab, adminToken, showTokenInput, staffStatusFilter, staffDateRange.from, staffDateRange.to]);
+    useEffect(() => {
+      if (adminAuthenticated && !showTokenInput && activeTab === "staff") {
+        refreshStaffOperations();
+      }
+    }, [activeTab, adminAuthenticated, showTokenInput, staffStatusFilter, staffDateRange.from, staffDateRange.to]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -932,6 +926,12 @@ const AdminDashboard = () => {
   };
 
   const adminLogout = useCallback((options = {}) => {
+    // Call server logout to clear HttpOnly cookie, then clear any client-side remnants
+    try {
+      post('/api/admin/logout');
+    } catch (e) {
+      // ignore
+    }
     localStorage.removeItem("adminJwt");
     sessionStorage.removeItem("adminJwt");
     localStorage.removeItem("adminToken");
@@ -953,7 +953,7 @@ const AdminDashboard = () => {
     navigate("/");
   }, [adminLogout, navigate]);
 
-  useAdminInactivityLogout(Boolean(adminToken) && !showTokenInput, handleIdleLogout);
+  useAdminInactivityLogout(Boolean(adminAuthenticated) && !showTokenInput, handleIdleLogout);
 
   const handleAdminLogin = async () => {
     if (!adminToken.trim()) return;
@@ -961,12 +961,13 @@ const AdminDashboard = () => {
     setLoginError("");
     try {
       const res = await post("/api/admin/login", { token: adminToken.trim() });
-      if (res.success && res.token) {
-        localStorage.setItem("adminJwt", res.token);
-        sessionStorage.setItem("adminJwt", res.token);
+      if (res.success) {
+        // Server sets an HttpOnly cookie `admin_jwt`. Keep a small client-side flag
+        // so UI knows we're authenticated (cookie is not readable from JS).
+        sessionStorage.setItem('adminSession', '1');
         localStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminToken");
-        setAdminToken(res.token);
+        setAdminToken('cookie');
         setShowTokenInput(false);
       } else {
         setLoginError(res.error || "Login failed");

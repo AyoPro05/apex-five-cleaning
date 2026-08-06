@@ -208,11 +208,29 @@ router.post('/login', strictRateLimiter, (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: ADMIN_JWT_EXPIRE }
   );
-  return res.json({
-    success: true,
-    token: jwtToken,
-    expiresIn: ADMIN_JWT_EXPIRE_SECONDS,
+  // Set HttpOnly secure cookie for admin session. Also return expiresIn only.
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: ADMIN_JWT_EXPIRE_SECONDS * 1000,
+  };
+  res.cookie('admin_jwt', jwtToken, cookieOptions);
+  return res.json({ success: true, expiresIn: ADMIN_JWT_EXPIRE_SECONDS });
+});
+
+/** POST /api/admin/logout */
+router.post('/logout', (req, res) => {
+  // Clear cookie
+  res.cookie('admin_jwt', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 0,
   });
+  return res.json({ success: true });
 });
 
 // ================================
