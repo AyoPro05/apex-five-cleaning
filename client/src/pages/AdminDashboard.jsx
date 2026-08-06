@@ -145,7 +145,11 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [adminToken, setAdminToken] = useState(
-    localStorage.getItem("adminToken") || "",
+    localStorage.getItem("adminJwt") ||
+      sessionStorage.getItem("adminJwt") ||
+      localStorage.getItem("adminToken") ||
+      sessionStorage.getItem("adminToken") ||
+      "",
   );
   const [showTokenInput, setShowTokenInput] = useState(!adminToken);
   const [loginError, setLoginError] = useState("");
@@ -928,6 +932,8 @@ const AdminDashboard = () => {
   };
 
   const adminLogout = useCallback((options = {}) => {
+    localStorage.removeItem("adminJwt");
+    sessionStorage.removeItem("adminJwt");
     localStorage.removeItem("adminToken");
     sessionStorage.removeItem("adminToken");
     clearAdminActivityTimestamp();
@@ -956,8 +962,10 @@ const AdminDashboard = () => {
     try {
       const res = await post("/api/admin/login", { token: adminToken.trim() });
       if (res.success && res.token) {
-        localStorage.setItem("adminToken", res.token);
-        sessionStorage.setItem("adminToken", res.token);
+        localStorage.setItem("adminJwt", res.token);
+        sessionStorage.setItem("adminJwt", res.token);
+        localStorage.removeItem("adminToken");
+        sessionStorage.removeItem("adminToken");
         setAdminToken(res.token);
         setShowTokenInput(false);
       } else {

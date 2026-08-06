@@ -40,15 +40,29 @@ export function getImageUrl(imgPath) {
   return base ? `${base}${normalized}` : normalized
 }
 
+const ADMIN_JWT_KEY = 'adminJwt'
+const LEGACY_ADMIN_TOKEN_KEY = 'adminToken'
+
 const getAuthToken = (url = '') => {
   if (typeof window === 'undefined') return null
-  // Admin routes must use admin token only (customer JWT would be sent otherwise and backend rejects)
-  const isAdminRequest = (url && String(url).includes('/api/admin')) || false
+  const isAdminRequest = String(url).includes('/api/admin')
+  const adminJwt =
+    localStorage.getItem(ADMIN_JWT_KEY) ||
+    sessionStorage.getItem(ADMIN_JWT_KEY) ||
+    localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) ||
+    sessionStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) ||
+    null
+
   if (isAdminRequest) {
-    return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || null
+    return adminJwt
   }
-  return localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken') ||
-    localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || null
+
+  return (
+    localStorage.getItem('jwtToken') ||
+    sessionStorage.getItem('jwtToken') ||
+    adminJwt ||
+    null
+  )
 }
 
 const apiClient = axios.create({
