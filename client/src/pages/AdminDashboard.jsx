@@ -144,16 +144,18 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adminToken, setAdminToken] = useState(
-    localStorage.getItem("adminJwt") ||
-      sessionStorage.getItem("adminJwt") ||
-      localStorage.getItem("adminToken") ||
-      sessionStorage.getItem("adminToken") ||
-      "",
+  const [adminTokenInput, setAdminTokenInput] = useState("");
+  const [adminJwt, setAdminJwt] = useState(() =>
+    localStorage.getItem("adminJwt") || sessionStorage.getItem("adminJwt") || null,
   );
-  const [showTokenInput, setShowTokenInput] = useState(
-    !(adminToken || sessionStorage.getItem('adminSession')),
-  );
+  const [showTokenInput, setShowTokenInput] = useState(() => {
+    return !Boolean(
+      localStorage.getItem("adminJwt") ||
+        sessionStorage.getItem("adminJwt") ||
+        localStorage.getItem("adminSession") ||
+        sessionStorage.getItem("adminSession"),
+    );
+  });
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
@@ -161,7 +163,10 @@ const AdminDashboard = () => {
   const [quoteImageUrls, setQuoteImageUrls] = useState({});
   const [processedDeepLinkQuoteId, setProcessedDeepLinkQuoteId] = useState("");
 
-  const adminAuthenticated = Boolean(adminToken) || Boolean(sessionStorage.getItem('adminSession'));
+  const adminAuthenticated =
+    Boolean(adminJwt) ||
+    Boolean(localStorage.getItem('adminSession')) ||
+    Boolean(sessionStorage.getItem('adminSession'));
 
   // Filters
   const [filters, setFilters] = useState({
@@ -244,12 +249,12 @@ const AdminDashboard = () => {
       cancelled = true;
       objectUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [showDetails, selectedQuote?._id, selectedQuote?.images?.length, adminToken]);
+  }, [showDetails, selectedQuote?._id, selectedQuote?.images?.length, adminJwt]);
 
   // Fetch quotes
   const fetchQuotes = async () => {
     if (!adminAuthenticated) {
-      setError("Admin token required");
+      setError("Admin login required");
       return;
     }
 
@@ -276,6 +281,7 @@ const AdminDashboard = () => {
         setError(data.error);
       }
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       setError(err.message);
     } finally {
       setLoading(false);
@@ -320,7 +326,9 @@ const AdminDashboard = () => {
         setStats(data.stats);
       }
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       console.error("Error fetching stats:", err);
+      setError(err.message || "Failed to load stats");
     }
   };
 
@@ -334,7 +342,9 @@ const AdminDashboard = () => {
         setAnalytics(data.analytics);
       }
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       console.error("Error fetching analytics:", err);
+      setError(err.message || "Failed to load analytics");
     } finally {
       setAnalyticsLoading(false);
     }
@@ -354,6 +364,7 @@ const AdminDashboard = () => {
       await del(`/api/admin/users/${customer._id}?olderThanMonths=6`);
       await fetchCustomers({ page: customerPagination.page });
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       const msg = err.response?.data?.error || err.message;
       const isRetentionError =
         typeof msg === "string" &&
@@ -403,6 +414,7 @@ const AdminDashboard = () => {
         setShowDetails(false);
       }
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       const msg = err.response?.data?.error || err.message;
       setError(msg || "Failed to delete quote");
     } finally {
@@ -443,51 +455,53 @@ const AdminDashboard = () => {
         setCustomersError(data.error || "Failed to load customers");
       }
     } catch (err) {
+      if (handleAdminAuthError(err)) return;
       setCustomersError(err.message);
     } finally {
       setCustomersLoading(false);
     }
-	  };
+  };
 
-	  const staffPayloadFromForm = (form) => ({
-	    firstName: form.firstName.trim(),
-	    lastName: form.lastName.trim(),
-	    email: form.email.trim(),
-	    phone: form.phone.trim(),
-	    role: form.role,
-	    employmentType: form.employmentType,
-	    hourlyRate: Number(form.hourlyRate || 0),
-	    serviceAreas: form.serviceAreasText
-	      .split(",")
-	      .map((area) => area.trim())
-	      .filter(Boolean),
-	    emergencyContactName: form.emergencyContactName.trim(),
-	    emergencyContactPhone: form.emergencyContactPhone.trim(),
-	    status: form.status,
-	    notes: form.notes.trim(),
-	  });
+  const staffPayloadFromForm = (form) => ({
+    firstName: form.firstName.trim(),
+    lastName: form.lastName.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    role: form.role,
+    employmentType: form.employmentType,
+    hourlyRate: Number(form.hourlyRate || 0),
+    serviceAreas: form.serviceAreasText
+      .split(",")
+      .map((area) => area.trim())
+      .filter(Boolean),
+    emergencyContactName: form.emergencyContactName.trim(),
+    emergencyContactPhone: form.emergencyContactPhone.trim(),
+    status: form.status,
+    notes: form.notes.trim(),
+  });
 
-	  const fetchStaff = async () => {
-	    if (!adminAuthenticated) return;
-	    setStaffLoading(true);
-	    setStaffError("");
-	    try {
-	      const params = new URLSearchParams({
-	        search: staffSearch,
-	        status: staffStatusFilter,
-	      });
-	      const data = await get(`/api/admin/staff?${params}`);
-	      if (data.success) {
-	        setStaffList(data.data || []);
-	      } else {
-	        setStaffError(data.error || "Failed to load staff");
-	      }
-	    } catch (err) {
-	      setStaffError(err.response?.data?.error || err.message);
-	    } finally {
-	      setStaffLoading(false);
-	    }
-	  };
+  const fetchStaff = async () => {
+    if (!adminAuthenticated) return;
+    setStaffLoading(true);
+    setStaffError("");
+    try {
+      const params = new URLSearchParams({
+        search: staffSearch,
+        status: staffStatusFilter,
+      });
+      const data = await get(`/api/admin/staff?${params}`);
+      if (data.success) {
+        setStaffList(data.data || []);
+      } else {
+        setStaffError(data.error || "Failed to load staff");
+      }
+    } catch (err) {
+      if (handleAdminAuthError(err)) return;
+      setStaffError(err.response?.data?.error || err.message);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
 
   const fetchChatLeads = async (options = {}) => {
     if (!adminAuthenticated) return;
@@ -936,11 +950,13 @@ const AdminDashboard = () => {
     }
     localStorage.removeItem("adminJwt");
     sessionStorage.removeItem("adminJwt");
+    localStorage.removeItem("adminSession");
     sessionStorage.removeItem("adminSession");
     localStorage.removeItem("adminToken");
     sessionStorage.removeItem("adminToken");
     clearAdminActivityTimestamp();
-    setAdminToken("");
+    setAdminJwt(null);
+    setAdminTokenInput("");
     setShowTokenInput(true);
     setSelectedQuote(null);
     setShowDetails(false);
@@ -951,6 +967,22 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  const handleAdminAuthError = useCallback((err) => {
+    const message =
+      err?.response?.data?.message || err?.response?.data?.error || err?.message || "Authentication failed";
+    if (
+      err?.response?.status === 401 ||
+      /authentication token|no token|invalid token|token expired/i.test(message)
+    ) {
+      adminLogout();
+      setLoginError(
+        "Your admin session has expired or is invalid. Please sign in again.",
+      );
+      return true;
+    }
+    return false;
+  }, [adminLogout]);
+
   const handleIdleLogout = useCallback(() => {
     adminLogout({ idle: true });
     navigate("/");
@@ -959,22 +991,23 @@ const AdminDashboard = () => {
   useAdminInactivityLogout(Boolean(adminAuthenticated) && !showTokenInput, handleIdleLogout);
 
   const handleAdminLogin = async () => {
-    if (!adminToken.trim()) return;
+    if (!adminTokenInput.trim()) return;
     setLoginLoading(true);
     setLoginError("");
     try {
-      const res = await post("/api/admin/login", { token: adminToken.trim() });
-      if (res.success) {
+      const res = await post("/api/admin/login", { token: adminTokenInput.trim() });
+      if (res.success && res.token) {
         // Server sets an HttpOnly cookie `admin_jwt`. Keep a small client-side flag
-        // so UI knows we're authenticated. Use the returned JWT as a fallback for
-        // cross-origin deployments where the cookie may not be sent on every request.
+        // so UI knows we're authenticated. Store the fallback JWT too so token
+        // auth works when the cookie is not reliably sent in production.
         sessionStorage.setItem('adminSession', '1');
-        if (res.token) {
-          sessionStorage.setItem('adminJwt', res.token);
-        }
+        localStorage.setItem('adminSession', '1');
+        sessionStorage.setItem('adminJwt', res.token);
+        localStorage.setItem('adminJwt', res.token);
+        setAdminJwt(res.token);
         localStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminToken");
-        setAdminToken('cookie');
+        setAdminTokenInput("");
         setShowTokenInput(false);
       } else {
         setLoginError(res.error || "Login failed");
@@ -1012,9 +1045,9 @@ const AdminDashboard = () => {
                 id="adminToken"
                 name="adminToken"
                 type="password"
-                value={adminToken}
+                value={adminTokenInput}
                 onChange={(e) => {
-                  setAdminToken(e.target.value)
+                  setAdminTokenInput(e.target.value)
                   setLoginError("")
                 }}
                 placeholder="Enter your admin token"
@@ -1028,7 +1061,7 @@ const AdminDashboard = () => {
             )}
             <button
               type="submit"
-              disabled={loginLoading || !adminToken.trim()}
+              disabled={loginLoading || !adminTokenInput.trim()}
               className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white py-2 rounded-lg font-semibold transition"
             >
               {loginLoading ? "Signing in…" : "Access Dashboard"}

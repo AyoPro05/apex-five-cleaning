@@ -98,6 +98,10 @@ apiClient.interceptors.response.use(
       sessionStorage.removeItem('jwtToken')
       localStorage.removeItem('adminToken')
       sessionStorage.removeItem('adminToken')
+      localStorage.removeItem('adminJwt')
+      sessionStorage.removeItem('adminJwt')
+      localStorage.removeItem('adminSession')
+      sessionStorage.removeItem('adminSession')
     }
     // Use server message when available
     const msg = err.response?.data?.message || err.response?.data?.error || err.message
