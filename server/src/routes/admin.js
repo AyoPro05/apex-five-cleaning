@@ -200,7 +200,16 @@ async function purgeExpiredDeletedQuotes() {
 router.post('/login', strictRateLimiter, (req, res) => {
   const secret = process.env.ADMIN_TOKEN;
   const { token } = req.body || {};
-  if (!secret || !token || token !== secret) {
+
+  if (!secret) {
+    console.error('FATAL: ADMIN_TOKEN is not configured for /api/admin/login');
+    return res.status(500).json({
+      success: false,
+      error: 'Admin login is unavailable. Please configure ADMIN_TOKEN in the environment.',
+    });
+  }
+
+  if (!token || token !== secret) {
     return res.status(401).json({ success: false, error: 'Invalid admin token' });
   }
   const jwtToken = jwt.sign(
@@ -208,16 +217,26 @@ router.post('/login', strictRateLimiter, (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: ADMIN_JWT_EXPIRE }
   );
-  // Set HttpOnly secure cookie for admin session. Also return expiresIn only.
+  // Set HttpOnly secure cookie for admin session. Use SameSite=None in production
+  // so cross-origin frontend deployments can still receive the session cookie.
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     maxAge: ADMIN_JWT_EXPIRE_SECONDS * 1000,
   };
+
+  if (process.env.ADMIN_COOKIE_DOMAIN) {
+    cookieOptions.domain = process.env.ADMIN_COOKIE_DOMAIN;
+  }
+
   res.cookie('admin_jwt', jwtToken, cookieOptions);
-  return res.json({ success: true, expiresIn: ADMIN_JWT_EXPIRE_SECONDS });
+  return res.json({
+    success: true,
+    expiresIn: ADMIN_JWT_EXPIRE_SECONDS,
+    token: jwtToken,
+  });
 });
 
 /** POST /api/admin/logout */
@@ -226,7 +245,7 @@ router.post('/logout', (req, res) => {
   res.cookie('admin_jwt', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     maxAge: 0,
   });

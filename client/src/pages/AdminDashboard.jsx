@@ -151,7 +151,9 @@ const AdminDashboard = () => {
       sessionStorage.getItem("adminToken") ||
       "",
   );
-  const [showTokenInput, setShowTokenInput] = useState(!adminToken);
+  const [showTokenInput, setShowTokenInput] = useState(
+    !(adminToken || sessionStorage.getItem('adminSession')),
+  );
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
@@ -410,8 +412,8 @@ const AdminDashboard = () => {
 
   // Fetch customers (registered users)
 	  const fetchCustomers = async (options = {}) => {
-    if (!adminToken) {
-      setCustomersError("Admin token required");
+    if (!adminAuthenticated) {
+      setCustomersError("Admin login required");
       return;
     }
 
@@ -466,7 +468,7 @@ const AdminDashboard = () => {
 	  });
 
 	  const fetchStaff = async () => {
-	    if (!adminToken) return;
+	    if (!adminAuthenticated) return;
 	    setStaffLoading(true);
 	    setStaffError("");
 	    try {
@@ -526,7 +528,7 @@ const AdminDashboard = () => {
   };
 
 	  const fetchShifts = async () => {
-	    if (!adminToken) return;
+	    if (!adminAuthenticated) return;
 	    try {
 	      const params = new URLSearchParams({
 	        from: staffDateRange.from,
@@ -540,7 +542,7 @@ const AdminDashboard = () => {
 	  };
 
 	  const fetchPayroll = async () => {
-	    if (!adminToken) return;
+	    if (!adminAuthenticated) return;
 	    setPayrollLoading(true);
 	    try {
 	      const params = new URLSearchParams({
@@ -934,6 +936,7 @@ const AdminDashboard = () => {
     }
     localStorage.removeItem("adminJwt");
     sessionStorage.removeItem("adminJwt");
+    sessionStorage.removeItem("adminSession");
     localStorage.removeItem("adminToken");
     sessionStorage.removeItem("adminToken");
     clearAdminActivityTimestamp();
@@ -963,8 +966,12 @@ const AdminDashboard = () => {
       const res = await post("/api/admin/login", { token: adminToken.trim() });
       if (res.success) {
         // Server sets an HttpOnly cookie `admin_jwt`. Keep a small client-side flag
-        // so UI knows we're authenticated (cookie is not readable from JS).
+        // so UI knows we're authenticated. Use the returned JWT as a fallback for
+        // cross-origin deployments where the cookie may not be sent on every request.
         sessionStorage.setItem('adminSession', '1');
+        if (res.token) {
+          sessionStorage.setItem('adminJwt', res.token);
+        }
         localStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminToken");
         setAdminToken('cookie');
