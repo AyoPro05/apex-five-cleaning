@@ -47,6 +47,7 @@ import { startScheduler } from "./jobs/scheduler.js";
 import chatopsRouter from "./routes/chatops.js";
 import { connectDbMiddleware, connectToDatabase, isMongoReady } from "./middleware/dbMiddleware.js";
 import { buildCorsOptions, getCorsOrigins } from "./config/corsConfig.js";
+import logAuthHeader from "./middleware/logAuthHeader.js";
 import {
   captureServerException,
   initServerSentry,
@@ -82,6 +83,9 @@ const corsOptions = buildCorsOptions();
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
+
+// Debug middleware: opt-in via DEBUG_AUTH=true
+app.use(logAuthHeader);
 
 // Stripe webhooks require the raw body for signature verification (must run before express.json)
 app.post(
