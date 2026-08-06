@@ -71,7 +71,22 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 // Security headers baseline (HSTS added by reverse proxy/HTTPS in production)
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    // Enable a conservative CSP in report-only mode by default so we can tune
+    // directives without blocking resources. Set `CSP_REPORT_ONLY=false` to
+    // enable enforcement once tested.
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.google-analytics.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://www.google-analytics.com'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+      reportOnly: process.env.CSP_REPORT_ONLY !== 'false',
+    },
     crossOriginEmbedderPolicy: false,
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   }),
