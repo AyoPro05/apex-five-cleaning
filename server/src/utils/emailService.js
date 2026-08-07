@@ -287,11 +287,10 @@ async function sendWithRetry(label, action, options = {}) {
 
 // ─── BRAND CONFIG (used across all email templates) ─────────────────────────
 const getBrandConfig = () => {
-  const baseUrl = (
-    process.env.CLIENT_URL || "https://apexfivecleaning.co.uk"
-  ).replace(/\/$/, "");
   return {
-    logoUrl: process.env.COMPANY_LOGO_URL || `${baseUrl}/apex-five-logo.png`,
+    logoUrl:
+      process.env.COMPANY_LOGO_URL ||
+      `https://www.apexfivecleaning.co.uk/apex-five-logo.png`,
     companyName: process.env.COMPANY_NAME || "Apex Five Cleaning",
     legalName: process.env.COMPANY_LEGAL_NAME || "Apex Five Capital Ltd",
     tagline:
@@ -318,7 +317,7 @@ const getEmailHeader = (brand, title, subtitle = "") => {
   return `
     <div class="email-header">
       <a href="${brand.website}" target="_blank" rel="noopener">
-        <img src="${brand.logoUrl}" alt="${brand.companyName} Logo" class="email-logo" width="160" height="auto" style="max-height: 56px; display: block; margin: 0 auto;" />
+        <img src="${brand.logoUrl}" alt="${brand.companyName} Logo" class="email-logo" width="160" style="max-height: 56px; height: auto; width: 160px; display: block; margin: 0 auto;" />
       </a>
       <h1 class="email-header-title">${title}</h1>
       ${subtitle ? `<p class="email-header-subtitle">${subtitle}</p>` : ""}
