@@ -429,8 +429,7 @@ export const getClientConfirmationTemplate = (firstName, quoteId) => {
                 <li>You'll receive an email with the quote and next steps</li>
               </ul>
               <div class="divider"></div>
-              <p>If you have any urgent questions, feel free to contact us:</p>
-              ${getSupportContactBlock(brand)}
+              <p>If you have any urgent questions, feel free to <a href="${brand.website}">contact us</a> or check the footer below.</p>
               <div style="text-align: center;">
                 <a href="${brand.website}" class="cta-button">View Our Services</a>
               </div>
@@ -600,8 +599,7 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
               <div style="text-align: center;">
                 <a href="${signupUrl}" class="cta-button">Create My Account</a>
               </div>
-              <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Questions? Contact us:</p>
-              ${getSupportContactBlock(brand)}
+              <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Have questions? Check the contact details in the footer below.</p>
             </div>
             ${getEmailFooter(brand)}
           </div>
@@ -835,8 +833,7 @@ export const getVerificationEmailTemplate = (
               <div class="security-badge">
                 <p style="margin: 0;">🔒 <strong>Security:</strong> We will never ask for your password via email.</p>
               </div>
-              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us:</p>
-              ${getSupportContactBlock(brand, { includeHours: false })}
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact details are in the footer below.</p>
             </div>
             ${getEmailFooter(brand, `Sent because you registered at ${brand.websiteDisplay}`)}
           </div>
@@ -1117,8 +1114,7 @@ function getPasswordResetTemplate(firstName, resetLink, expiryHours = 1) {
               <div class="security-note">
                 <strong>Didn't request this?</strong> You can safely ignore this email. Your password will not be changed.
               </div>
-              <p style="font-size: 13px; color: #6b7280;">Need help? Contact us:</p>
-              ${getSupportContactBlock(brand, { includeHours: false })}
+              <p style="font-size: 13px; color: #6b7280;">Need help? Contact details are in the footer below.</p>
             </div>
             ${getEmailFooter(brand)}
           </div>
@@ -1446,8 +1442,7 @@ export const sendClientFollowUpEmail = async (
           <p>Thanks again for reaching out to <strong>${brand.companyName}</strong>. We received your quote request and our team is reviewing the details.</p>
           <div class="ref-pill">Quote ref: ${safeRef}</div>
           <p>If anything has changed since you submitted — preferred date, additional rooms, specific concerns — just reply to this email and we will update your quote.</p>
-          <p>Need to chat?</p>
-          ${getSupportContactBlock(brand)}
+          <p>Need to chat? Contact details are in the footer below.</p>
           <p style="margin-top:20px;">We aim to respond to every request within a working day.</p>
         </div>
         ${getEmailFooter(brand, "Sent because you requested a quote on " + brand.websiteDisplay)}
@@ -1521,8 +1516,7 @@ export const sendPaymentReminderEmail = async (
             <a href="${payUrl}" class="cta-button">Pay Online</a>
             <p style="margin:10px 0 0 0; font-size:13px; color:#0d9488;">Use your quote reference and email to retrieve payment details on the page.</p>
           </div>
-          <p style="font-size:13px; color:#6b7280;">If you have already paid, please ignore this reminder. Need help?</p>
-          ${getSupportContactBlock(brand)}
+          <p style="font-size:13px; color:#6b7280;">If you have already paid, please ignore this reminder. Need help? Check the footer below.</p>
         </div>
         ${getEmailFooter(brand, "Automated payment reminder · sent once per approved quote")}
       </div>
@@ -1670,8 +1664,7 @@ export const sendPaymentConfirmationEmail = async ({
           <div style="text-align: center;">
             <a href="${dashboardUrl}" class="cta-button">View my dashboard</a>
           </div>
-          <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Need help with this payment?</p>
-          ${getSupportContactBlock(brand)}
+          <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">Need help with this payment? Contact details are in the footer below.</p>
         </div>
         ${getEmailFooter(brand, "Payment receipt · please keep for your records")}
       </div>

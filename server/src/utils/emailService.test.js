@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getClientConfirmationTemplate } from "./emailService.js";
+import {
+  getClientConfirmationTemplate,
+  getQuoteApprovedTemplate,
+  getVerificationEmailTemplate,
+  getVerificationSuccessTemplate,
+  getResendVerificationTemplate,
+} from "./emailService.js";
 
 test("email footer includes official social profiles", () => {
   const { html } = getClientConfirmationTemplate("Ada", "AP12345678");
@@ -49,4 +55,32 @@ test("email logo tag uses valid height attribute for email clients", () => {
     !/height="auto"/i.test(logoMatch[0]),
     'logo img should not use height="auto" (invalid in email clients)',
   );
+});
+
+test("customer emails have contact details only in footer (no duplicates)", () => {
+  const templates = [
+    getClientConfirmationTemplate("Ada", "AP12345678"),
+    getQuoteApprovedTemplate("Ada", "AP12345678"),
+    getVerificationEmailTemplate("Ada", "https://example.com/verify?token=abc"),
+    getVerificationSuccessTemplate("Ada"),
+    getResendVerificationTemplate("Ada", "https://example.com/verify?token=abc"),
+  ];
+
+  for (const { html } of templates) {
+    const phoneOccurrences = (html.match(/020 3535 6331/g) || []).length;
+    assert.ok(
+      phoneOccurrences === 1,
+      `expected phone number to appear once in footer (got ${phoneOccurrences})`,
+    );
+
+    // The inline support contact block should only appear once (in the footer)
+    // We match the HTML usage (class="email-contact-stack"), not the CSS definition
+    const contactStackOccurrences = (
+      html.match(/class="email-contact-stack"/g) || []
+    ).length;
+    assert.ok(
+      contactStackOccurrences === 1,
+      `expected contact block to appear once in footer (got ${contactStackOccurrences})`,
+    );
+  }
 });
