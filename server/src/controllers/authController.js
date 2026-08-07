@@ -484,11 +484,14 @@ export const resetPassword = async (req, res) => {
     user.password = password;
     user.passwordResetToken = undefined;
     user.passwordResetExpiry = undefined;
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiry = undefined;
     await user.save();
 
     res.status(200).json({
       success: true,
-      message: 'Password has been reset successfully. You can now log in.'
+      message: 'Password has been reset successfully and your email is now verified. You can now log in.'
     });
   } catch (error) {
     console.error('Reset password error:', error);

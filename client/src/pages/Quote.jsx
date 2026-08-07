@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Check, AlertCircle, Plus, X, ImageIcon, Calendar, Clock } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -71,6 +71,8 @@ const EMPTY_FORM = {
 const Quote = () => {
   const location = useLocation();
   const [step, setStep] = useState(1);
+  const quoteFlowRef = useRef(null);
+  const previousStepRef = useRef(step);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -124,6 +126,19 @@ const Quote = () => {
   useEffect(() => {
     if (formData.serviceType) setServiceInterest(formData.serviceType);
   }, [formData.serviceType]);
+
+  useEffect(() => {
+    if (previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    if (typeof window === "undefined" || !quoteFlowRef.current) return;
+
+    window.requestAnimationFrame(() => {
+      quoteFlowRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [step]);
 
   // Client-side validation
   const validateStep = (stepNum) => {
@@ -441,7 +456,7 @@ const Quote = () => {
         path="/request-a-quote"
       />
       <motion.section className="pt-32 pb-20 bg-gray-50 min-h-screen" {...scrollReveal}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div ref={quoteFlowRef} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div className="text-center mb-8" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">
             Get a Quote
