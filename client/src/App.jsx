@@ -66,7 +66,7 @@ function App() {
         title="Page content unavailable"
         description="This section failed unexpectedly. Try again to reload this page."
       >
-        <main className={bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'}>
+        <main className={`${bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'} pb-24 md:pb-0`}>
           <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/" element={<Home />} />

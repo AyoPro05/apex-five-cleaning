@@ -45,7 +45,7 @@ const ServiceAreas = () => {
     <>
       <SEO
         title="Cleaning Service Areas"
-        description={`Professional cleaning across Kent, Essex & Greater London: ${areaNamesPreview}, Southend-on-Sea, Croydon, and surrounding towns. Same coverage on every area page.`}
+        description={`Professional cleaning across Essex, Kent & Greater London: ${areaNamesPreview}, Southend-on-Sea, Croydon, and surrounding towns. Same coverage on every area page.`}
         path="/service-areas"
         jsonLd={serviceAreaSchemas}
       />
@@ -58,7 +58,7 @@ const ServiceAreas = () => {
             Areas We Serve
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We provide professional cleaning services across Kent, Essex, and Greater London. 
+            We provide professional cleaning services across Essex, Kent, and Greater London.
             Select your area to learn more about our local services and get a quote.
           </p>
         </motion.div>

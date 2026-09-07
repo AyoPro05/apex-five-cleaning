@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { get, post, patch, getBlob, del } from "../utils/apiClient";
 import FallbackImage from "../components/FallbackImage";
@@ -6,19 +6,6 @@ import {
   useAdminInactivityLogout,
   clearAdminActivityTimestamp,
 } from "../hooks/useAdminInactivityLogout";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
 import {
   Download,
   Eye,
@@ -32,7 +19,7 @@ import {
   Clock,
   XCircle,
   LogOut,
-	  Trash2,
+    Trash2,
 	  BarChart3,
 	  Users,
 	  CalendarDays,
@@ -42,9 +29,10 @@ import {
   MessageCircle,
 	} from "lucide-react";
 
-const RETENTION_MONTHS = 6;
-const CHART_COLORS = ["#0d9488", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
+  const AdminAnalyticsCharts = lazy(() => import("./admin/AdminAnalyticsCharts"));
+  const AdminAnalyticsTables = lazy(() => import("./admin/AdminAnalyticsTables"));
 
+const RETENTION_MONTHS = 6;
 const SUSPICION_REASON_LABELS = {
   low_captcha_score: "Low CAPTCHA score",
   captcha_unverified: "CAPTCHA not verified",
@@ -1211,177 +1199,18 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Charts row */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div className="bg-white rounded-xl shadow p-6">
-                        <h3 className="font-semibold text-gray-900 mb-1">Revenue Overview</h3>
-                        <p className="text-sm text-gray-500 mb-4">Monthly income (last 12 months)</p>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={analytics.revenueByMonth || []}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `£${v}`} />
-                              <Tooltip formatter={(v) => [`£` + Number(v).toFixed(2), "Income"]} />
-                              <Line type="monotone" dataKey="income" stroke="#0d9488" strokeWidth={2} name="Income" dot={{ r: 3 }} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                      <div className="bg-white rounded-xl shadow p-6">
-                        <h3 className="font-semibold text-gray-900 mb-1">Service Distribution</h3>
-                        <p className="text-sm text-gray-500 mb-4">Bookings by service type</p>
-                        <div className="h-64 flex items-center justify-center">
-                          {(analytics.serviceDistribution?.length && analytics.serviceDistribution.some((s) => s.count > 0)) ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={analytics.serviceDistribution}
-                                  dataKey="count"
-                                  nameKey="name"
-                                  cx="50%"
-                                  cy="50%"
-                                  outerRadius={80}
-                                  label={({ name, count }) => `${name} ${count}`}
-                                >
-                                  {(analytics.serviceDistribution || []).map((_, i) => (
-                                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <Tooltip formatter={(v) => [v, "Count"]} />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          ) : (
-                            <p className="text-gray-500 text-sm">No data yet</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <Suspense fallback={<div className="rounded-xl bg-white p-8 text-center text-sm text-gray-500">Loading analytics...</div>}>
+                      <AdminAnalyticsCharts analytics={analytics} />
+                    </Suspense>
 
-                    {/* Recent bookings table */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <div className="flex justify-between items-center px-6 py-4 border-b">
-                        <h3 className="font-semibold text-gray-900">Recent Bookings</h3>
-                        <button
-                          type="button"
-                          onClick={() => navigate("/admin/quotes")}
-                          className="text-sm font-medium text-teal-600 hover:text-teal-700"
-                        >
-                          View All →
-                        </button>
-                      </div>
-                      <div className="overflow-x-auto">
-                        {(!analytics.recentBookings || analytics.recentBookings.length === 0) ? (
-                          <div className="p-8 text-center text-gray-500 text-sm">No recent payments</div>
-                        ) : (
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Service</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {analytics.recentBookings.map((b) => (
-                                <tr key={b.id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-3 text-sm">
-                                    <span className="font-medium text-gray-900">{b.customer}</span>
-                                    <span className="block text-gray-500 text-xs">{b.email}</span>
-                                  </td>
-                                  <td className="px-6 py-3 text-sm text-gray-600 capitalize">{b.service}</td>
-                                  <td className="px-6 py-3 text-sm text-gray-600">
-                                    {b.date ? new Date(b.date).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}
-                                  </td>
-                                  <td className="px-6 py-3 text-sm font-medium text-gray-900">{b.amountDisplay}</td>
-                                  <td className="px-6 py-3">
-                                    <span
-                                      className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
-                                        b.status === "succeeded" ? "bg-green-100 text-green-800" : b.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800"
-                                      }`}
-                                    >
-                                      {b.status === "succeeded" ? "Paid" : b.status === "pending" ? "Pending" : b.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Recent chat leads */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <div className="flex justify-between items-center px-6 py-4 border-b">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <MessageCircle className="w-4 h-4 text-cyan-600" />
-                          Recent Chat Leads
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={() => navigate("/admin/customers")}
-                          className="text-sm font-medium text-teal-600 hover:text-teal-700"
-                        >
-                          Open Customers →
-                        </button>
-                      </div>
-                      <div className="overflow-x-auto">
-                        {(!analytics.chatLeads?.recent || analytics.chatLeads.recent.length === 0) ? (
-                          <div className="p-8 text-center text-gray-500 text-sm">No chat leads captured yet</div>
-                        ) : (
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Contact</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Service</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {analytics.chatLeads.recent.map((lead) => (
-                                <tr key={lead._id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-3 text-sm font-medium text-gray-900">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span>{lead.name || "—"}</span>
-                                      <SuspectedSpamBadge item={lead} />
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-3 text-sm text-gray-600">
-                                    {lead.email || lead.phone || "—"}
-                                    {lead.postcode ? <span className="block text-xs text-gray-500">{lead.postcode}</span> : null}
-                                  </td>
-                                  <td className="px-6 py-3 text-sm text-gray-600">{lead.serviceType || "—"}</td>
-                                  <td className="px-6 py-3 text-sm text-gray-600">
-                                    {lead.createdAt
-                                      ? new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
-                                      : "—"}
-                                  </td>
-                                  <td className="px-6 py-3 text-sm">
-                                    <select
-                                      value={lead.status || "new"}
-                                      disabled={chatLeadUpdatingId === lead._id}
-                                      onChange={(e) => updateChatLeadStatus(lead._id, e.target.value)}
-                                      className="px-2 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800 border border-cyan-200 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                                    >
-                                      <option value="new">new</option>
-                                      <option value="contacted">contacted</option>
-                                      <option value="qualified">qualified</option>
-                                      <option value="closed">closed</option>
-                                    </select>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
-                    </div>
+                    <Suspense fallback={<div className="rounded-xl bg-white p-8 text-center text-sm text-gray-500">Loading dashboard tables...</div>}>
+                      <AdminAnalyticsTables
+                        analytics={analytics}
+                        navigate={navigate}
+                        chatLeadUpdatingId={chatLeadUpdatingId}
+                        updateChatLeadStatus={updateChatLeadStatus}
+                      />
+                    </Suspense>
                   </div>
                 ) : (
                   <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">

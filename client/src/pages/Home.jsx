@@ -1,477 +1,124 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Leaf,
-  MapPin,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-  Star,
-} from "lucide-react";
+import { ArrowUpRight, Check, ChevronRight, Leaf, ShieldCheck, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
-import ServiceAreaMap from "../components/ServiceAreaMap";
-import SmartImage from "../components/SmartImage";
-import ImageLightbox from "../components/ImageLightbox";
-import { buildLocalBusinessSchema, buildWebSiteSchema } from "../config/seoSchemas";
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, WHATSAPP_DISPLAY, whatsappHref } from "../config/site";
+import ConversionActions from "../components/marketing/ConversionActions";
+import MarketingSection from "../components/marketing/MarketingSection";
+import ProofStrip from "../components/marketing/ProofStrip";
+import QuoteStarter from "../components/marketing/QuoteStarter";
 import { SERVICES } from "../data/servicesCatalog";
 
-const BUGGY_TEASER_WHATSAPP_TEXT =
-  "Hi Apex Five Cleaning, I'd like to book your buggy, car seat & toy cleaning service (with the Posh loaner pram). Please give me a call back.";
+const featuredServices = SERVICES.slice(0, 6);
 
-const serviceCards = [
+const testimonials = [
   {
-    title: "Domestic Cleaning",
-    subtitle: "For busy homeowners",
-    description: "Regular weekly or bi-weekly cleaning that keeps your home consistently fresh.",
-  },
-  {
-    title: "End of Tenancy",
-    subtitle: "For tenants and landlords",
-    description: "Detailed move-out cleaning designed to help properties pass inventory checks.",
-  },
-  {
-    title: "Airbnb Cleaning",
-    subtitle: "For hosts and short lets",
-    description: "Fast, reliable turnover cleaning between guests with consistent standards.",
-  },
-  {
-    title: "Office & Commercial",
-    subtitle: "For businesses",
-    description: "Professional cleaning plans for offices, retail spaces, and commercial sites.",
-  },
-];
-
-const testimonialHighlights = [
-  {
+    quote: "They’re reliable, thorough, and always leave the house feeling fresh and calm.",
     name: "Sarah M.",
-    service: "Domestic Cleaning",
-    quote: "Reliable team, spotless finish, and easy communication every time.",
+    detail: "Domestic cleaning client",
   },
   {
+    quote: "The place looked move-in ready and the handover was straightforward with no surprises.",
     name: "James R.",
-    service: "End of Tenancy",
-    quote: "The property looked move-in ready. Great attention to detail.",
+    detail: "Property manager",
   },
   {
-    name: "Emma T.",
-    service: "Airbnb Cleaning",
-    quote: "Quick turnaround and consistent quality for every guest changeover.",
+    quote: "The deep clean made a huge difference. Every room felt reset and properly finished.",
+    name: "Michael H.",
+    detail: "Homeowner",
   },
 ];
 
-const GOOGLE_REVIEW_URL = "https://share.google/ByNUvIHRlpT95uh09";
-
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.5, ease: "easeOut" },
-};
+function ServiceCard({ service }) {
+  return (
+    <Link
+      to={`/services/${service.id}`}
+      className="group overflow-hidden rounded-lg border border-zinc-200 bg-white transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-xl hover:shadow-brand-950/10"
+    >
+      <div className="aspect-[4/3] overflow-hidden bg-zinc-100">
+        <img
+          src={service.image}
+          alt={service.title}
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        />
+      </div>
+      <div className="p-5 sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-700">For {service.bestFor}</p>
+        <h3 className="mt-2 text-xl font-semibold text-zinc-950">{service.title}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-600">{service.shortDescription}</p>
+        <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
+          Explore service
+          <ChevronRight className="h-4 w-4 transition group-hover:translate-x-1" aria-hidden="true" />
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export default function Home() {
-  const navigate = useNavigate();
-  const [lightboxImage, setLightboxImage] = useState("");
-  const homeSchemas = [buildWebSiteSchema(), buildLocalBusinessSchema()];
-  const beforeAfterHighlights = [
-    SERVICES.find((s) => s.id === "domestic-cleaning"),
-    SERVICES.find((s) => s.id === "end-of-tenancy-cleaning"),
-    SERVICES.find((s) => s.id === "airbnb-cleaning"),
-  ].filter(Boolean);
-
   return (
     <>
       <SEO
-        title="Eco-Friendly Cleaning Services | Kent, London & Essex"
-        description="Professional domestic, end of tenancy, Airbnb, and office cleaning across Kent, London, and Essex. Get a fast quote from Apex Five Cleaning."
+        title="Cleaning services across Kent, London & Essex"
+        description="Reliable domestic, tenancy, Airbnb and commercial cleaning from a local team. Request a free quote from Apex Five Cleaning."
         path="/"
-        jsonLd={homeSchemas}
       />
 
-      <section className="relative min-h-[78vh] flex items-center overflow-hidden pt-28">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "url(/images/heroes/Hero_Services.png)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+      <section className="relative isolate overflow-hidden bg-zinc-950 text-white">
+        <img
+          src="/images/heroes/Hero_Services.png"
+          alt="Bright, freshly cleaned modern kitchen"
+          className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/75 via-teal-900/70 to-slate-900/65" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
-          <motion.div {...fadeUp} className="max-w-3xl text-white">
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-100 mb-4">
-              Professional Cleaning Services
-            </p>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-              Eco-friendly cleaning for homes and businesses across Kent, London, and Essex.
-            </h1>
-            <p className="text-lg text-teal-50 mt-5 max-w-2xl">
-              Trusted by homeowners, tenants, landlords, Airbnb hosts, and commercial clients who need reliable results and clear communication.
-            </p>
-
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/request-a-quote")}
-                className="inline-flex items-center justify-center gap-2 bg-white text-teal-700 hover:bg-teal-50 px-6 py-3 rounded-lg font-semibold"
-              >
-                Get a Free Quote
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <a
-                href={PHONE_MAIN_HREF}
-                className="inline-flex items-center justify-center gap-2 bg-teal-500/30 border border-teal-200/50 hover:bg-teal-500/40 px-6 py-3 rounded-lg font-semibold"
-              >
-                <Phone className="w-4 h-4" />
-                Call Now
-              </a>
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(9,18,17,.92),rgba(9,18,17,.58),rgba(9,18,17,.2))]" />
+        <div className="mx-auto grid min-h-[min(760px,calc(100vh-5rem))] max-w-7xl items-end gap-12 px-4 pb-14 pt-24 sm:px-6 sm:pb-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-8 lg:pt-20">
+          <div className="max-w-2xl animate-[fade-up_.7s_ease-out_both]">
+            <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-brand-100">Cleaning across Kent, London & Essex</p>
+            <h1 className="max-w-xl text-5xl font-semibold leading-[0.98] tracking-tight sm:text-6xl lg:text-7xl">More time for life. Less time cleaning.</h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-200 sm:text-xl">Reliable cleaning for homes, rentals, and workplaces.</p>
+            <div className="mt-8"><ConversionActions dark /></div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-zinc-200">
+              <span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-brand-200" /> Free quote</span>
+              <span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-brand-200" /> Fast local reply</span>
             </div>
+          </div>
 
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={() => navigate("/pay-online")}
-                className="inline-flex items-center justify-center gap-2 bg-white/15 border border-white/30 hover:bg-white/25 px-6 py-3 rounded-lg font-semibold"
-              >
-                Pay Online
-              </button>
-            </div>
-
-            <div className="mt-8 grid sm:grid-cols-3 gap-3">
-              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-                <p className="text-xs uppercase text-teal-100 mb-1">Reviews</p>
-                <p className="font-semibold">4.9/5 rating from verified clients</p>
-              </div>
-              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-                <p className="text-xs uppercase text-teal-100 mb-1">Trusted Team</p>
-                <p className="font-semibold">Insured, vetted, and reliable</p>
-              </div>
-              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-                <p className="text-xs uppercase text-teal-100 mb-1">Local Coverage</p>
-                <p className="font-semibold">Serving Kent, London, and Essex</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-14 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Choose your service type</h2>
-            <p className="text-gray-600 mt-3">Select the service that matches your property and goals.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {serviceCards.map((card) => (
-              <motion.button
-                {...fadeUp}
-                key={card.title}
-                type="button"
-                onClick={() => navigate("/services")}
-                className="text-left p-5 rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-sm transition bg-gray-50/60"
-              >
-                <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
-                <p className="text-sm text-teal-700 mt-1 font-medium">{card.subtitle}</p>
-                <p className="text-sm text-gray-600 mt-3">{card.description}</p>
-              </motion.button>
-            ))}
+          <div className="w-full max-w-md justify-self-end animate-[fade-up_.7s_.12s_ease-out_both]">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white"><span className="h-2 w-2 rounded-full bg-brand-300" /> Check your area</div>
+            <QuoteStarter />
           </div>
         </div>
       </section>
 
-      <section className="py-14 bg-gray-50 border-y border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="text-center mb-8">
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Before and after clarity</p>
-            <h2 className="text-3xl font-bold text-gray-900 mt-2">Real cleaning outcomes, not vague promises</h2>
-            <p className="text-gray-600 mt-3 max-w-3xl mx-auto">
-              See the transformation style we aim for across domestic, tenancy, and short-let cleanups.
-            </p>
-          </motion.div>
-          <div className="grid lg:grid-cols-3 gap-6">
-            {beforeAfterHighlights.map((service) => (
-              <motion.div {...fadeUp} key={service.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-bold text-gray-900">{service.title}</h3>
-                </div>
-                <div className="grid grid-cols-2">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setLightboxImage(service.beforeAfter.beforeImage)}
-                      className="w-full group relative"
-                    >
-                      <SmartImage
-                        src={service.beforeAfter.beforeImage}
-                        alt={`${service.title} before cleaning`}
-                        className="aspect-[4/3]"
-                        sizes="(max-width: 768px) 50vw, 33vw"
-                        loading="lazy"
-                      />
-                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                        View full image
-                      </span>
-                    </button>
-                    <span className="absolute top-2 left-2 text-[11px] bg-gray-900/75 text-white px-2 py-1 rounded">
-                      Before
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setLightboxImage(service.beforeAfter.afterImage)}
-                      className="w-full group relative"
-                    >
-                      <SmartImage
-                        src={service.beforeAfter.afterImage}
-                        alt={`${service.title} after cleaning`}
-                        className="aspect-[4/3]"
-                        sizes="(max-width: 768px) 50vw, 33vw"
-                        loading="lazy"
-                      />
-                      <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                        View full image
-                      </span>
-                    </button>
-                    <span className="absolute top-2 left-2 text-[11px] bg-teal-700/90 text-white px-2 py-1 rounded">
-                      After
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4 text-sm text-gray-600">
-                  <p>{service.beforeAfter.beforeLabel}</p>
-                  <p className="mt-1 text-teal-700 font-medium">{service.beforeAfter.afterLabel}</p>
-                </div>
-              </motion.div>
-            ))}
+      <MarketingSection className="pt-8 sm:pt-10" tone="soft"><ProofStrip /></MarketingSection>
+
+      <MarketingSection eyebrow="Our services" title="Cleaning that fits your life" intro="Choose the service you need, then request a quote in minutes." tone="soft">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featuredServices.map((service) => <ServiceCard key={service.id} service={service} />)}</div>
+        <div className="mt-8 text-center"><Link to="/services" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-900">View all cleaning services <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link></div>
+      </MarketingSection>
+
+      <MarketingSection tone="white">
+        <div className="grid items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
+          <div>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-brand-700">Why Apex Five</p>
+            <h2 className="text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl">A dependable clean, every visit.</h2>
+            <p className="mt-5 text-lg leading-8 text-zinc-600">Clear communication, careful work, and product options for homes, families, and pets.</p>
+            <ul className="mt-7 space-y-4 text-sm text-zinc-700">
+              <li className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" /><span><strong className="text-zinc-950">Insured team</strong><br />Clear expectations and reliable service.</span></li>
+              <li className="flex gap-3"><Leaf className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" /><span><strong className="text-zinc-950">Eco-friendly options</strong><br />Lower-fragrance products available.</span></li>
+              <li className="flex gap-3"><Star className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" /><span><strong className="text-zinc-950">Local support</strong><br />A real team to answer your questions.</span></li>
+            </ul>
+            <div className="mt-8"><Link to="/about" className="text-sm font-semibold text-brand-700 hover:text-brand-900">Meet the team <ArrowUpRight className="ml-1 inline h-4 w-4" aria-hidden="true" /></Link></div>
           </div>
-          <p className="mt-4 text-center text-xs text-gray-500 md:hidden">Tap any image to zoom</p>
+          <div className="overflow-hidden rounded-lg bg-zinc-100"><img src="/images/services/Service_Residential_Cleaning.png" alt="Freshly cleaned residential room" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" /></div>
         </div>
-      </section>
+      </MarketingSection>
 
-      <section className="py-12 bg-teal-50 border-y border-teal-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-4">
-          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
-            <div className="flex items-center gap-2 text-teal-700 mb-2">
-              <ShieldCheck className="w-5 h-5" />
-              <p className="font-semibold">Insured and dependable</p>
-            </div>
-            <p className="text-sm text-gray-600">Professional teams with clear standards and quality checks.</p>
-          </motion.div>
-          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
-            <div className="flex items-center gap-2 text-teal-700 mb-2">
-              <Leaf className="w-5 h-5" />
-              <p className="font-semibold">Eco-friendly approach</p>
-            </div>
-            <p className="text-sm text-gray-600">Safer, non-harsh products available for family and pet-friendly spaces.</p>
-          </motion.div>
-          <motion.div {...fadeUp} className="rounded-xl bg-white p-5 border border-gray-100">
-            <div className="flex items-center gap-2 text-teal-700 mb-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <p className="font-semibold">Fast quote response</p>
-            </div>
-            <p className="text-sm text-gray-600">Most quote requests are answered within one business day.</p>
-          </motion.div>
-        </div>
-      </section>
+      <MarketingSection eyebrow="Reviews" title="Trusted by local clients" tone="soft">
+        <div className="grid gap-5 lg:grid-cols-3">{testimonials.map((testimonial) => <figure key={testimonial.name} className="border-t-2 border-brand-600 pt-5"><div className="flex gap-1 text-brand-600" aria-label="5 out of 5 stars">{[1, 2, 3, 4, 5].map((star) => <Star key={star} className="h-4 w-4 fill-current" aria-hidden="true" />)}</div><blockquote className="mt-5 text-lg leading-8 text-zinc-800">“{testimonial.quote}”</blockquote><figcaption className="mt-6 text-sm"><strong className="text-zinc-950">{testimonial.name}</strong><span className="ml-2 text-zinc-500">{testimonial.detail}</span></figcaption></figure>)}</div>
+        <div className="mt-8"><Link to="/testimonials" className="text-sm font-semibold text-brand-700 hover:text-brand-900">Read more reviews <ArrowUpRight className="ml-1 inline h-4 w-4" aria-hidden="true" /></Link></div>
+      </MarketingSection>
 
-      <section className="py-14 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Reviews</p>
-              <h2 className="text-3xl font-bold text-gray-900 mt-2">What clients say before they rebook</h2>
-            </div>
-            <a
-              href={GOOGLE_REVIEW_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-teal-700 font-semibold hover:text-teal-800"
-            >
-              Read Google reviews
-              <ArrowRight className="w-4 h-4" />
-            </a>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {testimonialHighlights.map((item) => (
-              <motion.div {...fadeUp} key={item.name} className="border border-gray-200 rounded-xl p-5">
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-gray-700">&quot;{item.quote}&quot;</p>
-                <p className="mt-4 text-sm font-semibold text-gray-900">{item.name}</p>
-                <p className="text-sm text-teal-700">{item.service}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="text-center mb-8">
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Service area proof</p>
-            <h2 className="text-3xl font-bold text-gray-900 mt-2">Local cleaning coverage you can verify</h2>
-          </motion.div>
-          <motion.div {...fadeUp} className="rounded-2xl overflow-hidden border border-gray-200 bg-white p-4">
-            <ServiceAreaMap height="360px" />
-          </motion.div>
-          <motion.div {...fadeUp} className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              type="button"
-              onClick={() => navigate("/service-areas")}
-              className="px-6 py-3 rounded-lg bg-white border border-gray-200 text-gray-800 hover:bg-gray-100 font-semibold"
-            >
-              View service areas
-            </button>
-            <a
-              href={PHONE_MAIN_HREF}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-semibold"
-            >
-              <Phone className="w-4 h-4" />
-              Call {PHONE_MAIN_DISPLAY}
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-14 bg-white border-y border-teal-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="text-center mb-8">
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">Also new at Apex Five</p>
-            <h2 className="text-3xl font-bold text-gray-900 mt-2">Buggy, car seat & toy cleaning — with a free loaner pram</h2>
-            <p className="text-gray-600 mt-3 max-w-3xl mx-auto">
-              Drop off your pram, car seat, or little one's toys and we deep clean them to a hygienic finish. While you wait, we loan you a clean, premium 'Posh' pram to keep your routine going.
-            </p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 gap-6">
-            <motion.button
-              {...fadeUp}
-              type="button"
-              onClick={() => setLightboxImage("/images/services/Niche_Buggy_Cleaning.svg")}
-              className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 text-left"
-            >
-              <SmartImage
-                src="/images/services/Niche_Buggy_Cleaning.svg"
-                alt="Cleaned baby buggy and pram from Apex Five Cleaning"
-                className="aspect-[4/3] group-hover:scale-[1.02] transition-transform duration-500"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                loading="lazy"
-              />
-              <span className="absolute top-3 left-3 text-xs bg-teal-700/90 text-white px-2.5 py-1 rounded">
-                Buggies & Prams
-              </span>
-              <span className="absolute bottom-3 right-3 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                View full image
-              </span>
-            </motion.button>
-            <motion.button
-              {...fadeUp}
-              type="button"
-              onClick={() => setLightboxImage("/images/services/Niche_Toy_Cleaning.svg")}
-              className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 text-left"
-            >
-              <SmartImage
-                src="/images/services/Niche_Toy_Cleaning.svg"
-                alt="Sanitised children's toys and Posh loaner pram"
-                className="aspect-[4/3] group-hover:scale-[1.02] transition-transform duration-500"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                loading="lazy"
-              />
-              <span className="absolute top-3 left-3 text-xs bg-teal-700/90 text-white px-2.5 py-1 rounded">
-                Toys & Posh Loaner Pram
-              </span>
-              <span className="absolute bottom-3 right-3 text-[10px] uppercase tracking-wide bg-black/70 text-white px-2 py-1 rounded opacity-90 group-hover:opacity-100">
-                View full image
-              </span>
-            </motion.button>
-          </div>
-
-          <motion.div {...fadeUp} className="mt-7 grid sm:grid-cols-3 gap-3">
-            <div className="rounded-xl bg-teal-50 p-4 text-center">
-              <p className="text-sm font-semibold text-teal-800">From £30 per clean</p>
-              <p className="text-xs text-teal-700 mt-1">Same-day on most buggies</p>
-            </div>
-            <div className="rounded-xl bg-teal-50 p-4 text-center">
-              <p className="text-sm font-semibold text-teal-800">Free 'Posh' loaner pram</p>
-              <p className="text-xs text-teal-700 mt-1">Keep moving while we clean</p>
-            </div>
-            <div className="rounded-xl bg-teal-50 p-4 text-center">
-              <p className="text-sm font-semibold text-teal-800">Baby-safe products</p>
-              <p className="text-xs text-teal-700 mt-1">Non-toxic & hypoallergenic</p>
-            </div>
-          </motion.div>
-
-          <motion.div {...fadeUp} className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              type="button"
-              onClick={() => navigate("/services/buggy-toy-cleaning")}
-              className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
-            >
-              See full service
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <a
-              href={PHONE_MAIN_HREF}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-amber-400 text-gray-900 hover:bg-amber-300 font-semibold"
-            >
-              <Phone className="w-4 h-4" />
-              Call {PHONE_MAIN_DISPLAY}
-            </a>
-            <a
-              href={whatsappHref(BUGGY_TEASER_WHATSAPP_TEXT)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
-            >
-              <MessageCircle className="w-4 h-4" />
-              WhatsApp {WHATSAPP_DISPLAY}
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-gradient-to-r from-teal-700 to-teal-800 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div {...fadeUp}>
-            <h2 className="text-3xl sm:text-4xl font-bold">Ready for a cleaner home or workspace?</h2>
-            <p className="text-teal-100 mt-3 text-lg">
-              Tell us what you need and we will send a clear, no-obligation quote.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/request-a-quote")}
-                className="px-6 py-3 rounded-lg bg-white text-teal-700 hover:bg-teal-50 font-semibold"
-              >
-                Get a Free Quote
-              </button>
-              <a
-                href={PHONE_MAIN_HREF}
-                className="px-6 py-3 rounded-lg bg-amber-400 text-gray-900 hover:bg-amber-300 font-semibold"
-              >
-                Call Now
-              </a>
-            </div>
-            <p className="mt-4 text-sm text-teal-100 inline-flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              Local teams serving Kent, London, and Essex
-            </p>
-          </motion.div>
-        </div>
-      </section>
-      <ImageLightbox
-        image={lightboxImage}
-        alt="Expanded cleaning result example"
-        onClose={() => setLightboxImage("")}
-      />
+      <section className="bg-brand-700 text-white"><div className="mx-auto flex max-w-7xl flex-col gap-7 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-16"><div><p className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-100">Ready when you are</p><h2 className="mt-2 max-w-2xl text-3xl font-semibold sm:text-4xl">A cleaner space is one conversation away.</h2></div><ConversionActions dark /></div></section>
     </>
   );
 }

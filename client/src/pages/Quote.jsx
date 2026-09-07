@@ -748,7 +748,7 @@ const Quote = () => {
 
                 <div className="flex justify-end pt-2">
                   <button type="button" onClick={nextStep} className={BTN_PRIMARY}>
-                    Click next
+                    Continue
                   </button>
                 </div>
               </div>

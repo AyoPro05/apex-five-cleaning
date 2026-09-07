@@ -51,7 +51,7 @@ describe("Quote", () => {
       target: { value: "residential" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /click next/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
     await screen.findByText(/your contact details/i);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));

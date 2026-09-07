@@ -60,6 +60,8 @@ mongoose.set("bufferCommands", false);
 
 const app = express();
 const sentryEnabled = initServerSentry();
+// Keep request parsing flat and bounded; the API does not accept nested query or form objects.
+app.set("query parser", "simple");
 // Render (and similar) terminate TLS and set X-Forwarded-*. Required for correct req.ip and express-rate-limit.
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -121,7 +123,7 @@ app.post(
 app.use("/api/chatops", chatopsRouter);
 
 app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ limit: "10kb", extended: true }));
+app.use(express.urlencoded({ limit: "10kb", extended: false }));
 app.use(sentryRequestContext);
 
 // API rate limiting – apply before routes to intercept all incoming requests

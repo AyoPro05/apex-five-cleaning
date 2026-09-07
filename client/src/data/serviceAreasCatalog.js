@@ -368,15 +368,15 @@ export const ORDERED_AREA_SLUGS = [
 
 const NAV_REGION_META = [
   {
+    key: "essex",
+    name: "Essex",
+    description: "Coverage across key Essex towns and commuter areas",
+  },
+  {
     key: "kent",
     name: "Kent",
     description:
       "Our primary service area covering East, Central Kent, including Swale towns",
-  },
-  {
-    key: "essex",
-    name: "Essex",
-    description: "Coverage across key Essex towns and commuter areas",
   },
   {
     key: "london",

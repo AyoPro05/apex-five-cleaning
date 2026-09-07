@@ -1,90 +1,39 @@
-import { motion } from 'framer-motion'
-import { Crown } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { scrollReveal, scrollRevealVisible } from '../utils/scrollReveal'
-import SEO from '../components/SEO'
-import { COMPANY_ADDRESS_LINE1, COMPANY_ADDRESS_LINE2 } from '../config/site'
+import { Check, Leaf, ShieldCheck } from "lucide-react";
+import SEO from "../components/SEO";
+import MarketingCTA from "../components/marketing/MarketingCTA";
+import MarketingHeader from "../components/marketing/MarketingHeader";
+import MarketingSection from "../components/marketing/MarketingSection";
+import ProofStrip from "../components/marketing/ProofStrip";
+import { COMPANY_ADDRESS_LINE1, COMPANY_ADDRESS_LINE2 } from "../config/site";
 
-const About = () => {
+export default function About() {
   return (
     <>
-      <SEO
-        title="About Apex Five Cleaning"
-        description="Learn about Apex Five Cleaning, our values, and how we deliver reliable eco-friendly cleaning with trusted local teams."
-        path="/about"
-      />
-      <motion.section className="pt-32 pb-20 bg-white min-h-screen" {...scrollRevealVisible}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div {...scrollReveal}>
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">About Us</span>
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">About Apex Five Cleaning</h1>
-        <p className="text-xl text-gray-600 mb-12">
-          Based at {COMPANY_ADDRESS_LINE1}, {COMPANY_ADDRESS_LINE2}, we support homes and businesses across London and the South East.
-        </p>
-        </motion.div>
-        
-        {/* Member-focused About Section */}
-        <motion.div className="bg-gradient-to-r from-amber-50 to-white rounded-2xl p-8 mb-12 border border-amber-200" {...scrollReveal}>
-          <div className="flex items-center gap-3 mb-4">
-            <Crown className="w-8 h-8 text-amber-500" />
-            <h2 className="text-2xl font-bold text-gray-900">Our Family, Your Home</h2>
+      <SEO title="About Apex Five Cleaning" description="Meet Apex Five Cleaning, a local team delivering reliable, eco-conscious cleaning across Kent, London, and Essex." path="/about" image="/images/services/Service_Residential_Cleaning.png" />
+      <MarketingSection tone="soft" className="pt-12 sm:pt-16">
+        <MarketingHeader eyebrow="About Apex Five" title="A clean you can count on." intro="Founded by Ayomide Omolewa, Apex Five Cleaning makes professional cleaning simple, reliable, and easy to book." />
+        <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
+          <div className="overflow-hidden rounded-lg bg-zinc-100"><img src="/images/services/Service_Residential_Cleaning.png" alt="Freshly cleaned residential room" className="aspect-[4/3] h-full w-full object-cover" /></div>
+          <div className="space-y-5 text-zinc-600">
+            <p>We clean homes, rentals, and workplaces across Kent, London, and Essex. Every booking starts with a clear plan for your property and priorities.</p>
+            <p>We show up when we say we will, communicate clearly, and offer eco-friendly product options where they suit the job.</p>
+            <div className="flex items-center gap-3 border-l-2 border-brand-600 pl-4 text-sm font-semibold text-zinc-900"><Leaf className="h-5 w-5 text-brand-700" aria-hidden="true" /> Local team. Clear service.</div>
           </div>
-          <p className="text-gray-600 mb-4">
-            At Apex Five Cleaning, we focus on long-term client relationships, not one-off transactions. Our membership options are designed to reward regular clients with priority slots and better value over time.
-          </p>
-          <p className="text-gray-600">
-            When you book with us, you get a team that values reliability, respect for your space, and visible quality on every visit.
-          </p>
-        </motion.div>
-        
-        <motion.div className="grid md:grid-cols-2 gap-12 mb-16" {...scrollReveal}>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Mission</h3>
-            <p className="text-gray-600">
-              To provide cleaning services that feel straightforward and dependable, with eco-conscious products that are safe for families, pets, and workspaces.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Values</h3>
-            <ul className="space-y-2 text-gray-600">
-              <li>• Trust and transparency</li>
-              <li>• Quality service every time</li>
-              <li>• Eco-friendly practices</li>
-              <li>• Customer-first approach</li>
-            </ul>
-          </div>
-        </motion.div>
-
-        <motion.div className="bg-teal-50 rounded-2xl p-8" {...scrollReveal}>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Service Area</h3>
-          <p className="text-gray-600">
-            We serve Greater London and surrounding South East areas. Share your postcode and we will quickly confirm availability.
-          </p>
-        </motion.div>
-        <motion.div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 text-center" {...scrollReveal}>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to book with confidence?</h3>
-          <p className="text-gray-600 mb-6">
-            Get a fast, no-obligation quote tailored to your property and service needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/request-a-quote"
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-            >
-              Get a Free Quote
-            </Link>
-            <Link
-              to="/contact"
-              className="bg-white border border-teal-600 text-teal-700 hover:bg-teal-50 px-6 py-3 rounded-lg font-semibold transition"
-            >
-              Contact Our Team
-            </Link>
-          </div>
-        </motion.div>
         </div>
-      </motion.section>
-    </>
-  )
-}
+      </MarketingSection>
 
-export default About
+      <MarketingSection eyebrow="How we work" title="Clear standards, human service" intro={`Our registered office is at ${COMPANY_ADDRESS_LINE1}, ${COMPANY_ADDRESS_LINE2}, and our team supports properties throughout the surrounding South East.`}>
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            [ShieldCheck, "Reliable by design", "Clear scopes, consistent checklists, and a team that respects your space."],
+            [Leaf, "Conscious choices", "Eco-friendly options are available for homes, families, pets, and workplaces."],
+            [Check, "Easy to arrange", "A short quote flow, responsive communication, and no-obligation guidance."],
+          ].map(([Icon, title, text]) => <div key={title} className="border-t-2 border-brand-600 pt-5"><Icon className="h-6 w-6 text-brand-700" aria-hidden="true" /><h2 className="mt-4 text-xl font-semibold text-zinc-950">{title}</h2><p className="mt-2 text-sm leading-6 text-zinc-600">{text}</p></div>)}
+        </div>
+        <div className="mt-12"><ProofStrip compact /></div>
+      </MarketingSection>
+
+      <MarketingCTA title="Ready for a cleaner space?" intro="Get a free quote for your home, rental, or workplace." />
+    </>
+  );
+}

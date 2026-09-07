@@ -1,260 +1,273 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import ScrollRestoringLink from './ScrollRestoringLink'
-import { Menu, X, User, LogOut, Search, Phone } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import { useAnnouncement } from '../context/AnnouncementContext'
-import SearchModal from './SearchModal'
-import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
-import { buildAccountUrl } from '../utils/authRedirect'
-import FallbackImage from './FallbackImage'
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { LogOut, Menu, Phone, Search, User, X } from "lucide-react";
+import ScrollRestoringLink from "./ScrollRestoringLink";
+import { useAuth } from "../context/AuthContext";
+import { useAnnouncement } from "../context/AnnouncementContext";
+import SearchModal from "./SearchModal";
+import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from "../config/site";
+import { buildAccountUrl } from "../utils/authRedirect";
+import FallbackImage from "./FallbackImage";
+
+const navLinks = [
+  { path: "/", label: "Home" },
+  { path: "/services", label: "Services" },
+  { path: "/service-areas", label: "Areas" },
+  { path: "/about", label: "About" },
+  { path: "/testimonials", label: "Reviews" },
+  { path: "/faq", label: "FAQ" },
+  { path: "/contact", label: "Contact" },
+  { path: "/blog", label: "Guides" },
+];
+
+const navLinkClass = (active) =>
+  `text-sm font-medium transition ${
+    active ? "text-brand-700" : "text-zinc-600 hover:text-zinc-950"
+  }`;
 
 const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { user, isAuthenticated, logout, registerAuthModals } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, isAuthenticated, logout, registerAuthModals } = useAuth();
+  const { visible: bannerVisible } = useAnnouncement();
 
   useEffect(() => {
-    const returnTo = `${location.pathname}${location.search}${location.hash}`
+    const returnTo = `${location.pathname}${location.search}${location.hash}`;
     registerAuthModals(
       () => navigate(buildAccountUrl({ signIn: true, returnTo })),
       () => navigate(buildAccountUrl({ signUp: true, returnTo })),
-    )
-  }, [registerAuthModals, navigate, location.pathname, location.search, location.hash])
+    );
+  }, [registerAuthModals, navigate, location.pathname, location.search, location.hash]);
 
-  const [searchParams] = useSearchParams()
-
-  // Legacy ?signin=1 / ?signup=1 links (e.g. old quote emails on any page) → /account
   useEffect(() => {
-    if (isAuthenticated) return
-    const wantsSignIn = searchParams.get('signin') === '1'
-    const wantsSignUp = searchParams.get('signup') === '1'
-    if (!wantsSignIn && !wantsSignUp) return
-    if (location.pathname === '/account') return
+    if (isAuthenticated) return;
+    const wantsSignIn = searchParams.get("signin") === "1";
+    const wantsSignUp = searchParams.get("signup") === "1";
+    if (!wantsSignIn && !wantsSignUp) return;
+    if (location.pathname === "/account") return;
 
-    const next = new URLSearchParams()
-    if (wantsSignIn) next.set('signin', '1')
-    if (wantsSignUp) next.set('signup', '1')
-    if (location.pathname !== '/') {
-      next.set('returnTo', location.pathname)
-    }
-    navigate(`/account?${next.toString()}`, { replace: true })
-  }, [searchParams, isAuthenticated, location.pathname, navigate])
+    const next = new URLSearchParams();
+    if (wantsSignIn) next.set("signin", "1");
+    if (wantsSignUp) next.set("signup", "1");
+    if (location.pathname !== "/") next.set("returnTo", location.pathname);
+    navigate(`/account?${next.toString()}`, { replace: true });
+  }, [searchParams, isAuthenticated, location.pathname, navigate]);
 
-  const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/about', label: 'About' },
-    { path: '/services', label: 'Services' },
-    { path: '/testimonials', label: 'Reviews' },
-    { path: '/faq', label: 'FAQ' },
-    { path: '/contact', label: 'Contact' },
-  ]
-
-  const isActive = (path) => location.pathname === path
-
-  const { visible: bannerVisible } = useAnnouncement()
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-[top] ${bannerVisible ? 'top-[4vh]' : 'top-0'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24 md:h-28">
-          {/* Logo - 3 steps back from nav menus */}
-          <ScrollRestoringLink to="/" className="flex items-center mr-12 lg:mr-16" aria-label="Home">
-            <FallbackImage src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-16 md:h-20 w-auto object-contain" />
+    <nav
+      className={`fixed left-0 right-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur-xl transition-[top] ${
+        bannerVisible ? "top-[4vh]" : "top-0"
+      }`}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between gap-4">
+          <ScrollRestoringLink to="/" className="flex shrink-0 items-center" aria-label="Apex Five Cleaning home">
+            <FallbackImage
+              src="/apex-five-logo.png"
+              alt="Apex Five Cleaning"
+              className="h-11 w-auto object-contain sm:h-12"
+            />
           </ScrollRestoringLink>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden items-center gap-7 md:flex">
             {navLinks.map((link) => (
               <ScrollRestoringLink
                 key={link.path}
                 to={link.path}
-                className={`font-medium transition ${
-                  isActive(link.path)
-                    ? 'text-teal-600'
-                    : 'text-gray-600 hover:text-teal-600'
-                }`}
+                className={navLinkClass(isActive(link.path))}
               >
                 {link.label}
               </ScrollRestoringLink>
             ))}
+          </div>
+
+          <div className="hidden items-center gap-3 md:flex">
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 transition hover:border-brand-500 hover:text-brand-700"
+            >
+              <Phone className="h-4 w-4 text-brand-700" aria-hidden="true" />
+              {PHONE_MAIN_DISPLAY}
+            </a>
+            <ScrollRestoringLink
+              to="/request-a-quote"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+            >
+              Get a Free Quote
+            </ScrollRestoringLink>
+
             {!isAuthenticated && (
               <ScrollRestoringLink
                 to="/account"
-                className="p-2.5 rounded-lg text-gray-500 hover:text-teal-600 hover:bg-teal-50 transition"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-brand-700"
                 title="My account"
                 aria-label="My account"
               >
-                <User className="w-6 h-6" />
+                <User className="h-5 w-5" />
               </ScrollRestoringLink>
             )}
-            <ScrollRestoringLink
-              to="/request-a-quote"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-semibold"
-            >
-              Book Now
-            </ScrollRestoringLink>
+
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition"
-                  >
-                    <User className="w-4 h-4 text-teal-600" />
-                    <span className="font-medium text-gray-700">{user?.firstName || 'Account'}</span>
-                  </button>
-                  {showUserMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowUserMenu(false)}
-                        aria-hidden="true"
-                      />
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
-                        <Link
-                          to="/dashboard"
-                          onClick={() => setShowUserMenu(false)}
-                          className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
-                        >
-                          My Dashboard
-                        </Link>
-                        <button
-                          onClick={() => {
-                            logout()
-                            setShowUserMenu(false)
-                          }}
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+              <div className="relative">
                 <button
-                  onClick={() => setShowSearch(true)}
-                  className="ml-2 p-2 text-gray-400 hover:text-teal-600 transition"
-                  title="Search"
-                  aria-label="Search"
+                  type="button"
+                  onClick={() => setShowUserMenu((open) => !open)}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-zinc-200 px-3 text-sm font-semibold text-zinc-800 transition hover:border-brand-400 hover:bg-brand-50"
                 >
-                  <Search className="w-6 h-6" />
+                  <User className="h-4 w-4 text-brand-700" />
+                  {user?.firstName || "Account"}
                 </button>
+                {showUserMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowUserMenu(false)}
+                      aria-hidden="true"
+                    />
+                    <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-zinc-200 bg-white py-2 shadow-lg">
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setShowUserMenu(false)}
+                        className="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+                      >
+                        My Dashboard
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => setShowSearch(true)}
-                className="p-2 text-gray-400 hover:text-teal-600 transition"
-                title="Search"
-                aria-label="Search"
-              >
-                <Search className="w-6 h-6" />
-              </button>
-            )}
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setShowSearch(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-brand-700"
+              title="Search"
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-gray-700" />
-            ) : (
-              <Menu className="w-6 h-6 text-gray-700" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-brand-700"
+              aria-label={`Call ${PHONE_MAIN_DISPLAY}`}
+            >
+              <Phone className="h-5 w-5" />
+            </a>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-800"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="px-4 py-4 space-y-3">
-            {navLinks.map((link) => (
-              <ScrollRestoringLink
-                key={link.path}
-                to={link.path}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block py-2 font-medium ${
-                  isActive(link.path) ? 'text-teal-600' : 'text-gray-600'
-                }`}
-              >
-                {link.label}
-              </ScrollRestoringLink>
-            ))}
-            {isAuthenticated ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 font-medium text-teal-600"
+        <div className="border-t border-zinc-200 bg-white md:hidden">
+          <div className="mx-auto max-w-7xl px-4 py-4">
+            <div className="grid gap-1">
+              {navLinks.map((link) => (
+                <ScrollRestoringLink
+                  key={link.path}
+                  to={link.path}
+                  onClick={closeMobileMenu}
+                  className={`rounded-md px-3 py-3 text-base font-medium ${
+                    isActive(link.path)
+                      ? "bg-brand-50 text-brand-700"
+                      : "text-zinc-700 hover:bg-zinc-50"
+                  }`}
                 >
-                  My Dashboard
-                </Link>
-                <button
-                  onClick={() => {
-                    logout()
-                    setIsMobileMenuOpen(false)
-                  }}
-                  className="w-full text-left py-2 font-medium text-gray-600"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
+                  {link.label}
+                </ScrollRestoringLink>
+              ))}
               <ScrollRestoringLink
-                to="/account"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 font-medium text-gray-600"
+                to="/request-a-quote"
+                onClick={closeMobileMenu}
+                className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-600 px-4 text-base font-semibold text-white"
               >
-                <User className="w-4 h-4" />
-                Account
+                Get a Free Quote
               </ScrollRestoringLink>
-            )}
-            <ScrollRestoringLink
-              to="/request-a-quote"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block text-center mt-3 py-2.5 rounded-lg bg-teal-600 text-white font-semibold"
-            >
-              Book Now
-            </ScrollRestoringLink>
-            <a
-              href={PHONE_MAIN_HREF}
-              className="block text-center mt-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium"
-            >
-              Call {PHONE_MAIN_DISPLAY}
-            </a>
-            <div className="flex items-center justify-center gap-3 pt-2">
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={closeMobileMenu}
+                    className="rounded-md px-3 py-3 text-base font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    My Dashboard
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      closeMobileMenu();
+                    }}
+                    className="rounded-md px-3 py-3 text-left text-base font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <ScrollRestoringLink
+                  to="/account"
+                  onClick={closeMobileMenu}
+                  className="rounded-md px-3 py-3 text-base font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Account
+                </ScrollRestoringLink>
+              )}
               <button
-                onClick={() => { setShowSearch(true); setIsMobileMenuOpen(false); }}
-                className="p-1.5 text-gray-400 hover:text-teal-600 transition"
-                title="Search"
-                aria-label="Search"
+                type="button"
+                onClick={() => {
+                  setShowSearch(true);
+                  closeMobileMenu();
+                }}
+                className="rounded-md px-3 py-3 text-left text-base font-medium text-zinc-700 hover:bg-zinc-50"
               >
-                <Search className="w-5 h-5" />
+                Search
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="md:hidden fixed bottom-4 left-4 right-4 z-[70]">
-        <div className="bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl p-2 grid grid-cols-2 gap-2">
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-[70] md:hidden">
+        <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 bg-white/95 p-2 shadow-xl shadow-zinc-950/15 backdrop-blur">
           <a
             href={PHONE_MAIN_HREF}
-            className="inline-flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-zinc-200 text-sm font-semibold text-zinc-900"
           >
-            <Phone className="w-4 h-4 text-teal-600" />
+            <Phone className="h-4 w-4 text-brand-700" aria-hidden="true" />
             Call Now
           </a>
           <ScrollRestoringLink
             to="/request-a-quote"
-            className="inline-flex items-center justify-center py-2.5 rounded-lg bg-teal-600 text-white font-semibold text-sm"
+            className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-600 px-3 text-sm font-semibold text-white"
           >
             Get a Quote
           </ScrollRestoringLink>
@@ -263,7 +276,7 @@ const Navbar = () => {
 
       <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

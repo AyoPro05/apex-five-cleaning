@@ -3,21 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --primary-teal: #0d9488;
-  --primary-dark: #0f766e;
-  --accent-charcoal: #1f2937;
-}
-
-* {
-  font-family: 'Inter', sans-serif;
+  --primary-teal: #007a5a;
+  --primary-dark: #006047;
+  --accent-charcoal: #18181b;
+  color: #18181b;
+  background: #fafafa;
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+body {
+  min-width: 320px;
+  background: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+  background: linear-gradient(135deg, #007a5a 0%, #064b39 100%);
 }
 
 .service-card:hover {
