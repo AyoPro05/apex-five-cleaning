@@ -5,6 +5,37 @@
 
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { getCorsOrigins } from '../src/config/corsConfig.js';
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * Prevent cross-site state changes when the admin session is carried by cookie.
+ * Bearer-token clients are not subject to this check because the attacker cannot
+ * read or supply the token from a cross-site browser request.
+ */
+export const adminCookieCsrfMiddleware = (req, res, next) => {
+  if (SAFE_METHODS.has(req.method)) return next();
+
+  const hasAdminCookie = String(req.headers.cookie || '').includes('admin_jwt=');
+  if (!hasAdminCookie) return next();
+
+  const requestOrigin = req.get('origin');
+  const refererOrigin = (() => {
+    try {
+      return req.get('referer') ? new URL(req.get('referer')).origin : '';
+    } catch {
+      return '';
+    }
+  })();
+  const origin = requestOrigin || refererOrigin;
+
+  if (!origin || getCorsOrigins().includes(origin)) return next();
+
+  return res.status(403).json({
+    error: 'Cross-site admin request blocked',
+  });
+};
 
 /**
  * Verify JWT token, load user, and enforce verification

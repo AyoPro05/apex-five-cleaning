@@ -11,7 +11,11 @@ import Booking from '../../models/Booking.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendQuoteApprovedEmail, sendTestEmail, isEmailConfigured } from '../utils/emailService.js';
 import { sanitizeQuoteImagesForApi, resolveQuoteImageBuffer } from '../utils/quoteImages.js';
-import { authMiddleware, adminMiddleware } from '../../middleware/auth.js';
+import {
+  adminCookieCsrfMiddleware,
+  authMiddleware,
+  adminMiddleware,
+} from '../../middleware/auth.js';
 import { strictRateLimiter } from '../middleware/rateLimiter.js';
 import { emitEvent } from '../utils/eventBus.js';
 
@@ -125,7 +129,7 @@ function normalizeStaffPayload(body = {}, existing = {}) {
 }
 
 /** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
-const requireAdmin = [authMiddleware, adminMiddleware];
+const requireAdmin = [adminCookieCsrfMiddleware, authMiddleware, adminMiddleware];
 
 const SERVICE_NAMES = {
   residential: 'Residential Cleaning',
@@ -235,7 +239,6 @@ router.post('/login', strictRateLimiter, (req, res) => {
   return res.json({
     success: true,
     expiresIn: ADMIN_JWT_EXPIRE_SECONDS,
-    token: jwtToken,
   });
 });
 

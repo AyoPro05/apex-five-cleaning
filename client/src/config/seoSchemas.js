@@ -1,16 +1,22 @@
-import { SITE_NAME, SITE_URL, SOCIAL_LINKS } from "./site";
+import {
+  COMPANY_ADDRESS_LINE1,
+  PHONE_MAIN_TEL,
+  SITE_NAME,
+  SITE_URL,
+  SOCIAL_LINKS,
+} from "./site";
 import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
 
 const BUSINESS_NAME = SITE_NAME;
 export const MAIN_BUSINESS_ID = `${SITE_URL}#localbusiness`;
-const BUSINESS_PHONE = "+442035356331";
+const BUSINESS_PHONE = PHONE_MAIN_TEL;
 const BUSINESS_EMAIL = "info@apexfivecleaning.co.uk";
 const BUSINESS_ADDRESS = {
   "@type": "PostalAddress",
-  streetAddress: "91 Manor Road",
-  addressLocality: "Wallington",
-  postalCode: "SM6 0AP",
-  addressRegion: "Surrey",
+  streetAddress: COMPANY_ADDRESS_LINE1,
+  addressLocality: "Southend-on-Sea",
+  postalCode: "SS1 2BB",
+  addressRegion: "England",
   addressCountry: "GB",
 };
 

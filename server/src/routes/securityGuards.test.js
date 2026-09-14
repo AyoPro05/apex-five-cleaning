@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import bookingsRouter, { resolveBookingDiscount } from "./bookings.js";
+import { adminCookieCsrfMiddleware } from "../../middleware/auth.js";
 import {
   canRefundPayment,
   validateStoredPaymentIntent,
@@ -65,4 +66,35 @@ test("booking stats route is registered before generic booking id route", () => 
     paths.indexOf("/stats/overview") < paths.indexOf("/:id"),
     `expected /stats/overview before /:id, got ${paths.join(", ")}`,
   );
+});
+
+test("cookie-authenticated admin mutations reject untrusted origins", () => {
+  let nextCalled = false;
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json() {
+      return this;
+    },
+  };
+
+  adminCookieCsrfMiddleware(
+    {
+      method: "POST",
+      headers: { cookie: "admin_jwt=opaque", origin: "https://attacker.example" },
+      get(name) {
+        return this.headers[name.toLowerCase()];
+      },
+    },
+    response,
+    () => {
+      nextCalled = true;
+    },
+  );
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(nextCalled, false);
 });

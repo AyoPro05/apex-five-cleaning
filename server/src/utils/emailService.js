@@ -2,6 +2,13 @@ import sgMail from "@sendgrid/mail";
 import nodemailer from "nodemailer";
 import User from "../../models/User.js";
 import { notifyAdminAlert } from "./leadWebhook.js";
+import {
+  COMPANY_ADDRESS_LINE1,
+  COMPANY_ADDRESS_LINE2,
+  CONTACT_EMAIL,
+  WHATSAPP_DISPLAY,
+  WHATSAPP_URL,
+} from "../config/contact.js";
 
 /**
  * Email is sent FROM a single configured identity (your SMTP or SendGrid).
@@ -11,7 +18,7 @@ import { notifyAdminAlert } from "./leadWebhook.js";
  */
 
 /** Only active mailbox — all defaults and fallbacks use this address */
-const DEFAULT_MAILBOX = "info@apexfivecleaning.co.uk";
+const DEFAULT_MAILBOX = CONTACT_EMAIL;
 
 const SOCIAL_LINKS = [
   {
@@ -302,11 +309,11 @@ const getBrandConfig = () => {
     email: process.env.COMPANY_EMAIL || DEFAULT_MAILBOX,
     phone: process.env.COMPANY_PHONE || "020 3535 6331",
     phoneTel: process.env.COMPANY_PHONE_TEL || "+442035356331",
-    addressLine1: "91 Manor Road, Wallington",
-    addressLine2: "SM6 0AP, Surrey",
+    addressLine1: COMPANY_ADDRESS_LINE1,
+    addressLine2: COMPANY_ADDRESS_LINE2,
     address:
       process.env.COMPANY_ADDRESS ||
-      "91 Manor Road, Wallington<br>SM6 0AP, Surrey",
+      `${COMPANY_ADDRESS_LINE1}<br>${COMPANY_ADDRESS_LINE2}`,
     socialLinks: SOCIAL_LINKS,
     brandColor: "#14b8a6",
     brandColorDark: "#0d9488",
@@ -331,6 +338,7 @@ const getSupportContactBlock = (brand, options = {}) => {
     <div class="email-contact-stack" style="margin: 10px 0;">
       <div class="email-contact-line">📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a></div>
       <div class="email-contact-line">📧 <a href="mailto:${brand.email}">${brand.email}</a></div>
+      <div class="email-contact-line">💬 <a href="${WHATSAPP_URL}" target="_blank" rel="noopener noreferrer">WhatsApp ${WHATSAPP_DISPLAY}</a></div>
       ${includeHours ? '<div class="email-contact-line">🕒 Monday–Friday, 8am–6pm</div>' : ""}
     </div>
   `;

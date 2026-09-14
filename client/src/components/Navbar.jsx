@@ -13,15 +13,14 @@ const navLinks = [
   { path: "/", label: "Home" },
   { path: "/services", label: "Services" },
   { path: "/service-areas", label: "Areas" },
-  { path: "/about", label: "About" },
   { path: "/testimonials", label: "Reviews" },
+  { path: "/about", label: "About" },
   { path: "/faq", label: "FAQ" },
   { path: "/contact", label: "Contact" },
-  { path: "/blog", label: "Guides" },
 ];
 
 const navLinkClass = (active) =>
-  `text-sm font-medium transition ${
+  `text-base font-medium transition ${
     active ? "text-brand-700" : "text-zinc-600 hover:text-zinc-950"
   }`;
 
@@ -72,7 +71,7 @@ const Navbar = () => {
             <FallbackImage
               src="/apex-five-logo.png"
               alt="Apex Five Cleaning"
-              className="h-11 w-auto object-contain sm:h-12"
+              className="h-11 w-auto max-w-[calc(100vw-8rem)] object-contain sm:h-12"
             />
           </ScrollRestoringLink>
 
@@ -89,20 +88,6 @@ const Navbar = () => {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <a
-              href={PHONE_MAIN_HREF}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 transition hover:border-brand-500 hover:text-brand-700"
-            >
-              <Phone className="h-4 w-4 text-brand-700" aria-hidden="true" />
-              {PHONE_MAIN_DISPLAY}
-            </a>
-            <ScrollRestoringLink
-              to="/request-a-quote"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-            >
-              Get a Free Quote
-            </ScrollRestoringLink>
-
             {!isAuthenticated && (
               <ScrollRestoringLink
                 to="/account"
@@ -205,13 +190,6 @@ const Navbar = () => {
                   {link.label}
                 </ScrollRestoringLink>
               ))}
-              <ScrollRestoringLink
-                to="/request-a-quote"
-                onClick={closeMobileMenu}
-                className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-600 px-4 text-base font-semibold text-white"
-              >
-                Get a Free Quote
-              </ScrollRestoringLink>
               {isAuthenticated ? (
                 <>
                   <Link
@@ -256,23 +234,25 @@ const Navbar = () => {
         </div>
       )}
 
-      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-[70] md:hidden">
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 bg-white/95 p-2 shadow-xl shadow-zinc-950/15 backdrop-blur">
-          <a
-            href={PHONE_MAIN_HREF}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-zinc-200 text-sm font-semibold text-zinc-900"
-          >
-            <Phone className="h-4 w-4 text-brand-700" aria-hidden="true" />
-            Call Now
-          </a>
-          <ScrollRestoringLink
-            to="/request-a-quote"
-            className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-600 px-3 text-sm font-semibold text-white"
-          >
-            Get a Quote
-          </ScrollRestoringLink>
+      {!isMobileMenuOpen && (
+        <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-[70] md:hidden">
+          <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 bg-white/95 p-2 shadow-xl shadow-zinc-950/15 backdrop-blur">
+            <a
+              href={PHONE_MAIN_HREF}
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-zinc-200 text-sm font-semibold text-zinc-900"
+            >
+              <Phone className="h-4 w-4 text-brand-700" aria-hidden="true" />
+              Call Now
+            </a>
+            <ScrollRestoringLink
+              to="/request-a-quote"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-600 px-3 text-sm font-semibold text-white"
+            >
+              Get a Quote
+            </ScrollRestoringLink>
+          </div>
         </div>
-      </div>
+      )}
 
       <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </nav>

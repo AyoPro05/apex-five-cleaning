@@ -4,7 +4,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
 import { scrollReveal } from "../utils/scrollReveal";
-import { SITE_URL } from "../config/site";
+import {
+  PHONE_MAIN_DISPLAY,
+  PHONE_MAIN_HREF,
+  PHONE_MAIN_TEL,
+  SITE_URL,
+  whatsappHref,
+} from "../config/site";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -309,7 +315,7 @@ const ServiceArea = () => {
       latitude: area.coordinates.lat,
       longitude: area.coordinates.lng,
     },
-    telephone: "+447377280558",
+    telephone: PHONE_MAIN_TEL,
     url: `${SITE_URL}/service-areas/${areaSlug}`,
     priceRange: "£45-£250",
     areaServed: {
@@ -373,7 +379,7 @@ const ServiceArea = () => {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href="tel:+447377280558"
+                href={PHONE_MAIN_HREF}
                 className="bg-white text-teal-700 px-8 py-3 rounded-lg font-bold transition text-center hover:bg-gray-50"
               >
                 Call Now
@@ -482,15 +488,18 @@ const ServiceArea = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="tel:+447377280558"
+              href={PHONE_MAIN_HREF}
               className="bg-white text-teal-600 hover:bg-gray-50 px-8 py-3 rounded-lg font-bold transition text-center"
             >
-              Call: +44 7377 280558
+              Call: {PHONE_MAIN_DISPLAY}
             </a>
             <a
-              href={`https://wa.me/447377280558?text=Hi%20Apex%20Five%20Cleaning%2C%20I%27d%20like%20a%20quote%20for%20services%20in%20${area.name}`}
+              href={whatsappHref(
+                `Hi Apex Five Cleaning, I'd like a quote for services in ${area.name}`,
+              )}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Contact Apex Five Cleaning on WhatsApp"
               className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold transition text-center"
             >
               WhatsApp

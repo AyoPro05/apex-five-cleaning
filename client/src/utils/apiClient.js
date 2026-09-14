@@ -40,27 +40,11 @@ export function getImageUrl(imgPath) {
   return base ? `${base}${normalized}` : normalized
 }
 
-const ADMIN_JWT_KEY = 'adminJwt'
-const LEGACY_ADMIN_TOKEN_KEY = 'adminToken'
-
 const getAuthToken = (url = '') => {
   if (typeof window === 'undefined') return null
-  const isAdminRequest = String(url).includes('/api/admin')
-  const adminJwt =
-    localStorage.getItem(ADMIN_JWT_KEY) ||
-    sessionStorage.getItem(ADMIN_JWT_KEY) ||
-    localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) ||
-    sessionStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) ||
-    null
-
-  if (isAdminRequest) {
-    return adminJwt
-  }
-
   return (
     localStorage.getItem('jwtToken') ||
     sessionStorage.getItem('jwtToken') ||
-    adminJwt ||
     null
   )
 }

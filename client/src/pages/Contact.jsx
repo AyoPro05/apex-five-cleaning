@@ -205,6 +205,7 @@ const Contact = () => {
                   href={whatsappHref()}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Contact Apex Five Cleaning on WhatsApp"
                   className="block w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-semibold text-center transition"
                 >
                   WhatsApp Us

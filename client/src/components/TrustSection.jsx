@@ -28,6 +28,7 @@ const TrustSection = () => {
             href={whatsappHref()}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Contact Apex Five Cleaning on WhatsApp"
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition shadow-md"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

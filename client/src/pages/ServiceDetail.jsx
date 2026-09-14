@@ -131,6 +131,7 @@ export default function ServiceDetail() {
                       href={whatsappHref(BUGGY_WHATSAPP_TEXT)}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="Contact Apex Five Cleaning on WhatsApp"
                       className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
                     >
                       WhatsApp Us
@@ -316,6 +317,7 @@ export default function ServiceDetail() {
                     href={whatsappHref(BUGGY_WHATSAPP_TEXT)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="Contact Apex Five Cleaning on WhatsApp"
                     className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
                   >
                     WhatsApp Us

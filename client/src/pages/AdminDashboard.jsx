@@ -133,16 +133,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [adminTokenInput, setAdminTokenInput] = useState("");
-  const [adminJwt, setAdminJwt] = useState(() =>
-    localStorage.getItem("adminJwt") || sessionStorage.getItem("adminJwt") || null,
-  );
   const [showTokenInput, setShowTokenInput] = useState(() => {
-    return !Boolean(
-      localStorage.getItem("adminJwt") ||
-        sessionStorage.getItem("adminJwt") ||
-        localStorage.getItem("adminSession") ||
-        sessionStorage.getItem("adminSession"),
-    );
+    return !Boolean(sessionStorage.getItem("adminSession"));
   });
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
@@ -151,10 +143,7 @@ const AdminDashboard = () => {
   const [quoteImageUrls, setQuoteImageUrls] = useState({});
   const [processedDeepLinkQuoteId, setProcessedDeepLinkQuoteId] = useState("");
 
-  const adminAuthenticated =
-    Boolean(adminJwt) ||
-    Boolean(localStorage.getItem('adminSession')) ||
-    Boolean(sessionStorage.getItem('adminSession'));
+  const adminAuthenticated = Boolean(sessionStorage.getItem('adminSession'));
 
   // Filters
   const [filters, setFilters] = useState({
@@ -237,7 +226,7 @@ const AdminDashboard = () => {
       cancelled = true;
       objectUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [showDetails, selectedQuote?._id, selectedQuote?.images?.length, adminJwt]);
+  }, [showDetails, selectedQuote?._id, selectedQuote?.images?.length, adminAuthenticated]);
 
   // Fetch quotes
   const fetchQuotes = async () => {
@@ -936,14 +925,12 @@ const AdminDashboard = () => {
     } catch (e) {
       // ignore
     }
-    localStorage.removeItem("adminJwt");
     sessionStorage.removeItem("adminJwt");
     localStorage.removeItem("adminSession");
     sessionStorage.removeItem("adminSession");
     localStorage.removeItem("adminToken");
     sessionStorage.removeItem("adminToken");
     clearAdminActivityTimestamp();
-    setAdminJwt(null);
     setAdminTokenInput("");
     setShowTokenInput(true);
     setSelectedQuote(null);
@@ -984,15 +971,9 @@ const AdminDashboard = () => {
     setLoginError("");
     try {
       const res = await post("/api/admin/login", { token: adminTokenInput.trim() });
-      if (res.success && res.token) {
-        // Server sets an HttpOnly cookie `admin_jwt`. Keep a small client-side flag
-        // so UI knows we're authenticated. Store the fallback JWT too so token
-        // auth works when the cookie is not reliably sent in production.
+      if (res.success) {
+        // The server session is an HttpOnly cookie; this flag is UI state only.
         sessionStorage.setItem('adminSession', '1');
-        localStorage.setItem('adminSession', '1');
-        sessionStorage.setItem('adminJwt', res.token);
-        localStorage.setItem('adminJwt', res.token);
-        setAdminJwt(res.token);
         localStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminToken");
         setAdminTokenInput("");

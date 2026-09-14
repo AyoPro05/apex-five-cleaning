@@ -18,7 +18,7 @@ Required remediation (action items you should complete now)
    - Then force-push and rotate secrets.
 
 Further hardening recommendations
-- Consider switching admin authentication flow to set admin JWTs in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie instead of client-side localStorage.
+- Admin authentication now uses an `HttpOnly` cookie and does not return or persist the admin JWT in browser storage. Cookie-authenticated admin mutations also validate the request origin to reduce CSRF risk. Keep the cookie `Secure` in production and review allowed origins whenever deployment domains change.
 - Enable `helmet` Content Security Policy (`contentSecurityPolicy`) with a tested policy (start strict and relax as needed). Test thoroughly in staging.
 - Confirm `app.set('trust proxy', 1)` is set in production (required for correct `req.ip` and secure cookies behind Vercel).
 - Enforce minimal CORS origins in `server/src/config/corsConfig.js` and disallow wildcard origins in production.
