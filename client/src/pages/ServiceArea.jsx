@@ -11,6 +11,7 @@ import {
   SITE_URL,
   whatsappHref,
 } from "../config/site";
+import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
@@ -274,7 +275,7 @@ const ServiceArea = () => {
     },
   };
 
-  const area = serviceAreas[areaSlug];
+  const area = SERVICE_AREAS_BY_SLUG[areaSlug] || serviceAreas[areaSlug];
 
   if (!area) {
     return (

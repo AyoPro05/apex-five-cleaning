@@ -8,15 +8,9 @@ import { buildBreadcrumbSchema, buildLocalBusinessSchema } from '../config/seoSc
 import { SITE_URL, PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 import {
   getServiceAreaRegionsForNav,
-  ORDERED_AREA_SLUGS,
-  SERVICE_AREAS_BY_SLUG,
 } from '../data/serviceAreasCatalog'
 
 const regions = getServiceAreaRegionsForNav()
-
-const areaNamesPreview = ORDERED_AREA_SLUGS.slice(0, 8)
-  .map((slug) => SERVICE_AREAS_BY_SLUG[slug].name)
-  .join(', ')
 
 const ServiceAreas = () => {
   const navigate = useNavigate()
@@ -28,7 +22,7 @@ const ServiceAreas = () => {
       "@context": "https://schema.org",
       "@type": "ItemList",
       name: "Apex Five Cleaning Service Areas",
-      itemListElement: allAreas.map((area, index) => ({
+      itemListElement: allAreas.filter((area) => area.hasDetailPage).map((area, index) => ({
         "@type": "ListItem",
         position: index + 1,
         name: area.name,
@@ -44,8 +38,8 @@ const ServiceAreas = () => {
   return (
     <>
       <SEO
-        title="Cleaning Service Areas"
-        description={`Professional cleaning across Essex, Kent & Greater London: ${areaNamesPreview}, Southend-on-Sea, Croydon, and surrounding towns. Same coverage on every area page.`}
+        title="Cleaning Services Across Essex, London & Kent | Apex Five Cleaning"
+        description="Professional domestic, commercial, end-of-tenancy and Airbnb cleaning across Essex, London and Kent. Based in Southend-on-Sea, Apex Five Cleaning provides reliable, eco-conscious cleaning services."
         path="/service-areas"
         jsonLd={serviceAreaSchemas}
       />
@@ -55,10 +49,10 @@ const ServiceAreas = () => {
         <motion.div className="text-center mb-16" {...scrollReveal}>
           <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Service Coverage</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mt-2 mb-6">
-            Areas We Serve
+            Areas We Operate In
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We provide professional cleaning services across Essex, Kent, and Greater London.
+            Apex Five Cleaning provides professional cleaning services across Essex, London and Kent. Based in Southend-on-Sea, we support homes, landlords, tenants, Airbnb hosts, offices and commercial properties throughout our service areas.
             Select your area to learn more about our local services and get a quote.
           </p>
         </motion.div>
@@ -70,10 +64,12 @@ const ServiceAreas = () => {
             <p className="text-gray-600 mb-8">{region.description}</p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {region.areas.map((area, areaIdx) => (
-                <button
+              {region.areas.map((area, areaIdx) => {
+                const Card = area.hasDetailPage ? 'button' : 'div'
+                return <Card
                   key={areaIdx}
-                  onClick={() => navigate(`/service-areas/${area.slug}`)}
+                  type={area.hasDetailPage ? 'button' : undefined}
+                  onClick={area.hasDetailPage ? () => navigate(`/service-areas/${area.slug}`) : undefined}
                   className="text-left bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group"
                 >
                   <div className="flex items-start gap-4 mb-4">
@@ -84,10 +80,10 @@ const ServiceAreas = () => {
                   </div>
                   <p className="text-sm text-gray-600 mb-4">{area.coverage}</p>
                   <div className="flex items-center gap-2 text-teal-600 font-semibold group-hover:gap-3 transition">
-                    Learn More →
+                    {area.hasDetailPage ? 'Learn More →' : 'Coverage area'}
                   </div>
-                </button>
-              ))}
+                </Card>
+              })}
             </div>
           </div>
         ))}
@@ -96,7 +92,7 @@ const ServiceAreas = () => {
         <motion.div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl p-8 sm:p-12 mb-16" {...scrollReveal}>
           <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">Service Map</h2>
           <p className="text-gray-600 text-center mb-6 max-w-2xl mx-auto">
-            Click on a marker to view our cleaning services in that area. We serve Kent, Essex, and Greater London.
+            Click on a marker to view our cleaning services in that area. We serve Essex, London, and Kent.
           </p>
           <ServiceAreaMap height="420px" />
         </motion.div>

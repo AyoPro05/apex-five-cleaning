@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLocalBusinessSchema } from "./seoSchemas";
+import { buildLocalBusinessSchema, SERVICE_AREAS } from "./seoSchemas";
 
 describe("buildLocalBusinessSchema", () => {
   it("uses the canonical office address and landline", () => {
@@ -21,5 +21,9 @@ describe("buildLocalBusinessSchema", () => {
       "https://www.instagram.com/apex.fivecleaning/",
       "https://www.tiktok.com/@apex_fivecleaningservice",
     ]);
+  });
+
+  it("orders schema service areas with Essex first", () => {
+    expect(SERVICE_AREAS.slice(0, 3)).toEqual(["Essex", "London", "Kent"]);
   });
 });

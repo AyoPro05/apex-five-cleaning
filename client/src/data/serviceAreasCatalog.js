@@ -345,6 +345,131 @@ export const SERVICE_AREAS_BY_SLUG = {
   },
 };
 
+export const APPROVED_ESSEX_LOCATION_NAMES = [
+  "Southend-on-Sea",
+  "Leigh-on-Sea",
+  "Westcliff-on-Sea",
+  "Shoeburyness",
+  "Thorpe Bay",
+  "Chalkwell",
+  "Rochford",
+  "Hockley",
+  "Rayleigh",
+  "Basildon",
+  "Laindon",
+  "Pitsea",
+  "Pipps Hill",
+  "Wickford",
+  "Billericay",
+  "South Benfleet",
+  "Canvey Island",
+  "Stanford-le-Hope",
+  "Corringham",
+  "Brentwood",
+  "Ingatestone",
+  "Chelmsford",
+  "Chipping Ongar",
+  "Grays",
+];
+
+const DISPLAY_ONLY_ESSEX_AREAS = {
+  "leigh-on-sea": {
+    name: "Leigh-on-Sea",
+    region: "Essex",
+    coverage: "Cleaning services across Leigh-on-Sea and surrounding areas.",
+  },
+  "westcliff-on-sea": {
+    name: "Westcliff-on-Sea",
+    region: "Essex",
+    coverage: "Cleaning services across Westcliff-on-Sea and surrounding areas.",
+  },
+  shoeburyness: {
+    name: "Shoeburyness",
+    region: "Essex",
+    coverage: "Cleaning services across Shoeburyness and surrounding areas.",
+  },
+  "thorpe-bay": {
+    name: "Thorpe Bay",
+    region: "Essex",
+    coverage: "Cleaning services across Thorpe Bay and surrounding areas.",
+  },
+  chalkwell: {
+    name: "Chalkwell",
+    region: "Essex",
+    coverage: "Cleaning services across Chalkwell and surrounding areas.",
+  },
+  rochford: {
+    name: "Rochford",
+    region: "Essex",
+    coverage: "Cleaning services across Rochford and surrounding areas.",
+  },
+  hockley: {
+    name: "Hockley",
+    region: "Essex",
+    coverage: "Cleaning services across Hockley and surrounding areas.",
+  },
+  rayleigh: {
+    name: "Rayleigh",
+    region: "Essex",
+    coverage: "Cleaning services across Rayleigh and surrounding areas.",
+  },
+  pitsea: {
+    name: "Pitsea",
+    region: "Essex",
+    coverage: "Cleaning services across Pitsea and surrounding areas.",
+  },
+  "pipps-hill": {
+    name: "Pipps Hill",
+    region: "Essex",
+    coverage: "Cleaning services across Pipps Hill and surrounding areas.",
+  },
+  "south-benfleet": {
+    name: "South Benfleet",
+    region: "Essex",
+    coverage: "Cleaning services across South Benfleet and surrounding areas.",
+  },
+  "canvey-island": {
+    name: "Canvey Island",
+    region: "Essex",
+    coverage: "Cleaning services across Canvey Island and surrounding areas.",
+  },
+  "stanford-le-hope": {
+    name: "Stanford-le-Hope",
+    region: "Essex",
+    coverage: "Cleaning services across Stanford-le-Hope and surrounding areas.",
+  },
+  corringham: {
+    name: "Corringham",
+    region: "Essex",
+    coverage: "Cleaning services across Corringham and surrounding areas.",
+  },
+  ingatestone: {
+    name: "Ingatestone",
+    region: "Essex",
+    coverage: "Cleaning services across Ingatestone and surrounding areas.",
+  },
+  chelmsford: {
+    name: "Chelmsford",
+    region: "Essex",
+    coverage: "Cleaning services across Chelmsford and surrounding areas.",
+  },
+  "chipping-ongar": {
+    name: "Chipping Ongar",
+    region: "Essex",
+    coverage: "Cleaning services across Chipping Ongar and surrounding areas.",
+  },
+  grays: {
+    name: "Grays",
+    region: "Essex",
+    coverage: "Cleaning services across Grays and surrounding areas.",
+  },
+};
+
+const SERVICE_AREA_DISPLAY_BY_SLUG = {
+  ...SERVICE_AREAS_BY_SLUG,
+  ...DISPLAY_ONLY_ESSEX_AREAS,
+};
+
 /** Display order for regional groups on Home and Service Areas */
 export const ORDERED_AREA_SLUGS = [
   "canterbury",
@@ -356,13 +481,31 @@ export const ORDERED_AREA_SLUGS = [
   "sheerness",
   "sittingbourne",
   "minster-on-sea",
+  "southend-on-sea",
   "laindon",
   "langdon-hills",
   "brentwood",
   "basildon",
   "billericay",
   "wickford",
-  "southend-on-sea",
+  "leigh-on-sea",
+  "westcliff-on-sea",
+  "shoeburyness",
+  "thorpe-bay",
+  "chalkwell",
+  "rochford",
+  "hockley",
+  "rayleigh",
+  "pitsea",
+  "pipps-hill",
+  "south-benfleet",
+  "canvey-island",
+  "stanford-le-hope",
+  "corringham",
+  "ingatestone",
+  "chelmsford",
+  "chipping-ongar",
+  "grays",
   "croydon",
 ];
 
@@ -370,18 +513,19 @@ const NAV_REGION_META = [
   {
     key: "essex",
     name: "Essex",
-    description: "Coverage across key Essex towns and commuter areas",
+    description:
+      "Based in Southend-on-Sea, we provide reliable cleaning services across South Essex and surrounding Essex locations.",
+  },
+  {
+    key: "london",
+    name: "London",
+    description: "Expanding service to Greater London and surrounding areas",
   },
   {
     key: "kent",
     name: "Kent",
     description:
       "Our primary service area covering East, Central Kent, including Swale towns",
-  },
-  {
-    key: "london",
-    name: "London & South East",
-    description: "Expanding service to Greater London and surrounding areas",
   },
 ];
 
@@ -400,12 +544,13 @@ function navBucketForArea(area) {
 export function getServiceAreaRegionsForNav() {
   const buckets = { kent: [], essex: [], london: [] };
   for (const slug of ORDERED_AREA_SLUGS) {
-    const area = SERVICE_AREAS_BY_SLUG[slug];
+    const area = SERVICE_AREA_DISPLAY_BY_SLUG[slug];
     const bucket = navBucketForArea(area);
     buckets[bucket].push({
       name: area.name,
       slug,
       coverage: area.coverage,
+      hasDetailPage: Boolean(SERVICE_AREAS_BY_SLUG[slug]),
     });
   }
   return NAV_REGION_META.map((meta) => ({

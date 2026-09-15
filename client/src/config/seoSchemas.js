@@ -5,7 +5,10 @@ import {
   SITE_URL,
   SOCIAL_LINKS,
 } from "./site";
-import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
+import {
+  APPROVED_ESSEX_LOCATION_NAMES,
+  SERVICE_AREAS_BY_SLUG,
+} from "../data/serviceAreasCatalog";
 
 const BUSINESS_NAME = SITE_NAME;
 export const MAIN_BUSINESS_ID = `${SITE_URL}#localbusiness`;
@@ -23,11 +26,12 @@ const BUSINESS_ADDRESS = {
 const CITY_NAMES = Object.values(SERVICE_AREAS_BY_SLUG).map((a) => a.name);
 
 export const SERVICE_AREAS = [
-  "Kent",
   "Essex",
-  "Greater London",
+  "London",
+  "Kent",
+  ...APPROVED_ESSEX_LOCATION_NAMES,
   ...CITY_NAMES,
-];
+].filter((area, index, areas) => areas.indexOf(area) === index);
 
 /** Primary label for titles (e.g. "Greater London" from "Greater London, Surrey") */
 export const primaryRegionLabel = (region) =>
