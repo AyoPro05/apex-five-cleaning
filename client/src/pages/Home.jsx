@@ -72,7 +72,7 @@ export default function Home() {
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(9,18,17,.92),rgba(9,18,17,.58),rgba(9,18,17,.2))]" />
         <div className="mx-auto grid min-h-[min(760px,calc(100vh-5rem))] max-w-7xl items-end gap-12 px-4 pb-14 pt-24 sm:px-6 sm:pb-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-8 lg:pt-20">
           <div className="max-w-2xl animate-[fade-up_.7s_ease-out_both]">
-            <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-brand-100">Cleaning across Kent, London & Essex</p>
+            <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-brand-100">Cleaning across Essex, London & Kent</p>
             <h1 className="max-w-xl text-5xl font-semibold leading-[0.98] tracking-tight sm:text-6xl lg:text-7xl">More time for life. Less time cleaning.</h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-200 sm:text-xl">Reliable cleaning for homes, rentals, and workplaces.</p>
             <div className="mt-8"><ConversionActions dark /></div>
