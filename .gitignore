@@ -25,3 +25,4 @@ out/
 .vercel/
 server/node_modules/
 uploads/
+.vercel

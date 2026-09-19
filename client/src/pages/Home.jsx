@@ -58,8 +58,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Cleaning services across Kent, London & Essex"
-        description="Reliable domestic, tenancy, Airbnb and commercial cleaning from a local team. Request a free quote from Apex Five Cleaning."
+        title="House Cleaning Service Southend-on-Sea"
+        description="Trusted, insured house cleaning in Southend-on-Sea, Essex for homes, flats and offices. Eco-friendly options available. Book your free quote today."
         path="/"
       />
 
