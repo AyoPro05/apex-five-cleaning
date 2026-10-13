@@ -29,7 +29,7 @@ export default function ConversionActions({
   };
 
   const wrapperClass = [
-    "flex flex-col gap-3 sm:flex-row",
+    "flex flex-col gap-2 sm:flex-row sm:gap-3",
     align === "center" ? "sm:justify-center" : "",
     className,
   ]

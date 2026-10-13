@@ -205,20 +205,21 @@ const ChatWidget = () => {
     <>
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 mb-4 bg-white rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden fade-in">
+        <div role="dialog" aria-labelledby="chat-title" className="fixed bottom-24 right-4 z-[80] mb-4 flex h-[450px] max-h-[calc(100dvh-8rem)] flex-col bg-white rounded-2xl shadow-2xl w-80 max-w-[calc(100vw-2rem)] sm:w-96 md:right-6 overflow-hidden fade-in">
           {/* Chat Header */}
-          <div className="hero-gradient px-4 py-3 flex items-center justify-between">
+          <div className="hero-gradient px-4 py-3 flex shrink-0 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                 <FallbackImage src="/apex-five-logo.png" alt="Apex Assistant" className="w-8 h-8 object-contain" />
               </div>
               <div>
-                <h3 className="text-white font-semibold text-sm">Apex Assistant</h3>
+                <h3 id="chat-title" className="text-white font-semibold text-sm">Apex Assistant</h3>
                 <p className="text-teal-100 text-xs">Online now</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Close chat"
               className="text-white/80 hover:text-white"
             >
               <X className="w-5 h-5" />
@@ -226,7 +227,8 @@ const ChatWidget = () => {
           </div>
 
           {/* Chat Messages */}
-          <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-4 space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -392,9 +394,10 @@ const ChatWidget = () => {
               </div>
             </form>
           )}
+          </div>
 
           {/* Chat Input */}
-          <div className="p-3 bg-white border-t">
+          <div className="shrink-0 p-3 bg-white border-t">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -402,10 +405,11 @@ const ChatWidget = () => {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Type your message..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                className="min-w-0 flex-1 px-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
               />
               <button
                 onClick={handleSend}
+                aria-label="Send message"
                 disabled={isTyping}
                 className="w-10 h-10 bg-teal-600 hover:bg-teal-700 text-white rounded-full flex items-center justify-center transition"
               >
@@ -418,12 +422,15 @@ const ChatWidget = () => {
 
       {/* Chat Toggle Button */}
       <button
+        aria-label={isOpen ? "Close chat" : "Open chat"}
+        aria-expanded={isOpen}
+        title={isOpen ? "Close chat" : "Open chat"}
         onClick={() => {
           const next = !isOpen
           setIsOpen(next)
           trackEvent(next ? 'chat_open' : 'chat_close', { conversation_id: conversationId })
         }}
-        className={`chat-bubble fixed bottom-6 right-6 z-50 w-14 h-14 bg-teal-600 hover:bg-teal-700 text-white rounded-full shadow-lg shadow-teal-600/30 flex items-center justify-center transition ${
+        className={`chat-bubble fixed bottom-5 right-5 md:bottom-6 md:right-6 z-[75] w-12 h-12 md:w-14 md:h-14 bg-teal-600 hover:bg-teal-700 text-white rounded-full shadow-lg shadow-teal-600/30 flex items-center justify-center transition ${
           isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >

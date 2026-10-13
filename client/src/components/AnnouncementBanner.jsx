@@ -39,10 +39,10 @@ export default function AnnouncementBanner() {
   const referralLink = isAuthenticated ? '/dashboard?tab=referral' : '/faq'
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] bg-[#1e3a5f] text-white text-center h-[4vh] min-h-[28px] flex items-center justify-center px-4">
+    <div className="fixed top-0 left-0 right-0 z-[60] bg-[#1e3a5f] text-white text-center h-14 sm:h-10 flex items-center justify-center px-4">
       <Link
         to={referralLink}
-        className="block w-full pr-8 hover:opacity-90 transition text-sm"
+        className="block w-full pr-8 hover:opacity-90 transition text-xs leading-4 sm:text-sm"
       >
         <span className="font-semibold">ANNOUNCEMENT: </span>
         REFER A FRIEND AND BOTH SHARE £10 DISCOUNT! CLICK TO FIND OUT HOW.

@@ -38,6 +38,6 @@ describe("Navbar", () => {
     expect(labels.slice(0, navigationLabels.length)).toEqual(navigationLabels);
     expect(within(navigation).queryByText("Guides")).toBeNull();
     expect(within(navigation).queryByText("Get a Free Quote")).toBeNull();
-    expect(within(navigation).getByRole("link", { name: "Get a Quote" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Get a Quote" })).toBeTruthy();
   });
 });

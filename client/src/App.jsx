@@ -12,15 +12,15 @@ import CookieConsent from "./components/CookieConsent";
 import AttributionCapture from "./components/AttributionCapture";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-// Eager load – above-the-fold / high-traffic
+// Keep the homepage eager; download other pages when their route is visited.
 import Home from "./pages/Home";
-import Services from "./pages/Services";
-import ServiceDetail from "./pages/ServiceDetail";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Testimonials from "./pages/Testimonials";
-import FAQ from "./pages/FAQ";
-import Account from "./pages/Account";
+const Services = lazy(() => import("./pages/Services"));
+const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Testimonials = lazy(() => import("./pages/Testimonials"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Account = lazy(() => import("./pages/Account"));
 
 // Lazy load – heavier routes (split into separate chunks)
 const ServiceAreas = lazy(() => import("./pages/ServiceAreas"));
@@ -54,7 +54,7 @@ function App() {
   const { visible: bannerVisible } = useAnnouncement()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
       <ScrollToTop />
       <AttributionCapture />
       <CookieConsent />
@@ -66,7 +66,7 @@ function App() {
         title="Page content unavailable"
         description="This section failed unexpectedly. Try again to reload this page."
       >
-        <main className={`${bannerVisible ? 'pt-[calc(4vh+5rem)]' : 'pt-20'} pb-24 md:pb-0`}>
+        <main className={bannerVisible ? 'pt-[8.5rem] sm:pt-[7.5rem]' : 'pt-20'}>
           <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/" element={<Home />} />

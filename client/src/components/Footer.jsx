@@ -12,11 +12,11 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
-          <div className="md:col-span-2">
-            <div className="inline-flex items-center mb-4 bg-white rounded-lg px-3 py-2 shadow-sm">
-              <FallbackImage src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-14 md:h-16 w-auto object-contain" />
+          <div className="min-w-0 sm:col-span-2">
+            <div className="inline-flex max-w-full items-center mb-4 bg-white rounded-lg px-3 py-2 shadow-sm">
+              <FallbackImage src="/apex-five-logo.png" alt="Apex Five Cleaning Logo" className="h-auto w-full max-w-[420px] object-contain" />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Professional eco-friendly cleaning services across Kent, London, and Essex.
@@ -107,7 +107,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-teal-500" />
-                <span>info@apexfivecleaning.co.uk</span>
+                <span className="break-all">info@apexfivecleaning.co.uk</span>
               </li>
             </ul>
           </div>

@@ -60,9 +60,10 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
+    <>
     <nav
       className={`fixed left-0 right-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur-xl transition-[top] ${
-        bannerVisible ? "top-[4vh]" : "top-0"
+        bannerVisible ? "top-14 sm:top-10" : "top-0"
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -71,11 +72,11 @@ const Navbar = () => {
             <FallbackImage
               src="/apex-five-logo.png"
               alt="Apex Five Cleaning"
-              className="h-11 w-auto max-w-[calc(100vw-8rem)] object-contain sm:h-12"
+              className="h-11 w-auto max-w-[calc(100vw-10rem)] object-contain sm:h-12 sm:max-w-[420px]"
             />
           </ScrollRestoringLink>
 
-          <div className="hidden items-center gap-7 md:flex">
+          <div className="hidden items-center gap-7 xl:flex">
             {navLinks.map((link) => (
               <ScrollRestoringLink
                 key={link.path}
@@ -87,7 +88,7 @@ const Navbar = () => {
             ))}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-3 xl:flex">
             {!isAuthenticated && (
               <ScrollRestoringLink
                 to="/account"
@@ -152,7 +153,7 @@ const Navbar = () => {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 xl:hidden">
             <a
               href={PHONE_MAIN_HREF}
               className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-brand-700"
@@ -173,7 +174,7 @@ const Navbar = () => {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="border-t border-zinc-200 bg-white md:hidden">
+        <div className={`overflow-y-auto overscroll-contain border-t border-zinc-200 bg-white xl:hidden ${bannerVisible ? "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100dvh-7.5rem)]" : "max-h-[calc(100dvh-5rem)]"}`}>
           <div className="mx-auto max-w-7xl px-4 py-4">
             <div className="grid gap-1">
               {navLinks.map((link) => (
@@ -234,9 +235,11 @@ const Navbar = () => {
         </div>
       )}
 
+    </nav>
+
       {!isMobileMenuOpen && (
         <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-[70] md:hidden">
-          <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 bg-white/95 p-2 shadow-xl shadow-zinc-950/15 backdrop-blur">
+          <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 bg-white/95 p-2 pr-[72px] shadow-xl shadow-zinc-950/15 backdrop-blur">
             <a
               href={PHONE_MAIN_HREF}
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-zinc-200 text-sm font-semibold text-zinc-900"
@@ -255,7 +258,7 @@ const Navbar = () => {
       )}
 
       <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
-    </nav>
+    </>
   );
 };
 
