@@ -5,6 +5,7 @@ export default function SmartImage({
   alt,
   className = "",
   loading = "lazy",
+  fetchPriority,
   sizes,
   srcSet,
 }) {
@@ -24,6 +25,7 @@ export default function SmartImage({
         sizes={sizes}
         alt={alt}
         loading={loading}
+        fetchpriority={fetchPriority}
         decoding="async"
         onLoad={() => setLoaded(true)}
         onError={() => {

@@ -1,4 +1,10 @@
 {
+  "redirects": [
+    { "source": "/services/residential", "destination": "/services/domestic-cleaning", "permanent": true },
+    { "source": "/services/end-of-tenancy", "destination": "/services/end-of-tenancy-cleaning", "permanent": true },
+    { "source": "/services/airbnb", "destination": "/services/airbnb-cleaning", "permanent": true },
+    { "source": "/services/commercial", "destination": "/services/commercial-cleaning", "permanent": true }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

@@ -1,5 +1,6 @@
 import {
   COMPANY_ADDRESS_LINE1,
+  PHONE_MAIN_HREF,
   PHONE_MAIN_TEL,
   SITE_NAME,
   SITE_URL,
@@ -9,6 +10,7 @@ import {
   APPROVED_ESSEX_LOCATION_NAMES,
   SERVICE_AREAS_BY_SLUG,
 } from "../data/serviceAreasCatalog";
+import { SERVICES } from "../data/servicesCatalog";
 
 const BUSINESS_NAME = SITE_NAME;
 export const MAIN_BUSINESS_ID = `${SITE_URL}#localbusiness`;
@@ -134,12 +136,123 @@ export const buildWebSiteSchema = () => ({
   "@id": `${SITE_URL}#website`,
   name: BUSINESS_NAME,
   url: SITE_URL,
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/blog?search={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
 });
+
+export const buildFAQPageSchema = (faqs = []) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.question || faq.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.answer || faq.a,
+    },
+  })),
+});
+
+export const buildHomePageSchemas = (faqs = []) => [
+  buildLocalBusinessSchema({
+    description:
+      "Apex Five Cleaning provides domestic, deep, end of tenancy, Airbnb, office and commercial cleaning in Southend-on-Sea and across Essex, Kent and London.",
+    areaServed: [
+      "Southend-on-Sea",
+      "Leigh-on-Sea",
+      "Rayleigh",
+      "Rochford",
+      "Benfleet",
+      "Essex",
+      "Kent",
+      "London",
+    ],
+    makesOffer: SERVICES.slice(0, 6).map((service) => ({
+      "@type": "Offer",
+      url: `${SITE_URL}/services/${service.id}`,
+      itemOffered: {
+        "@type": "Service",
+        name: service.title,
+        url: `${SITE_URL}/services/${service.id}`,
+      },
+    })),
+  }),
+  buildWebSiteSchema(),
+  buildFAQPageSchema(faqs),
+];
+
+const SOUTHEND_SERVICE_AREAS = [
+  "Southend-on-Sea",
+  "Leigh-on-Sea",
+  "Westcliff-on-Sea",
+  "Thorpe Bay",
+  "Rayleigh",
+  "Rochford",
+  "Benfleet",
+  "Essex",
+  "Kent",
+  "London",
+];
+
+export const buildServiceDetailSchemas = (service) => {
+  const serviceUrl = `${SITE_URL}/services/${service.id}`;
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "@id": `${serviceUrl}#cleaning-service`,
+      name: `${service.title} in Southend-on-Sea`,
+      serviceType: service.title,
+      description: service.shortDescription,
+      provider: { "@id": MAIN_BUSINESS_ID },
+      areaServed: SOUTHEND_SERVICE_AREAS.map((name) => ({
+        "@type": name === "Essex" || name === "Kent" || name === "London" ? "AdministrativeArea" : "City",
+        name,
+      })),
+      url: serviceUrl,
+      image: service.image.startsWith("http") ? service.image : `${SITE_URL}${service.image}`,
+      offers: {
+        "@type": "Offer",
+        url: serviceUrl,
+        priceCurrency: "GBP",
+        description: service.priceGuide,
+        eligibleRegion: "Southend-on-Sea, Essex, Kent and London",
+      },
+      providerMobility: "dynamic",
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${serviceUrl}#webpage`,
+      url: serviceUrl,
+      name: `${service.title} Southend-on-Sea`,
+      description: service.shortDescription,
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}#website`,
+        url: SITE_URL,
+        name: BUSINESS_NAME,
+      },
+      about: {
+        "@id": `${serviceUrl}#cleaning-service`,
+      },
+    },
+    buildFAQPageSchema(service.faqs),
+    buildBreadcrumbSchema([
+      { name: "Home", url: SITE_URL },
+      { name: "Services", url: `${SITE_URL}/services` },
+      { name: service.title, url: serviceUrl },
+    ]),
+    buildLocalBusinessSchema({
+      telephone: BUSINESS_PHONE,
+      contactPoint: {
+        "@type": "ContactPoint",
+        telephone: BUSINESS_PHONE,
+        contactType: "customer service",
+        url: PHONE_MAIN_HREF,
+        areaServed: "GB",
+      },
+    }),
+  ];
+};
 
 export const buildBreadcrumbSchema = (items = []) => ({
   "@context": "https://schema.org",

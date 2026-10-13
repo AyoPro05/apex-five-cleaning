@@ -61,4 +61,17 @@ describe("QuoteStarter", () => {
     expect(screen.getByText(/enter your postcode/i)).toBeTruthy();
     expect(sessionStorage.getItem("apexQuotePrefill")).toBeNull();
   });
+
+  it("rejects a malformed postcode with an accessible error before navigating", () => {
+    renderStarter();
+    fireEvent.change(screen.getByLabelText(/postcode/i), {
+      target: { value: "12345" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /get my free quote/i }));
+
+    expect(screen.getByTestId("current-path").textContent).toBe("/");
+    expect(screen.getByRole("alert").textContent).toContain("valid UK postcode");
+    expect(screen.getByLabelText(/postcode/i).getAttribute("aria-invalid")).toBe("true");
+    expect(sessionStorage.getItem("apexQuotePrefill")).toBeNull();
+  });
 });

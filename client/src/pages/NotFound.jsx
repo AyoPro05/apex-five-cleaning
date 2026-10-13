@@ -1,9 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function NotFound() {
+  const { pathname } = useLocation()
   return (
     <section className="pt-32 pb-20 min-h-screen bg-gray-50">
+      <SEO title="Page not found" path={pathname} noindex />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow p-8 sm:p-10 text-center">
           <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -24,4 +27,3 @@ export default function NotFound() {
     </section>
   )
 }
-

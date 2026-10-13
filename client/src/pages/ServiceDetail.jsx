@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -13,9 +13,12 @@ import {
 import SEO from "../components/SEO";
 import SmartImage from "../components/SmartImage";
 import ImageLightbox from "../components/ImageLightbox";
+import NotFound from "./NotFound";
 import { SERVICES_BY_ID } from "../data/servicesCatalog";
-import { buildBreadcrumbSchema } from "../config/seoSchemas";
+import { buildServiceDetailSchemas } from "../config/seoSchemas";
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF, whatsappHref } from "../config/site";
+import { setQuotePrefill } from "../utils/quotePrefill";
+import { quoteServiceValue } from "../utils/serviceIntent";
 import { scrollReveal, scrollRevealVisible } from "../utils/scrollReveal";
 
 const LEGACY_ID_MAP = {
@@ -34,45 +37,30 @@ export default function ServiceDetail() {
   const [lightboxImage, setLightboxImage] = useState("");
 
   const normalizedId = LEGACY_ID_MAP[serviceId] || serviceId;
-  const service =
-    SERVICES_BY_ID[normalizedId] || SERVICES_BY_ID["domestic-cleaning"];
+  const service = SERVICES_BY_ID[normalizedId];
+  if (!service) return <NotFound />;
+  if (normalizedId !== serviceId) return <Navigate to={`/services/${normalizedId}`} replace />;
+  const isEndOfTenancy = service.id === "end-of-tenancy-cleaning";
+  const quoteLabel = isEndOfTenancy ? "Get an End of Tenancy Quote" : "Get a Free Quote";
+  const callLabel = isEndOfTenancy ? "Call for Handover Availability" : `Call ${PHONE_MAIN_DISPLAY}`;
+  const seoTitle = isEndOfTenancy
+    ? "End of Tenancy Cleaning Southend-on-Sea"
+    : `${service.title} Southend-on-Sea`;
+  const seoDescription = isEndOfTenancy
+    ? "End of tenancy cleaning for landlords, tenants and letting agents in Southend-on-Sea, Essex, Kent and London. From £150. Request a fast handover quote."
+    : `${service.shortDescription} ${service.priceGuide}. Serving Southend-on-Sea, Essex, Kent and London with clear pricing and fast quotes.`;
+  const handleQuoteClick = () => {
+    const serviceType = quoteServiceValue(service.id);
+    if (serviceType) setQuotePrefill({ serviceType });
+  };
 
-  const serviceSchemas = [
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      name: service.title,
-      description: service.shortDescription,
-      provider: {
-        "@type": "Organization",
-        name: "Apex Five Cleaning",
-      },
-      areaServed: ["Kent", "London", "Essex"],
-      offers: {
-        "@type": "Offer",
-        priceSpecification: {
-          "@type": "PriceSpecification",
-          priceCurrency: "GBP",
-          description: service.priceGuide,
-        },
-      },
-      url: `https://www.apexfivecleaning.co.uk/services/${service.id}`,
-    },
-    buildBreadcrumbSchema([
-      { name: "Home", url: "https://www.apexfivecleaning.co.uk/" },
-      { name: "Services", url: "https://www.apexfivecleaning.co.uk/services" },
-      {
-        name: service.title,
-        url: `https://www.apexfivecleaning.co.uk/services/${service.id}`,
-      },
-    ]),
-  ];
+  const serviceSchemas = buildServiceDetailSchemas(service);
 
   return (
     <>
       <SEO
-        title={`${service.title} in Kent, London and Essex`}
-        description={`${service.shortDescription} ${service.priceGuide}. See what is included, who it is for, how pricing works, and book with Apex Five Cleaning.`}
+        title={seoTitle}
+        description={seoDescription}
         path={`/services/${service.id}`}
         jsonLd={serviceSchemas}
       />
@@ -96,6 +84,8 @@ export default function ServiceDetail() {
               <SmartImage
                 src={service.image}
                 alt={service.title}
+                loading="eager"
+                fetchPriority="high"
                 className="min-h-[320px]"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
@@ -108,6 +98,7 @@ export default function ServiceDetail() {
                 {service.title}
               </h1>
               <p className="text-lg text-gray-600 mt-4">{service.shortDescription}</p>
+              <p className="mt-3 text-sm text-gray-600">Serving Southend-on-Sea and surrounding Essex towns, London and Kent.</p>
               <div className="grid sm:grid-cols-2 gap-3 mt-6">
                 <div className="rounded-lg bg-teal-50 p-4">
                   <p className="text-sm text-teal-700 font-medium inline-flex items-center gap-1">
@@ -124,7 +115,7 @@ export default function ServiceDetail() {
                   <p className="font-bold text-teal-800 mt-1">{service.typicalDuration}</p>
                 </div>
               </div>
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <div className="mt-6 flex flex-col sm:flex-row sm:flex-wrap gap-3">
                 {service.ctaMode === "phone-only" ? (
                   <>
                     <a
@@ -146,19 +137,19 @@ export default function ServiceDetail() {
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => navigate("/request-a-quote")}
+                    <Link
+                      to="/request-a-quote"
+                      onClick={handleQuoteClick}
                       className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold"
                     >
-                      Get a Quote
+                      {quoteLabel}
                       <ArrowRight className="w-4 h-4" />
-                    </button>
+                    </Link>
                     <a
                       href={PHONE_MAIN_HREF}
                       className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-200 text-gray-800 hover:bg-gray-50 font-semibold"
                     >
-                      Call {PHONE_MAIN_DISPLAY}
+                      {callLabel}
                     </a>
                   </>
                 )}
@@ -325,18 +316,18 @@ export default function ServiceDetail() {
                 </>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/request-a-quote")}
+                  <Link
+                    to="/request-a-quote"
+                    onClick={handleQuoteClick}
                     className="bg-white text-teal-700 hover:bg-teal-50 px-7 py-3 rounded-lg font-semibold"
                   >
-                    Get a Free Quote
-                  </button>
+                    {quoteLabel}
+                  </Link>
                   <a
                     href={PHONE_MAIN_HREF}
                     className="bg-amber-400 text-gray-900 hover:bg-amber-300 px-7 py-3 rounded-lg font-semibold"
                   >
-                    Call Now
+                    {callLabel}
                   </a>
                 </>
               )}

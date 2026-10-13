@@ -15,6 +15,7 @@ import {
 } from "../utils/attribution";
 import { trackEvent } from "../utils/analytics";
 import { loadAndClearQuotePrefill } from "../utils/quotePrefill";
+import { isValidUKPostcode } from "../utils/serviceIntent";
 import { createIdempotencyKey, withIdempotency } from "../utils/idempotency";
 
 // Additional services customers can add to their quote
@@ -73,6 +74,7 @@ const Quote = () => {
   const [step, setStep] = useState(1);
   const quoteFlowRef = useRef(null);
   const previousStepRef = useRef(step);
+  const quotePrefillRef = useRef(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -101,7 +103,11 @@ const Quote = () => {
     setSuccessMessage("");
     setQuoteReference("");
 
-    const prefill = loadAndClearQuotePrefill();
+    // Consume once per navigation, including React's repeated mount effect check.
+    if (quotePrefillRef.current?.key !== location.key) {
+      quotePrefillRef.current = { key: location.key, value: loadAndClearQuotePrefill() };
+    }
+    const prefill = quotePrefillRef.current.value;
     if (prefill) {
       setFormData({
         ...EMPTY_FORM,
@@ -206,10 +212,6 @@ const Quote = () => {
     return regex.test(cleaned);
   };
 
-  const isValidUKPostcode = (postcode) => {
-    const regex = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
-    return regex.test(String(postcode).trim());
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

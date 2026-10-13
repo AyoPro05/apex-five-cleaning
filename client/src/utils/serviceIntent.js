@@ -21,3 +21,7 @@ export function normalisePostcode(value = "") {
   if (compact.length <= 3) return compact;
   return `${compact.slice(0, -3)} ${compact.slice(-3)}`;
 }
+
+export function isValidUKPostcode(value = "") {
+  return /^(?:GIR\s*0AA|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(String(value).trim());
+}

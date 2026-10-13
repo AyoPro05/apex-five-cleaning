@@ -3,12 +3,13 @@ import { MapPin, Clock, Phone, Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
+import SEO from "../components/SEO";
+import NotFound from "./NotFound";
+import { buildLocalBusinessSchema, buildServiceAreaMetaDescription, buildServiceAreaPageSchemas, primaryRegionLabel } from "../config/seoSchemas";
 import { scrollReveal } from "../utils/scrollReveal";
 import {
   PHONE_MAIN_DISPLAY,
   PHONE_MAIN_HREF,
-  PHONE_MAIN_TEL,
-  SITE_URL,
   whatsappHref,
 } from "../config/site";
 import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
@@ -278,58 +279,18 @@ const ServiceArea = () => {
   const area = SERVICE_AREAS_BY_SLUG[areaSlug] || serviceAreas[areaSlug];
 
   if (!area) {
-    return (
-      <section className="pt-32 pb-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">
-            Area Not Found
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            We're sorry, but we couldn't find that service area.
-          </p>
-          <button
-            onClick={() => navigate("/service-areas")}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-lg font-bold"
-          >
-            View All Service Areas
-          </button>
-        </div>
-      </section>
-    );
+    return <NotFound />;
   }
-
-  // Local schema markup
-  const localSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: `Apex Five Cleaning - ${area.name}`,
-    image: area.image,
-    description: area.localInfo,
-    address: {
-      "@type": "PostalAddress",
-      addressRegion: area.region,
-      addressLocality: area.name,
-      addressCountry: "GB",
-    },
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: area.coordinates.lat,
-      longitude: area.coordinates.lng,
-    },
-    telephone: PHONE_MAIN_TEL,
-    url: `${SITE_URL}/service-areas/${areaSlug}`,
-    priceRange: "£45-£250",
-    areaServed: {
-      "@type": "City",
-      name: area.name,
-    },
-    serviceType: area.servicesCovered,
-  };
 
   return (
     <>
-      {/* Schema Markup */}
-      <script type="application/ld+json">{JSON.stringify(localSchema)}</script>
+      <SEO
+        title={`Cleaning Services in ${area.name}, ${primaryRegionLabel(area.region)}`}
+        description={buildServiceAreaMetaDescription(area)}
+        path={`/service-areas/${areaSlug}`}
+        image={area.image}
+        jsonLd={[buildLocalBusinessSchema(), ...buildServiceAreaPageSchemas(areaSlug, area)]}
+      />
 
       <section
         className="relative min-h-96 py-20 mb-20 overflow-hidden"
