@@ -22,6 +22,13 @@ function renderArea(slug) {
 }
 
 describe("ServiceArea", () => {
+  it("preserves the legacy Axminster URL while using the shared catalogue for current areas", async () => {
+    renderArea("axminster");
+    expect(screen.getByRole("heading", { level: 1, name: "Cleaning Services in Axminster" })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href"))
+      .toBe("https://www.apexfivecleaning.co.uk/service-areas/axminster"));
+  });
+
   it("publishes the area's canonical metadata and links its service to the real office", async () => {
     renderArea("southend-on-sea");
     expect(screen.getByRole("heading", { level: 1, name: "Cleaning Services in Southend-on-Sea" })).toBeTruthy();

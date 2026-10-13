@@ -47,6 +47,7 @@ App: `http://localhost:5173`
 ## Documentation
 
 - **Deploy & env:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **Development & tests:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - **SEO (sitemap, Index Now):** [docs/SEO.md](docs/SEO.md)
 - **Security overview:** [docs/SECURITY.md](docs/SECURITY.md)
 - **Email (SMTP/SendGrid):** [docs/EMAIL.md](docs/EMAIL.md)
