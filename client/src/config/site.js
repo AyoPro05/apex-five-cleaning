@@ -45,3 +45,6 @@ export const COMPANY_ADDRESS_LINE2 = 'Southend-on-Sea, England, SS1 2BB'
 export const COMPANY_ADDRESS_SINGLE_LINE = `${COMPANY_ADDRESS_LINE1}, ${COMPANY_ADDRESS_LINE2}`
 export const GOOGLE_MAPS_URL =
   'https://www.google.com/maps/search/?api=1&query=Tylers+House,+Tylers+Avenue,+Southend-on-Sea,+England,+SS1+2BB'
+
+// TODO: Set only after the business's direct Google review URL is verified.
+export const GOOGLE_REVIEW_URL = (import.meta.env.VITE_GOOGLE_REVIEW_URL || '').trim()

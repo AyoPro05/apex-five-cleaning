@@ -7,6 +7,7 @@ import SEO from '../components/SEO'
 import { PHONE_MAIN_DISPLAY, PHONE_MAIN_HREF } from '../config/site'
 import { buildBreadcrumbSchema } from '../config/seoSchemas'
 import FallbackImage from '../components/FallbackImage'
+import BeforeAfterGallery from '../components/BeforeAfterGallery'
 
 const Testimonials = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -122,8 +123,8 @@ const Testimonials = () => {
   return (
     <>
       <SEO
-        title="Customer Reviews and Testimonials"
-        description="Read verified customer testimonials for Apex Five Cleaning services across Kent, Essex, and Greater London."
+        title="Cleaning Reviews in Essex, Kent & London"
+        description="Read customer testimonials for Apex Five Cleaning’s residential, end-of-tenancy and Airbnb cleaning services across Essex, Kent and London."
         path="/testimonials"
         jsonLd={[aggregateRatingSchema, ...reviewSchemas, breadcrumbSchema]}
       />
@@ -275,6 +276,7 @@ const Testimonials = () => {
         </div>
         </div>
       </motion.section>
+      <BeforeAfterGallery />
     </>
   )
 }

@@ -4,6 +4,7 @@ import SEO from "../components/SEO";
 import ConversionActions from "../components/marketing/ConversionActions";
 import MarketingSection from "../components/marketing/MarketingSection";
 import ProofStrip from "../components/marketing/ProofStrip";
+import GoogleReviewCTA from "../components/GoogleReviewCTA";
 import QuoteStarter from "../components/marketing/QuoteStarter";
 import { SERVICES } from "../data/servicesCatalog";
 import { HOME_FAQS } from "../data/homeFaqs";
@@ -143,6 +144,7 @@ export default function Home() {
       <MarketingSection eyebrow="Reviews" title="Trusted by local clients" tone="soft">
         <div className="grid gap-5 lg:grid-cols-3">{testimonials.map((testimonial) => <figure key={testimonial.name} className="border-t-2 border-brand-600 pt-5"><div className="flex gap-1 text-brand-600" aria-label="5 out of 5 stars">{[1, 2, 3, 4, 5].map((star) => <Star key={star} className="h-4 w-4 fill-current" aria-hidden="true" />)}</div><blockquote className="mt-5 text-lg leading-8 text-zinc-800">“{testimonial.quote}”</blockquote><figcaption className="mt-6 text-sm"><strong className="text-zinc-950">{testimonial.name}</strong><span className="ml-2 text-zinc-500">{testimonial.detail}</span></figcaption></figure>)}</div>
         <div className="mt-8"><Link to="/testimonials" className="text-sm font-semibold text-brand-700 hover:text-brand-900">Read more reviews <ArrowUpRight className="ml-1 inline h-4 w-4" aria-hidden="true" /></Link></div>
+        <GoogleReviewCTA />
       </MarketingSection>
 
       <MarketingSection eyebrow="Local cleaning" title="House cleaning in Southend-on-Sea and nearby Essex towns" tone="white">

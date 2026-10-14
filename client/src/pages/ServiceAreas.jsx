@@ -38,7 +38,7 @@ const ServiceAreas = () => {
   return (
     <>
       <SEO
-        title="Cleaning Services Across Essex, London & Kent | Apex Five Cleaning"
+        title="Cleaning Services Across Essex, London & Kent"
         description="Professional domestic, commercial, end-of-tenancy and Airbnb cleaning across Essex, London and Kent. Based in Southend-on-Sea, Apex Five Cleaning provides reliable, eco-conscious cleaning services."
         path="/service-areas"
         jsonLd={serviceAreaSchemas}

@@ -465,9 +465,18 @@ const DISPLAY_ONLY_ESSEX_AREAS = {
   },
 };
 
+const DISPLAY_ONLY_LONDON_AREAS = {
+  wallington: {
+    name: "Wallington",
+    region: "Greater London, Surrey",
+    coverage: "Cleaning services across Wallington and surrounding areas.",
+  },
+};
+
 const SERVICE_AREA_DISPLAY_BY_SLUG = {
   ...SERVICE_AREAS_BY_SLUG,
   ...DISPLAY_ONLY_ESSEX_AREAS,
+  ...DISPLAY_ONLY_LONDON_AREAS,
 };
 
 /** Display order for regional groups on Home and Service Areas */
@@ -507,6 +516,7 @@ export const ORDERED_AREA_SLUGS = [
   "chipping-ongar",
   "grays",
   "croydon",
+  "wallington",
 ];
 
 const NAV_REGION_META = [

@@ -18,7 +18,9 @@ Host `client/dist` as the static site. Run the Node server as the API (or use a 
 
 **Server** (`server/.env`): `NODE_ENV`, `PORT`, `CLIENT_URL`, `MONGODB_URI`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RECAPTCHA_SECRET_KEY`, `ADMIN_TOKEN`, **`JWT_SECRET`** (required in production – server will not start without it), plus email vars (see `docs/EMAIL.md`). Copy from `server/.env.example`.
 
-**Client** (`client/.env`): `VITE_API_URL`, `VITE_RECAPTCHA_SITE_KEY`, `VITE_STRIPE_PUBLIC_KEY`.
+**Client** (`client/.env`): `VITE_API_URL`, `VITE_RECAPTCHA_SITE_KEY`, `VITE_STRIPE_PUBLIC_KEY`, and optionally `VITE_GOOGLE_REVIEW_URL` (the verified direct Google review URL; the homepage CTA remains hidden while it is empty).
+
+The Vercel static deployment applies HSTS, `nosniff`, Referrer-Policy, frame denial, and Permissions-Policy headers from `client/vercel.json`. Configure equivalent headers in other static hosts. The API's CSP is report-only; verify the production API origin and required third-party resource origins before enforcing a static-site CSP.
 
 ## SPA routing (Vercel / Render)
 

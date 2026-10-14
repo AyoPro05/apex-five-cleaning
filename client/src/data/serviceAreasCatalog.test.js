@@ -34,4 +34,17 @@ describe("service area catalog", () => {
     expect(leigh.hasDetailPage).toBe(false);
     expect(southend.hasDetailPage).toBe(true);
   });
+
+  it("lists Wallington under London without creating a detail page", () => {
+    const regions = getServiceAreaRegionsForNav();
+    const london = regions.find((region) => region.name === "London");
+    const wallingtonEntries = london.areas.filter((area) => area.name === "Wallington");
+
+    expect(wallingtonEntries).toHaveLength(1);
+    expect(wallingtonEntries[0]).toMatchObject({
+      slug: "wallington",
+      hasDetailPage: false,
+      coverage: expect.stringContaining("Wallington"),
+    });
+  });
 });
