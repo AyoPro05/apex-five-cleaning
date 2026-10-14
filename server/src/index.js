@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-if (process.env.NODE_ENV === "production" && !process.env.MONGODB_URI) {
+if (process.env.NODE_ENV === "production" && !process.env.MONGODB_URI && !process.env.DATABASE_URL) {
   console.error(
     "FATAL: MONGODB_URI is required in production. Create a MongoDB Atlas cluster (or other hosted MongoDB) and set MONGODB_URI in Render → Environment.",
   );
@@ -41,9 +41,9 @@ import customerRouter from "./routes/customer.js";
 import uploadsRouter from "./routes/uploads.js";
 import contactRouter from "./routes/contact.js";
 import chatRouter from "./routes/chat.js";
-import { getEmailConfigStatus, verifyEmailTransport } from "./utils/emailService.js";
+import { getEmailConfigStatus } from "./utils/emailService.js";
 import { handleStripeWebhook } from "./routes/payments.js";
-import { startScheduler } from "./jobs/scheduler.js";
+import automationRouter from "./routes/automation.js";
 import chatopsRouter from "./routes/chatops.js";
 import { connectDbMiddleware, connectToDatabase, isMongoReady } from "./middleware/dbMiddleware.js";
 import { buildCorsOptions, getCorsOrigins } from "./config/corsConfig.js";
@@ -108,19 +108,12 @@ app.use(logAuthHeader);
 app.post(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
-  async (req, res) => {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({
-        success: false,
-        message: "Database temporarily unavailable",
-      });
-    }
-    return handleStripeWebhook(req, res);
-  },
+  connectDbMiddleware,
+  handleStripeWebhook,
 );
 
 // ChatOps must be mounted before express.json() (Slack signatures + Discord raw body)
-app.use("/api/chatops", chatopsRouter);
+app.use("/api/chatops", connectDbMiddleware, chatopsRouter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ limit: "10kb", extended: false }));
@@ -175,6 +168,7 @@ app.use("/api/customer", customerRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/contact", contactRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/automation", automationRouter);
 
 if (process.env.ENABLE_SENTRY_TEST_ENDPOINT === "true") {
   app.get("/api/debug/sentry-test", (req, res) => {
@@ -200,59 +194,6 @@ app.use((err, req, res, next) => {
         : err.message || "An unexpected error occurred.",
   });
 });
-
-// Database connection
-const connectDB = async () => {
-  const uri =
-    process.env.MONGODB_URI ||
-    process.env.DATABASE_URL ||
-    (process.env.NODE_ENV === "production"
-      ? null
-      : process.env.MONGODB_URI_DEV || null);
-
-  if (!uri) {
-    dbConnected = false;
-    if (process.env.VERCEL === "1") {
-      console.error("FATAL: MONGODB_URI environment variable is not defined in Vercel runtime.");
-    } else {
-      console.error("✗ MongoDB URI missing (MONGODB_URI).");
-    }
-    return;
-  }
-
-  try {
-    await mongoose.connect(uri);
-    dbConnected = true;
-    console.log("✓ Connected to MongoDB");
-    verifyEmailTransport().catch(() => {});
-    startScheduler();
-    mongoose.connection.on("connected", () => {
-      dbConnected = true;
-      console.log("✓ MongoDB connected");
-    });
-    mongoose.connection.on("reconnected", () => {
-      dbConnected = true;
-      console.log("✓ MongoDB reconnected");
-    });
-    mongoose.connection.on("disconnected", () => {
-      dbConnected = false;
-      console.error("✗ MongoDB disconnected");
-    });
-    mongoose.connection.on("error", (err) => {
-      dbConnected = false;
-      console.error("✗ MongoDB runtime error:", err.message);
-    });
-  } catch (error) {
-    dbConnected = false;
-    console.error("✗ MongoDB connection failed:", error.message);
-    if (process.env.NODE_ENV === "production") {
-      console.error(
-        "FATAL: Cannot run API without MongoDB in production. Fix MONGODB_URI (Atlas IP allowlist: 0.0.0.0/0 for Render) and redeploy.",
-      );
-      process.exit(1);
-    }
-  }
-};
 
 const startServer = async () => {
   try {

@@ -6,6 +6,7 @@
       "use": "@vercel/node"
     }
   ],
+  "crons": [{ "path": "/api/automation/run", "schedule": "0 8 * * *" }],
   "routes": [
     {
       "src": "/(.*)",

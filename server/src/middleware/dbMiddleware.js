@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 let dbConnected = false;
 let connectionPromise = null;
 
-const getDatabaseUri = () =>
+export const getDatabaseUri = () =>
   process.env.MONGODB_URI ||
   process.env.DATABASE_URL ||
   (process.env.NODE_ENV === "production"
@@ -48,19 +48,13 @@ export const connectToDatabase = async () => {
 };
 
 export const connectDbMiddleware = async (req, res, next) => {
-  if (!process.env.MONGODB_URI && !process.env.DATABASE_URL) {
-    console.error("FATAL: MONGODB_URI environment variable is missing!");
-    return res.status(500).json({ message: "Database configuration error" });
-  }
-
   try {
     await connectToDatabase();
     return next();
   } catch (error) {
-    console.error("MongoDB Connection Error:", error);
+    console.error("MongoDB connection unavailable");
     return res.status(503).json({
       message: "Database connection failed",
-      error: error.message,
     });
   }
 };
