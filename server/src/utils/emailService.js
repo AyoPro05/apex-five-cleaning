@@ -619,41 +619,37 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
 };
 
 export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
+  initializeEmailProvider();
   const template = getQuoteApprovedTemplate(firstName, quoteId);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
 
-  try {
-    if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      await sgMail.send({
+  if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
+    return sendWithRetry(`Quote approved -> ${toEmail}`, () =>
+      sgMail.send({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject: template.subject,
         html: template.html,
         text: template.text,
-      });
-      console.log(`✓ Quote approved email sent to ${toEmail}`);
-      return { success: true };
-    } else if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      }),
+    );
+  }
+  if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
+    return sendWithRetry(`Quote approved -> ${toEmail}`, () =>
+      smtpTransport.sendMail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
         html: template.html,
         text: template.text,
-      });
-      console.log(`✓ Quote approved email sent to ${toEmail}`);
-      return { success: true };
-    } else {
-      console.warn(
-        "⚠️ No email provider configured. Quote approved email not sent.",
-      );
-      return { success: false, error: "No email provider configured" };
-    }
-  } catch (error) {
-    logOutboundEmailError("Error sending quote approved email", error);
-    return { success: false, error: error.message };
+      }),
+    );
   }
+  console.warn(
+    "⚠️ No email provider configured. Quote approved email not sent.",
+  );
+  return { success: false, error: "No email provider configured" };
 };
 
 const CONTACT_SUBJECT_LABELS = {

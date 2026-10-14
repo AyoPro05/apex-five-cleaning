@@ -86,33 +86,54 @@ async function postToUrl(url, envelope) {
 }
 
 /**
- * Emit a domain event to all configured webhook URLs (non-blocking).
+ * Dispatch a domain event to every configured webhook URL.
+ * @param {EventType} event
+ * @param {Record<string, unknown>} data
+ * @param {{ eventId?: string }} options
+ */
+export async function dispatchEvent(event, data = {}, { eventId } = {}) {
+  const urls = getWebhookUrls();
+  if (!urls.length) return { skipped: true };
+
+  const envelope = {
+    event,
+    id: eventId ?? crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    source: "apex-five-cleaning-api",
+    data: redactValue(data),
+  };
+
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      await postToUrl(url, envelope);
+      console.log(`✓ Event dispatched: ${event} -> ${new URL(url).host}`);
+    }),
+  );
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length) {
+    const error = failures
+      .map((result) => result.reason?.message || String(result.reason))
+      .join("; ")
+      .slice(0, 500);
+    console.warn(`⚠️ Event dispatch failed (${event}):`, error);
+    return { success: false, error };
+  }
+
+  return { success: true, targets: urls.length };
+}
+
+/**
+ * Compatibility wrapper for route callers that still expect non-blocking work.
  * @param {EventType} event
  * @param {Record<string, unknown>} data
  */
 export function emitEvent(event, data = {}) {
   const urls = getWebhookUrls();
   if (!urls.length) return { skipped: true };
-
-  const envelope = {
-    event,
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    source: "apex-five-cleaning-api",
-    data: redactValue(data),
-  };
+  const eventId = crypto.randomUUID();
 
   setImmediate(() => {
-    Promise.allSettled(
-      urls.map(async (url) => {
-        try {
-          await postToUrl(url, envelope);
-          console.log(`✓ Event dispatched: ${event} -> ${new URL(url).host}`);
-        } catch (error) {
-          console.warn(`⚠️ Event dispatch failed (${event} -> ${url}):`, error.message);
-        }
-      }),
-    ).catch(() => {});
+    dispatchEvent(event, data, { eventId }).catch(() => {});
   });
 
   return { queued: true, targets: urls.length };
