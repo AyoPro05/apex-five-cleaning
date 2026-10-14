@@ -19,6 +19,7 @@ const automationJobSchema = new mongoose.Schema(
     lockedAt: Date,
     lockExpiresAt: { type: Date, index: true },
     lockedBy: { type: String, trim: true },
+    leaseToken: { type: String, trim: true },
     completedAt: Date,
     lastError: { type: String, trim: true, maxlength: 500 },
   },

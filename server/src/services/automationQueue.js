@@ -51,9 +51,21 @@ export function createAutomationQueue({
   model = AutomationJob,
   now = () => new Date(),
   workerId = createWorkerId(),
+  createLeaseToken = randomUUID,
 } = {}) {
   const owner = String(workerId).trim() || createWorkerId();
   const currentTime = () => new Date(now());
+  let readinessPromise;
+
+  function ensureReady() {
+    if (!readinessPromise) {
+      readinessPromise =
+        typeof model.init === "function"
+          ? Promise.resolve(model.init())
+          : Promise.resolve();
+    }
+    return readinessPromise;
+  }
 
   function findOneAndUpdate(filter, update, options = {}) {
     return model
@@ -66,6 +78,7 @@ export function createAutomationQueue({
   }
 
   async function enqueue(job) {
+    await ensureReady();
     const timestamp = currentTime();
     const document = {
       type: job.type,
@@ -77,23 +90,55 @@ export function createAutomationQueue({
       attempts: 0,
       maxAttempts: job.maxAttempts ?? 5,
       nextAttemptAt: job.nextAttemptAt ?? timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
     return findOneAndUpdate(
       { dedupeKey: job.dedupeKey },
       { $setOnInsert: document },
-      { upsert: true, setDefaultsOnInsert: true },
+      { upsert: true, setDefaultsOnInsert: true, timestamps: false },
     );
   }
 
   async function claimNext() {
     const timestamp = currentTime();
 
+    await model.updateMany(
+      {
+        status: "processing",
+        lockExpiresAt: { $lte: timestamp },
+        $expr: { $gte: ["$attempts", "$maxAttempts"] },
+      },
+      {
+        $set: {
+          status: "failed",
+          lastError: "Lease expired after maximum attempts",
+        },
+        $unset: {
+          lockedAt: 1,
+          lockExpiresAt: 1,
+          lockedBy: 1,
+          leaseToken: 1,
+          nextAttemptAt: 1,
+          completedAt: 1,
+        },
+      },
+    );
+
     return findOneAndUpdate(
       {
         $or: [
-          { status: "pending", nextAttemptAt: { $lte: timestamp } },
-          { status: "processing", lockExpiresAt: { $lte: timestamp } },
+          {
+            status: "pending",
+            nextAttemptAt: { $lte: timestamp },
+            $expr: { $lt: ["$attempts", "$maxAttempts"] },
+          },
+          {
+            status: "processing",
+            lockExpiresAt: { $lte: timestamp },
+            $expr: { $lt: ["$attempts", "$maxAttempts"] },
+          },
         ],
       },
       {
@@ -102,6 +147,7 @@ export function createAutomationQueue({
           lockedAt: timestamp,
           lockExpiresAt: new Date(timestamp.getTime() + LEASE_MS),
           lockedBy: owner,
+          leaseToken: createLeaseToken(),
         },
         $inc: { attempts: 1 },
       },
@@ -109,17 +155,35 @@ export function createAutomationQueue({
     );
   }
 
-  async function complete(jobId) {
+  async function complete(job) {
+    if (
+      !job?._id ||
+      !Number.isInteger(job.attempts) ||
+      job.attempts < 1 ||
+      typeof job.leaseToken !== "string" ||
+      !job.leaseToken
+    ) {
+      throw new TypeError(
+        "complete requires a claimed job with an attempt number and lease token",
+      );
+    }
     const timestamp = currentTime();
 
     return findOneAndUpdate(
-      { _id: jobId, status: "processing", lockedBy: owner },
+      {
+        _id: job._id,
+        status: "processing",
+        attempts: job.attempts,
+        lockedBy: owner,
+        leaseToken: job.leaseToken,
+      },
       {
         $set: { status: "completed", completedAt: timestamp },
         $unset: {
           lockedAt: 1,
           lockExpiresAt: 1,
           lockedBy: 1,
+          leaseToken: 1,
           nextAttemptAt: 1,
           lastError: 1,
         },
@@ -128,6 +192,17 @@ export function createAutomationQueue({
   }
 
   async function fail(job, error) {
+    if (
+      !job?._id ||
+      !Number.isInteger(job.attempts) ||
+      job.attempts < 1 ||
+      typeof job.leaseToken !== "string" ||
+      !job.leaseToken
+    ) {
+      throw new TypeError(
+        "fail requires a claimed job with an attempt number and lease token",
+      );
+    }
     const timestamp = currentTime();
     const attempts = Math.max(0, Number(job.attempts) || 0);
     const maxAttempts = Math.max(1, Number(job.maxAttempts) || 5);
@@ -137,6 +212,7 @@ export function createAutomationQueue({
       status: "processing",
       attempts,
       lockedBy: owner,
+      leaseToken: job.leaseToken,
     };
 
     if (attempts >= maxAttempts) {
@@ -148,6 +224,7 @@ export function createAutomationQueue({
             lockedAt: 1,
             lockExpiresAt: 1,
             lockedBy: 1,
+            leaseToken: 1,
             nextAttemptAt: 1,
             completedAt: 1,
           },
@@ -169,6 +246,7 @@ export function createAutomationQueue({
           lockedAt: 1,
           lockExpiresAt: 1,
           lockedBy: 1,
+          leaseToken: 1,
           completedAt: 1,
         },
       },
@@ -190,6 +268,7 @@ export function createAutomationQueue({
           lockedAt: 1,
           lockExpiresAt: 1,
           lockedBy: 1,
+          leaseToken: 1,
           completedAt: 1,
           lastError: 1,
         },

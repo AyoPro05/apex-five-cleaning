@@ -31,11 +31,15 @@ test("the default queue exposes the queue lifecycle API", () => {
 
 test("enqueue uses a unique dedupe key without replacing completed work", async () => {
   const calls = [];
+  let initCalls = 0;
   const completedJob = {
     dedupeKey: "quote.client-confirmation:quote-1",
     status: "completed",
   };
   const model = {
+    async init() {
+      initCalls += 1;
+    },
     findOneAndUpdate(filter, update, options) {
       calls.push({ filter, update, options });
       return leanQuery(completedJob);
@@ -51,6 +55,7 @@ test("enqueue uses a unique dedupe key without replacing completed work", async 
   });
 
   assert.equal(result, completedJob);
+  assert.equal(initCalls, 1);
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].filter, {
     dedupeKey: "quote.client-confirmation:quote-1",
@@ -62,7 +67,34 @@ test("enqueue uses a unique dedupe key without replacing completed work", async 
   assert.equal(calls[0].update.$setOnInsert.attempts, 0);
   assert.equal(calls[0].update.$setOnInsert.maxAttempts, 5);
   assert.deepEqual(calls[0].update.$setOnInsert.nextAttemptAt, NOW);
+  assert.deepEqual(calls[0].update.$setOnInsert.createdAt, NOW);
+  assert.deepEqual(calls[0].update.$setOnInsert.updatedAt, NOW);
   assert.equal(calls[0].update.$set, undefined);
+  assert.equal(calls[0].options.timestamps, false);
+});
+
+test("enqueue initializes the dedupe index only once per queue", async () => {
+  let initCalls = 0;
+  const model = {
+    async init() {
+      initCalls += 1;
+    },
+    findOneAndUpdate() {
+      return leanQuery({ _id: "job-1", status: "pending" });
+    },
+  };
+  const queue = createAutomationQueue({ model, now: () => NOW });
+  const job = {
+    type: "quote.client-confirmation",
+    dedupeKey: "quote.client-confirmation:quote-1",
+    entityType: "Quote",
+    entityId: "quote-1",
+  };
+
+  await queue.enqueue(job);
+  await queue.enqueue(job);
+
+  assert.equal(initCalls, 1);
 });
 
 test("retry delay grows exponentially and remains bounded", () => {
@@ -78,8 +110,12 @@ test("retry delay grows exponentially and remains bounded", () => {
 
 test("claimNext atomically reclaims an expired processing lease", async () => {
   const calls = [];
+  const terminalized = [];
   const claimedJob = { _id: "job-1", status: "processing", attempts: 2 };
   const model = {
+    async updateMany(filter, update) {
+      terminalized.push({ filter, update });
+    },
     findOneAndUpdate(filter, update, options) {
       calls.push({ filter, update, options });
       return leanQuery(claimedJob);
@@ -89,16 +125,32 @@ test("claimNext atomically reclaims an expired processing lease", async () => {
     model,
     now: () => NOW,
     workerId: "worker-a",
+    createLeaseToken: () => "lease-a",
   });
 
   const result = await queue.claimNext();
 
   assert.equal(result, claimedJob);
+  assert.equal(terminalized.length, 1);
+  assert.deepEqual(terminalized[0].filter, {
+    status: "processing",
+    lockExpiresAt: { $lte: NOW },
+    $expr: { $gte: ["$attempts", "$maxAttempts"] },
+  });
+  assert.equal(terminalized[0].update.$set.status, "failed");
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].filter, {
     $or: [
-      { status: "pending", nextAttemptAt: { $lte: NOW } },
-      { status: "processing", lockExpiresAt: { $lte: NOW } },
+      {
+        status: "pending",
+        nextAttemptAt: { $lte: NOW },
+        $expr: { $lt: ["$attempts", "$maxAttempts"] },
+      },
+      {
+        status: "processing",
+        lockExpiresAt: { $lte: NOW },
+        $expr: { $lt: ["$attempts", "$maxAttempts"] },
+      },
     ],
   });
   assert.deepEqual(calls[0].update, {
@@ -107,6 +159,7 @@ test("claimNext atomically reclaims an expired processing lease", async () => {
       lockedAt: NOW,
       lockExpiresAt: new Date("2026-10-14T08:05:00.000Z"),
       lockedBy: "worker-a",
+      leaseToken: "lease-a",
     },
     $inc: { attempts: 1 },
   });
@@ -117,7 +170,7 @@ test("claimNext atomically reclaims an expired processing lease", async () => {
   assert.equal(calls[0].options.new, true);
 });
 
-test("complete marks owned processing work completed and clears its lease", async () => {
+test("complete marks only the exact owned claim completed and clears its lease", async () => {
   const calls = [];
   const completedJob = { _id: "job-1", status: "completed" };
   const model = {
@@ -132,13 +185,19 @@ test("complete marks owned processing work completed and clears its lease", asyn
     workerId: "worker-a",
   });
 
-  const result = await queue.complete("job-1");
+  const result = await queue.complete({
+    _id: "job-1",
+    attempts: 2,
+    leaseToken: "lease-a",
+  });
 
   assert.equal(result, completedJob);
   assert.deepEqual(calls[0].filter, {
     _id: "job-1",
     status: "processing",
+    attempts: 2,
     lockedBy: "worker-a",
+    leaseToken: "lease-a",
   });
   assert.deepEqual(calls[0].update.$set, {
     status: "completed",
@@ -148,10 +207,58 @@ test("complete marks owned processing work completed and clears its lease", asyn
     lockedAt: 1,
     lockExpiresAt: 1,
     lockedBy: 1,
+    leaseToken: 1,
     nextAttemptAt: 1,
     lastError: 1,
   });
   assert.equal(calls[0].options.new, true);
+});
+
+test("complete requires a unique claim token to fence stale handlers", async () => {
+  const queue = createAutomationQueue({
+    model: {
+      findOneAndUpdate() {
+        assert.fail("an invalid claim must not reach the database");
+      },
+    },
+  });
+
+  await assert.rejects(
+    queue.complete("job-1"),
+    /claimed job with an attempt number and lease token/i,
+  );
+});
+
+test("a handler from before a retry cycle cannot complete the current lease", async () => {
+  const state = {
+    _id: "job-1",
+    status: "processing",
+    attempts: 1,
+    lockedBy: "worker-a",
+    leaseToken: "lease-current",
+  };
+  const model = {
+    findOneAndUpdate(filter, update) {
+      const matches =
+        filter._id === state._id &&
+        filter.status === state.status &&
+        filter.attempts === state.attempts &&
+        filter.lockedBy === state.lockedBy &&
+        filter.leaseToken === state.leaseToken;
+      return leanQuery(matches ? { ...state, ...update.$set } : null);
+    },
+  };
+  const queue = createAutomationQueue({ model, workerId: "worker-a" });
+
+  const staleResult = await queue.complete({
+    _id: "job-1",
+    attempts: 1,
+    leaseToken: "lease-before-retry",
+  });
+  const currentResult = await queue.complete({ ...state });
+
+  assert.equal(staleResult, null);
+  assert.equal(currentResult.status, "completed");
 });
 
 test("fail schedules retryable work using the claimed attempt", async () => {
@@ -169,7 +276,12 @@ test("fail schedules retryable work using the claimed attempt", async () => {
   });
 
   await queue.fail(
-    { _id: "job-1", attempts: 2, maxAttempts: 5 },
+    {
+      _id: "job-1",
+      attempts: 2,
+      maxAttempts: 5,
+      leaseToken: "lease-a",
+    },
     new Error("provider unavailable"),
   );
 
@@ -178,6 +290,7 @@ test("fail schedules retryable work using the claimed attempt", async () => {
     status: "processing",
     attempts: 2,
     lockedBy: "worker-a",
+    leaseToken: "lease-a",
   });
   assert.equal(calls[0].update.$set.status, "pending");
   assert.equal(calls[0].update.$set.lastError, "provider unavailable");
@@ -188,6 +301,7 @@ test("fail schedules retryable work using the claimed attempt", async () => {
     lockedAt: 1,
     lockExpiresAt: 1,
     lockedBy: 1,
+    leaseToken: 1,
     completedAt: 1,
   });
 });
@@ -203,7 +317,12 @@ test("fail stores at most 500 characters of an error", async () => {
   const queue = createAutomationQueue({ model, now: () => NOW });
 
   await queue.fail(
-    { _id: "job-1", attempts: 1, maxAttempts: 5 },
+    {
+      _id: "job-1",
+      attempts: 1,
+      maxAttempts: 5,
+      leaseToken: "lease-a",
+    },
     new Error("x".repeat(600)),
   );
 
@@ -226,7 +345,12 @@ test("fail marks work terminal after the maximum claimed attempt", async () => {
   });
 
   const result = await queue.fail(
-    { _id: "job-1", attempts: 5, maxAttempts: 5 },
+    {
+      _id: "job-1",
+      attempts: 5,
+      maxAttempts: 5,
+      leaseToken: "lease-a",
+    },
     "permanent failure",
   );
 
@@ -239,6 +363,7 @@ test("fail marks work terminal after the maximum claimed attempt", async () => {
     lockedAt: 1,
     lockExpiresAt: 1,
     lockedBy: 1,
+    leaseToken: 1,
     nextAttemptAt: 1,
     completedAt: 1,
   });
@@ -269,6 +394,7 @@ test("retry resets only failed work for immediate processing", async () => {
       lockedAt: 1,
       lockExpiresAt: 1,
       lockedBy: 1,
+      leaseToken: 1,
       completedAt: 1,
       lastError: 1,
     },
@@ -357,6 +483,7 @@ test("AutomationJob schema defines durable states and queue indexes", async () =
     "failed",
   ]);
   assert.equal(schema.path("maxAttempts").options.max, 10);
+  assert.equal(schema.path("leaseToken").instance, "String");
   assert.equal(schema.path("lastError").options.maxlength, 500);
 
   const indexes = schema.indexes().map(([fields]) => fields);
