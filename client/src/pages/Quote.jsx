@@ -511,8 +511,8 @@ const Quote = () => {
               Quote Request Submitted!
             </h2>
             <p className="text-gray-600 mb-2">
-              Thank you for your request. We've sent a confirmation to your
-              email.
+              Thank you for your request. Your details are safely recorded and your
+              confirmation email should arrive shortly.
             </p>
             <p className="text-gray-600 mb-6">
               Our team will review your details and get back to you within 24

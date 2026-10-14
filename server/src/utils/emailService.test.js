@@ -84,3 +84,16 @@ test("customer emails have contact details only in footer (no duplicates)", () =
     );
   }
 });
+
+test("approved quote email includes the amount and safely escaped customer message", () => {
+  const { html, text } = getQuoteApprovedTemplate("Ada", "AP12345678", {
+    approvedAmount: 125.5,
+    customerMessage: "Please review <script>alert(1)</script> & reply.",
+  });
+
+  assert.match(html, /£125\.50/);
+  assert.match(text, /£125\.50/);
+  assert.match(html, /Please review &lt;script&gt;alert\(1\)&lt;\/script&gt; &amp; reply\./);
+  assert.match(text, /Please review <script>alert\(1\)<\/script> & reply\./);
+  assert.doesNotMatch(html, /<script>/);
+});

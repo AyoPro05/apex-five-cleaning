@@ -17,6 +17,12 @@ const quoteSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
     },
+    idempotencyRecordId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "IdempotencyRecord",
+      unique: true,
+      sparse: true,
+    },
 
     // Property Details
     propertyType: {
@@ -147,6 +153,18 @@ const quoteSchema = new mongoose.Schema(
     adminNotes: {
       type: String,
       trim: true,
+    },
+
+    customerMessage: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: "",
+    },
+
+    responseVersion: {
+      type: Number,
+      min: 1,
     },
 
     // Payment (set when admin converts - allows guest pay online)

@@ -97,6 +97,7 @@ const staffSchema = new mongoose.Schema(
 );
 
 staffSchema.index({ firstName: 1, lastName: 1 });
+staffSchema.index({ status: 1, role: 1, lastName: 1, firstName: 1 });
 
 staffSchema.virtual('fullName').get(function fullName() {
   return `${this.firstName || ''} ${this.lastName || ''}`.trim();

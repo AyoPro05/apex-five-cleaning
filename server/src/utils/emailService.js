@@ -572,7 +572,7 @@ export const sendClientConfirmationEmail = async (
  * QUOTE APPROVED - CREATE ACCOUNT INVITE
  * Sent when admin sets quote status to "converted"
  */
-export const getQuoteApprovedTemplate = (firstName, quoteId) => {
+export const getQuoteApprovedTemplate = (firstName, quoteId, options = {}) => {
   const brand = getBrandConfig();
   const clientUrl = (process.env.CLIENT_URL || brand.website).replace(
     /\/$/,
@@ -581,6 +581,18 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
   const signupUrl = `${clientUrl}/account?signup=1`;
   const safeName = escapeHtml(firstName);
   const safeQuoteId = escapeHtml(quoteId);
+  const amount = Number(options.approvedAmount);
+  const amountDisplay = Number.isFinite(amount) && amount > 0 ? `£${amount.toFixed(2)}` : "";
+  const customerMessage = String(options.customerMessage || "").trim();
+  const safeCustomerMessage = escapeHtml(customerMessage).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>");
+  const responseHtml = [
+    amountDisplay ? `<p><strong>Approved amount:</strong> ${escapeHtml(amountDisplay)}</p>` : "",
+    safeCustomerMessage ? `<div style="margin: 20px 0; padding: 16px; background: #f9fafb; border-left: 3px solid #0d9488;"><p><strong>Message from our team</strong></p><p>${safeCustomerMessage}</p></div>` : "",
+  ].filter(Boolean).join("");
+  const responseText = [
+    amountDisplay ? `Approved amount: ${amountDisplay}` : "",
+    customerMessage ? `Message from our team:\n${customerMessage}` : "",
+  ].filter(Boolean).join("\n\n");
 
   return {
     subject: `✓ Your Quote Was Approved – Create Your Account | ${brand.companyName}`,
@@ -596,6 +608,7 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
             <div class="email-content">
               <p>Hi ${safeName},</p>
               <p>Great news! Your quote request has been approved by our team. We're ready to help you with your cleaning needs.</p>
+              ${responseHtml}
               <p><strong>Create your free account</strong> to:</p>
               <ul>
                 <li>View and manage your quote</li>
@@ -614,13 +627,13 @@ export const getQuoteApprovedTemplate = (firstName, quoteId) => {
         </body>
       </html>
     `,
-    text: `Hi ${firstName},\n\nYour quote was approved! Create your account to manage your booking: ${signupUrl}\n\nQuote ref: ${quoteId}\n\nContact: ${brand.email} | ${brand.phone}\n\n${brand.companyName}`,
+    text: `Hi ${firstName},\n\nYour quote was approved! Create your account to manage your booking: ${signupUrl}\n\n${responseText ? `${responseText}\n\n` : ""}Quote ref: ${quoteId}\n\nContact: ${brand.email} | ${brand.phone}\n\n${brand.companyName}`,
   };
 };
 
-export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId) => {
+export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId, options = {}) => {
   initializeEmailProvider();
-  const template = getQuoteApprovedTemplate(firstName, quoteId);
+  const template = getQuoteApprovedTemplate(firstName, quoteId, options);
   const senderEmail = getSenderEmail();
   const senderName = getSenderName();
 

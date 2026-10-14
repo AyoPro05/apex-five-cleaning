@@ -7,11 +7,10 @@ import {
   chatMessageRateLimiter,
 } from "../middleware/rateLimiter.js";
 import { sanitizeEmail, sanitizePhoneNumber } from "../utils/validation.js";
-import { notifyHotChatLead } from "../utils/leadWebhook.js";
-import { idempotency } from "../middleware/idempotency.js";
-import { emitEvent } from "../utils/eventBus.js";
 import { assessSubmissionRisk } from "../utils/suspiciousActivity.js";
-import { notifyAdminAlert } from "../utils/leadWebhook.js";
+import defaultQueue from "../services/automationQueue.js";
+import { drainAutomationJobs } from "../services/automationCycle.js";
+import { queueBackgroundWork } from "../services/backgroundWork.js";
 
 const router = express.Router();
 
@@ -61,7 +60,15 @@ router.post("/message", chatMessageRateLimiter, async (req, res) => {
   });
 });
 
-router.post("/lead", chatLeadRateLimiter, idempotency(), async (req, res) => {
+export function createChatLeadHandler({
+  ChatLeadModel = ChatLead,
+  queue = defaultQueue,
+  assessSubmissionRisk: assessRisk = assessSubmissionRisk,
+  queueBackgroundWork: scheduleBackground = queueBackgroundWork,
+  drainAutomationJobs: drain = drainAutomationJobs,
+  logger = console,
+} = {}) {
+ return async (req, res) => {
   const { error, value } = leadSchema.validate(req.body, {
     abortEarly: false,
     stripUnknown: true,
@@ -80,7 +87,7 @@ router.post("/lead", chatLeadRateLimiter, idempotency(), async (req, res) => {
     const phone = value.phone ? sanitizePhoneNumber(value.phone) : "";
     const postcode = value.postcode ? value.postcode.trim().toUpperCase() : "";
 
-    const risk = await assessSubmissionRisk({
+    const risk = await assessRisk({
       type: "chat_lead",
       ipAddress,
       email,
@@ -88,7 +95,7 @@ router.post("/lead", chatLeadRateLimiter, idempotency(), async (req, res) => {
       postcode,
     });
 
-    const lead = await ChatLead.create({
+    const lead = await ChatLeadModel.create({
       name: value.name,
       email,
       phone,
@@ -103,54 +110,35 @@ router.post("/lead", chatLeadRateLimiter, idempotency(), async (req, res) => {
       suspicionReasons: risk.suspicionReasons,
     });
 
-    setImmediate(() => {
-      notifyHotChatLead({
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        postcode: lead.postcode,
-        serviceType: lead.serviceType,
-        message: lead.message,
-        conversationId: lead.conversationId,
-      }).catch(() => {});
+    const leadId = String(lead._id);
+    const jobs = [
+      { type: "chat-lead.hot-webhook", dedupeKey: `chat-lead.hot-webhook:${leadId}` },
+      { type: "domain.event", dedupeKey: `domain.event:chat-lead.created:${leadId}`, payload: { event: "chat_lead.created", data: { leadId } } },
+      ...(lead.suspectedSpam ? [{ type: "chat-lead.spam-alert", dedupeKey: `chat-lead.spam-alert:${leadId}` }] : []),
+    ];
+    const outcomes = await Promise.allSettled(jobs.map((job) => queue.enqueue({ ...job, entityType: "ChatLead", entityId: leadId })));
+    const failure = outcomes.find((result) => result.status === "rejected");
+    if (failure) throw failure.reason;
 
-      emitEvent("chat_lead.created", {
-        leadId: String(lead._id),
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        postcode: lead.postcode,
-        serviceType: lead.serviceType,
-        status: lead.status,
-        source: lead.source,
-        conversationId: lead.conversationId,
-        suspectedSpam: lead.suspectedSpam,
-        suspicionReasons: lead.suspicionReasons,
-      });
-
-      if (lead.suspectedSpam) {
-        notifyAdminAlert(
-          `Suspected spam chat lead: ${lead.name}`,
-          [
-            `Contact: ${[lead.phone, lead.email].filter(Boolean).join(" · ") || "—"}`,
-            `Reasons: ${lead.suspicionReasons.join(", ")}`,
-          ].join("\n"),
-        ).catch(() => {});
-      }
-    });
-
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      leadId: lead._id,
+      leadId,
       message: "Thanks - our team will follow up shortly.",
     });
+    scheduleBackground(() => drain({ limit: 8 }), {
+      onError: (error) => logger.error("Chat lead automation drain failed:", error),
+    });
+    return;
   } catch (saveErr) {
-    console.error("Chat lead save failed:", saveErr);
+    logger.error("Chat lead save failed:", saveErr);
     return res.status(500).json({
       success: false,
       error: "We could not save your details right now. Please try again.",
     });
   }
-});
+ };
+}
+
+router.post("/lead", chatLeadRateLimiter, createChatLeadHandler());
 
 export default router;

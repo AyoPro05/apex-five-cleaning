@@ -9,7 +9,7 @@ import StaffShift from '../../models/StaffShift.js';
 import ChatLead from '../models/ChatLead.js';
 import Booking from '../../models/Booking.js';
 import { createObjectCsvStringifier } from 'csv-writer';
-import { sendQuoteApprovedEmail, sendTestEmail, isEmailConfigured } from '../utils/emailService.js';
+import { sendTestEmail, isEmailConfigured } from '../utils/emailService.js';
 import { sanitizeQuoteImagesForApi, resolveQuoteImageBuffer } from '../utils/quoteImages.js';
 import {
   adminCookieCsrfMiddleware,
@@ -18,6 +18,17 @@ import {
 } from '../../middleware/auth.js';
 import { strictRateLimiter } from '../middleware/rateLimiter.js';
 import { emitEvent } from '../utils/eventBus.js';
+import defaultQueue from '../services/automationQueue.js';
+import { drainAutomationJobs } from '../services/automationCycle.js';
+import { queueBackgroundWork } from '../services/backgroundWork.js';
+import { quoteWorkflowService } from '../services/quoteWorkflowService.js';
+import {
+  staffCreateSchema,
+  staffUpdateSchema,
+  shiftCreateSchema,
+  shiftUpdateSchema,
+  validatePayload,
+} from '../validation/staffSchemas.js';
 
 const router = express.Router();
 
@@ -36,9 +47,15 @@ const USER_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'email', 'pho
 const QUOTE_SORT_WHITELIST = ['createdAt', 'reference', 'firstName', 'lastName', 'email', 'status', 'approvedAmount'];
 const STAFF_SORT_WHITELIST = ['createdAt', 'firstName', 'lastName', 'role', 'status', 'hourlyRate'];
 const STAFF_ROLES = ['cleaner', 'supervisor', 'admin'];
-const STAFF_EMPLOYMENT_TYPES = ['full-time', 'part-time', 'contractor'];
 const STAFF_STATUSES = ['active', 'inactive', 'suspended'];
 const SHIFT_STATUSES = ['scheduled', 'completed', 'approved', 'paid', 'cancelled'];
+const SHIFT_STATUS_TRANSITIONS = {
+  scheduled: ['completed', 'cancelled'],
+  completed: ['approved', 'cancelled'],
+  approved: ['paid'],
+  paid: [],
+  cancelled: [],
+};
 const CHAT_LEAD_STATUSES = ['new', 'contacted', 'qualified', 'closed'];
 
 /** Escape a string for safe use in RegExp (prevents ReDoS / injection) */
@@ -86,106 +103,94 @@ function getDateRange(query = {}) {
   return { from, to };
 }
 
-function normalizeStaffPayload(body = {}, existing = {}) {
-  const firstName = String(body.firstName ?? existing.firstName ?? '').trim();
-  const lastName = String(body.lastName ?? existing.lastName ?? '').trim();
-  const phone = String(body.phone ?? existing.phone ?? '').trim();
-  const email = String(body.email ?? existing.email ?? '').trim().toLowerCase();
-  const role = STAFF_ROLES.includes(body.role) ? body.role : existing.role || 'cleaner';
-  const employmentType = STAFF_EMPLOYMENT_TYPES.includes(body.employmentType)
-    ? body.employmentType
-    : existing.employmentType || 'part-time';
-  const status = STAFF_STATUSES.includes(body.status) ? body.status : existing.status || 'active';
-  const hourlyRate = parseMoney(body.hourlyRate ?? existing.hourlyRate, existing.hourlyRate ?? 0);
-  const serviceAreas = Array.isArray(body.serviceAreas)
-    ? body.serviceAreas.map((area) => String(area).trim()).filter(Boolean).slice(0, 20)
-    : existing.serviceAreas || [];
-  const availability = Array.isArray(body.availability)
-    ? body.availability
-        .filter((slot) => slot && slot.day)
-        .map((slot) => ({
-          day: String(slot.day).toLowerCase(),
-          startTime: String(slot.startTime || '').trim(),
-          endTime: String(slot.endTime || '').trim(),
-        }))
-        .slice(0, 14)
-    : existing.availability || [];
-
-  return {
-    firstName,
-    lastName,
-    email: email || undefined,
-    phone,
-    role,
-    employmentType,
-    hourlyRate,
-    serviceAreas,
-    availability,
-    emergencyContactName: String(body.emergencyContactName ?? existing.emergencyContactName ?? '').trim(),
-    emergencyContactPhone: String(body.emergencyContactPhone ?? existing.emergencyContactPhone ?? '').trim(),
-    status,
-    notes: String(body.notes ?? existing.notes ?? '').trim(),
-  };
-}
-
 /** Require valid admin JWT (short-lived). Use after exchanging static ADMIN_TOKEN via POST /api/admin/login */
 const requireAdmin = [adminCookieCsrfMiddleware, authMiddleware, adminMiddleware];
 
-const SERVICE_NAMES = {
-  residential: 'Residential Cleaning',
-  'end-of-tenancy': 'End of Tenancy Cleaning',
-  airbnb: 'Airbnb Turnover Cleaning',
-  commercial: 'Commercial Cleaning',
-};
+function quoteDelivery(jobs) {
+  const job = jobs.find((item) => item.type === 'quote.approved-response');
+  return {
+    approvedResponse: job
+      ? { jobId: String(job._id), status: job.status, attempts: job.attempts }
+      : null,
+  };
+}
 
-/**
- * Create a draft Booking from a converted Quote. Idempotent: never creates a
- * second draft for the same quote.
- *
- * - status: 'draft' (admin schedules date/time before moving to 'pending')
- * - userId: linked if a User with the quote's email exists, otherwise null
- *   (a guest snapshot is stored on the booking and is linked at register time)
- * - basePrice/totalPrice: seeded from quote.approvedAmount when present
- */
-async function ensureDraftBookingForQuote(quote) {
-  if (!quote || !quote._id) return null;
-  if (quote.linkedBookingId) {
-    return Booking.findById(quote.linkedBookingId);
-  }
-  const existing = await Booking.findOne({ quoteId: quote._id });
-  if (existing) {
-    await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: existing._id } });
-    return existing;
-  }
-  const user = quote.email
-    ? await User.findOne({ email: String(quote.email).toLowerCase() }).select('_id').lean()
-    : null;
-  const amount = Number(quote.approvedAmount) > 0 ? Number(quote.approvedAmount) : 0;
-  const draft = await Booking.create({
-    userId: user?._id || undefined,
-    quoteId: quote._id,
-    quoteReference: quote.reference,
-    customerEmail: quote.email,
-    customerFirstName: quote.firstName,
-    customerLastName: quote.lastName,
-    customerPhone: quote.phone,
-    serviceId: ['residential', 'end-of-tenancy', 'airbnb', 'commercial'].includes(quote.serviceType)
-      ? quote.serviceType
-      : undefined,
-    serviceName: SERVICE_NAMES[quote.serviceType] || quote.serviceType,
-    address: {
-      street: quote.address,
-      postCode: quote.postcode,
-      country: 'UK',
-    },
-    notes: quote.additionalNotes,
-    basePrice: amount,
-    totalPrice: amount,
-    status: 'draft',
-    paymentStatus: 'pending',
+async function getQuoteDelivery(queue, quoteId) {
+  return quoteDelivery(await queue.getEntityJobs('Quote', String(quoteId)));
+}
+
+function scheduleQuoteDrain(schedule, drain, logger) {
+  schedule(() => drain({ limit: 8 }), {
+    onError: (error) => logger.error('Quote automation drain failed:', error),
   });
-  await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: draft._id } });
-  return draft;
+}
+
+export function createQuoteDetailHandler({ QuoteModel = Quote, queue = defaultQueue, logger = console } = {}) {
+  return async (req, res) => {
+    try {
+      const quote = await QuoteModel.findOne({ _id: req.params.id, isDeleted: { $ne: true } });
+      if (!quote) return res.status(404).json({ success: false, error: 'Quote not found' });
+      return res.json({
+        success: true,
+        quote: sanitizeQuoteImagesForApi(quote),
+        delivery: await getQuoteDelivery(queue, quote._id),
+      });
+    } catch (error) {
+      logger.error('Error fetching quote:', error);
+      return res.status(500).json({ success: false, error: 'Error fetching quote' });
+    }
+  };
+}
+
+export function createQuoteUpdateHandler({
+  workflow = quoteWorkflowService,
+  queue = defaultQueue,
+  scheduleBackgroundWork = queueBackgroundWork,
+  drainAutomationJobs: drain = drainAutomationJobs,
+  logger = console,
+} = {}) {
+  return async (req, res) => {
+    try {
+      const result = await workflow.updateQuote({ quoteId: req.params.id, input: req.body });
+      if (result.responseJob) scheduleQuoteDrain(scheduleBackgroundWork, drain, logger);
+      const jobs = result.responseJob
+        ? [result.responseJob]
+        : await queue.getEntityJobs('Quote', String(result.quote._id));
+      return res.json({
+        success: true,
+        message: 'Quote updated successfully',
+        quote: sanitizeQuoteImagesForApi(result.quote),
+        delivery: quoteDelivery(jobs),
+      });
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      if (status >= 500) logger.error('Error updating quote:', error);
+      return res.status(status).json({
+        success: false,
+        error: error.message || 'Error updating quote',
+        ...(error.errors ? { errors: error.errors } : {}),
+      });
+    }
+  };
+}
+
+export function createAutomationRetryHandler({
+  queue = defaultQueue,
+  scheduleBackgroundWork = queueBackgroundWork,
+  drainAutomationJobs: drain = drainAutomationJobs,
+  logger = console,
+} = {}) {
+  return async (req, res) => {
+    try {
+      const job = await queue.retry(req.params.jobId);
+      if (!job) return res.status(409).json({ success: false, error: 'Only failed automation jobs can be retried' });
+      scheduleQuoteDrain(scheduleBackgroundWork, drain, logger);
+      return res.json({ success: true, job: { jobId: String(job._id), status: job.status } });
+    } catch (error) {
+      logger.error('Error retrying automation job:', error);
+      return res.status(500).json({ success: false, error: 'Error retrying automation job' });
+    }
+  };
 }
 
 async function purgeExpiredDeletedQuotes() {
@@ -467,31 +472,7 @@ router.get('/quotes/:id/images/:index', requireAdmin, async (req, res) => {
 });
 
 // Get single quote details
-router.get('/quotes/:id', requireAdmin, async (req, res) => {
-  try {
-    const quote = await Quote.findOne({
-      _id: req.params.id,
-      isDeleted: { $ne: true },
-    });
-    
-    if (!quote) {
-      return res.status(404).json({
-        success: false,
-        error: 'Quote not found'
-      });
-    }
-    
-    return res.json({
-      success: true,
-      quote: sanitizeQuoteImagesForApi(quote),
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Error fetching quote'
-    });
-  }
-});
+router.get('/quotes/:id', requireAdmin, createQuoteDetailHandler());
 
 // Send test email (verify IONOS / SMTP from production)
 router.post('/test-email', requireAdmin, strictRateLimiter, async (req, res) => {
@@ -519,103 +500,9 @@ router.post('/test-email', requireAdmin, strictRateLimiter, async (req, res) => 
   }
 });
 
-// Update quote status and notes
-router.patch('/quotes/:id', requireAdmin, async (req, res) => {
-  try {
-    const { status, adminNotes, approvedAmount, clearSuspicion } = req.body;
-    
-    if (status && !['new', 'contacted', 'converted', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid status'
-      });
-    }
-    
-    const existingQuote = await Quote.findOne({
-      _id: req.params.id,
-      isDeleted: { $ne: true },
-    });
-    if (!existingQuote) {
-      return res.status(404).json({
-        success: false,
-        error: 'Quote not found'
-      });
-    }
-    
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
-    if (approvedAmount !== undefined) updateData.approvedAmount = Number(approvedAmount) || 0;
-    if (clearSuspicion === true) {
-      updateData.suspectedSpam = false;
-      updateData.suspicionReasons = [];
-      updateData.suspicionReviewedAt = new Date();
-    }
-    // Stamp convertedAt the first time a quote moves into "converted" — used by the
-    // scheduler to send a payment reminder 48h later if still unpaid.
-    if (status === 'converted' && existingQuote.status !== 'converted') {
-      updateData.convertedAt = new Date();
-      // Clear any prior payment reminder so a fresh approval triggers a fresh cycle
-      updateData.paymentReminderSentAt = undefined;
-    }
+router.post('/automation/jobs/:jobId/retry', requireAdmin, createAutomationRetryHandler());
 
-    const quote = await Quote.findOneAndUpdate(
-      { _id: req.params.id, isDeleted: { $ne: true } },
-      updateData,
-      { new: true }
-    );
-    
-    // When status changes to "converted", send "create your account" email
-    // and create a draft booking record so the job appears in the ops pipeline.
-    if (status === 'converted' && existingQuote.status !== 'converted') {
-      try {
-        await sendQuoteApprovedEmail(
-          quote.email,
-          quote.firstName,
-          quote.reference || quote._id.toString()
-        );
-      } catch (emailErr) {
-        console.warn('Quote approved email failed:', emailErr.message);
-      }
-      try {
-        const draft = await ensureDraftBookingForQuote(quote);
-        if (draft) {
-          quote.linkedBookingId = draft._id;
-          emitEvent('booking.draft_created', {
-            bookingId: String(draft._id),
-            quoteId: String(quote._id),
-            quoteReference: quote.reference,
-            status: draft.status,
-            customerEmail: quote.email,
-            serviceType: quote.serviceType,
-            totalPrice: draft.totalPrice,
-          });
-        }
-      } catch (bookingErr) {
-        console.warn('Draft booking creation failed:', bookingErr.message);
-      }
-      emitEvent('quote.converted', {
-        quoteId: String(quote._id),
-        reference: quote.reference,
-        email: quote.email,
-        serviceType: quote.serviceType,
-        approvedAmount: quote.approvedAmount,
-        previousStatus: existingQuote.status,
-      });
-    }
-    
-    return res.json({
-      success: true,
-      message: 'Quote updated successfully',
-      quote
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Error updating quote'
-    });
-  }
-});
+router.patch('/quotes/:id', requireAdmin, createQuoteUpdateHandler());
 
 /**
  * DELETE /api/admin/quotes/:id
@@ -873,11 +760,16 @@ router.get('/staff', requireAdmin, async (req, res) => {
   try {
     const search = String(req.query.search || '').trim();
     const status = STAFF_STATUSES.includes(req.query.status) ? req.query.status : 'all';
+    const role = STAFF_ROLES.includes(req.query.role) ? req.query.role : 'all';
     const sortBy = STAFF_SORT_WHITELIST.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 100));
+    const skip = (page - 1) * limit;
     const filter = {};
 
     if (status !== 'all') filter.status = status;
+    if (role !== 'all') filter.role = role;
     if (search) {
       const regex = new RegExp(escapeRegex(search), 'i');
       filter.$or = [
@@ -889,8 +781,11 @@ router.get('/staff', requireAdmin, async (req, res) => {
       ];
     }
 
-    const staff = await Staff.find(filter).sort({ [sortBy]: sortOrder }).lean({ virtuals: true });
-    return res.json({ success: true, data: staff });
+    const [total, staff] = await Promise.all([
+      Staff.countDocuments(filter),
+      Staff.find(filter).sort({ [sortBy]: sortOrder, _id: sortOrder }).skip(skip).limit(limit).lean({ virtuals: true }),
+    ]);
+    return res.json({ success: true, staff, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
   } catch (error) {
     console.error('Error fetching staff:', error);
     return res.status(500).json({ success: false, error: 'Error fetching staff' });
@@ -899,43 +794,58 @@ router.get('/staff', requireAdmin, async (req, res) => {
 
 router.post('/staff', requireAdmin, async (req, res) => {
   try {
-    const payload = normalizeStaffPayload(req.body);
-    if (!payload.firstName || !payload.lastName || !payload.phone) {
-      return res.status(400).json({
-        success: false,
-        error: 'First name, last name, and phone are required',
-      });
+    const { value: payload, errors } = validatePayload(staffCreateSchema, req.body);
+    if (errors) {
+      return res.status(400).json({ success: false, error: 'Please correct the highlighted fields', errors });
     }
     const staff = await Staff.create(payload);
     return res.status(201).json({ success: true, staff });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ success: false, error: 'A staff member with this email already exists' });
+      return res.status(409).json({ success: false, error: 'A staff member with this email already exists', errors: { email: 'A staff member with this email already exists' } });
     }
     console.error('Error creating staff:', error);
     return res.status(500).json({ success: false, error: 'Error creating staff member' });
   }
 });
 
+router.get('/staff/options', requireAdmin, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20, 50));
+    const filter = { status: 'active' };
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), 'i');
+      filter.$or = [{ firstName: { $regex: regex } }, { lastName: { $regex: regex } }];
+    }
+    const staff = await Staff.find(filter)
+      .select('_id firstName lastName role hourlyRate status')
+      .sort({ lastName: 1, firstName: 1, _id: 1 })
+      .limit(limit)
+      .lean();
+    return res.json({ success: true, staff });
+  } catch (error) {
+    console.error('Error fetching staff options:', error);
+    return res.status(500).json({ success: false, error: 'Error fetching staff options' });
+  }
+});
+
 router.patch('/staff/:id', requireAdmin, async (req, res) => {
   try {
+    const { value: payload, errors } = validatePayload(staffUpdateSchema, req.body);
+    if (errors) {
+      return res.status(400).json({ success: false, error: 'Please correct the highlighted fields', errors });
+    }
     const existing = await Staff.findById(req.params.id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Staff member not found' });
-    }
-    const payload = normalizeStaffPayload(req.body, existing.toObject());
-    if (!payload.firstName || !payload.lastName || !payload.phone) {
-      return res.status(400).json({
-        success: false,
-        error: 'First name, last name, and phone are required',
-      });
     }
     Object.assign(existing, payload);
     await existing.save();
     return res.json({ success: true, staff: existing });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ success: false, error: 'A staff member with this email already exists' });
+      return res.status(409).json({ success: false, error: 'A staff member with this email already exists', errors: { email: 'A staff member with this email already exists' } });
     }
     console.error('Error updating staff:', error);
     return res.status(500).json({ success: false, error: 'Error updating staff member' });
@@ -964,7 +874,11 @@ router.get('/staff/shifts', requireAdmin, async (req, res) => {
 
 router.post('/staff/shifts', requireAdmin, async (req, res) => {
   try {
-    const staff = await Staff.findById(req.body.staffId).lean();
+    const { value: payload, errors } = validatePayload(shiftCreateSchema, req.body);
+    if (errors) {
+      return res.status(400).json({ success: false, error: 'Please correct the highlighted fields', errors });
+    }
+    const staff = await Staff.findById(payload.staffId).lean();
     if (!staff) {
       return res.status(404).json({ success: false, error: 'Staff member not found' });
     }
@@ -972,13 +886,12 @@ router.post('/staff/shifts', requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Only active staff can be assigned shifts' });
     }
 
-    const date = parseDateOnly(req.body.date);
-    const startTime = String(req.body.startTime || '').trim();
-    const endTime = String(req.body.endTime || '').trim();
-    const breakMinutes = Math.max(0, Number(req.body.breakMinutes) || 0);
+    const date = parseDateOnly(payload.date);
+    const { startTime, endTime } = payload;
+    const breakMinutes = payload.breakMinutes ?? 0;
     const hoursWorked = calculateShiftHours(startTime, endTime, breakMinutes);
-    const status = SHIFT_STATUSES.includes(req.body.status) ? req.body.status : 'scheduled';
-    const hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, staff.hourlyRate || 0);
+    const status = payload.status ?? 'scheduled';
+    const hourlyRateSnapshot = payload.hourlyRateSnapshot ?? staff.hourlyRate ?? 0;
 
     if (!date || !hoursWorked) {
       return res.status(400).json({
@@ -989,7 +902,7 @@ router.post('/staff/shifts', requireAdmin, async (req, res) => {
 
     const shift = await StaffShift.create({
       staffId: staff._id,
-      quoteId: req.body.quoteId || undefined,
+      quoteId: payload.quoteId || undefined,
       date,
       startTime,
       endTime,
@@ -997,8 +910,8 @@ router.post('/staff/shifts', requireAdmin, async (req, res) => {
       hoursWorked,
       hourlyRateSnapshot,
       payAmount: Math.round(hoursWorked * hourlyRateSnapshot * 100) / 100,
-      location: String(req.body.location || '').trim(),
-      notes: String(req.body.notes || '').trim(),
+      location: payload.location ?? '',
+      notes: payload.notes ?? '',
       status,
       approvedAt: ['approved', 'paid'].includes(status) ? new Date() : undefined,
       paidAt: status === 'paid' ? new Date() : undefined,
@@ -1015,38 +928,50 @@ router.post('/staff/shifts', requireAdmin, async (req, res) => {
 
 router.patch('/staff/shifts/:id', requireAdmin, async (req, res) => {
   try {
+    const { value: payload, errors } = validatePayload(shiftUpdateSchema, req.body);
+    if (errors) {
+      return res.status(400).json({ success: false, error: 'Please correct the highlighted fields', errors });
+    }
     const shift = await StaffShift.findById(req.params.id);
     if (!shift) {
       return res.status(404).json({ success: false, error: 'Shift not found' });
     }
-    if (shift.status === 'paid' && req.body.status !== 'paid') {
-      return res.status(400).json({ success: false, error: 'Paid shifts cannot be moved back to unpaid status' });
+    if (shift.status === 'paid') {
+      if (payload.status === 'paid' && Object.keys(payload).length === 1) {
+        return res.json({ success: true, shift });
+      }
+      return res.status(400).json({ success: false, error: 'Paid shifts cannot be changed' });
+    }
+    if (
+      payload.status !== undefined &&
+      payload.status !== shift.status &&
+      !SHIFT_STATUS_TRANSITIONS[shift.status]?.includes(payload.status)
+    ) {
+      return res.status(400).json({ success: false, error: 'Shift status transition is not allowed' });
     }
 
-    const startTime = req.body.startTime !== undefined ? String(req.body.startTime).trim() : shift.startTime;
-    const endTime = req.body.endTime !== undefined ? String(req.body.endTime).trim() : shift.endTime;
-    const breakMinutes = req.body.breakMinutes !== undefined
-      ? Math.max(0, Number(req.body.breakMinutes) || 0)
-      : shift.breakMinutes;
+    const startTime = payload.startTime ?? shift.startTime;
+    const endTime = payload.endTime ?? shift.endTime;
+    const breakMinutes = payload.breakMinutes ?? shift.breakMinutes;
     const hoursWorked = calculateShiftHours(startTime, endTime, breakMinutes);
     if (!hoursWorked) {
-      return res.status(400).json({ success: false, error: 'Shift end time must be after start time and break' });
+      return res.status(400).json({ success: false, error: 'Please correct the highlighted fields', errors: { endTime: 'Shift end time must be after start time and break' } });
     }
 
-    if (req.body.date !== undefined) {
-      const date = parseDateOnly(req.body.date);
+    if (payload.date !== undefined) {
+      const date = parseDateOnly(payload.date);
       if (!date) return res.status(400).json({ success: false, error: 'Valid shift date is required' });
       shift.date = date;
     }
-    if (req.body.staffId !== undefined && String(req.body.staffId) !== String(shift.staffId)) {
-      const staff = await Staff.findById(req.body.staffId).lean();
+    if (payload.staffId !== undefined && String(payload.staffId) !== String(shift.staffId)) {
+      const staff = await Staff.findById(payload.staffId).lean();
       if (!staff || staff.status !== 'active') {
         return res.status(400).json({ success: false, error: 'Replacement staff member must be active' });
       }
       shift.staffId = staff._id;
-      shift.hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, staff.hourlyRate || 0);
-    } else if (req.body.hourlyRateSnapshot !== undefined) {
-      shift.hourlyRateSnapshot = parseMoney(req.body.hourlyRateSnapshot, shift.hourlyRateSnapshot);
+      shift.hourlyRateSnapshot = payload.hourlyRateSnapshot ?? staff.hourlyRate ?? 0;
+    } else if (payload.hourlyRateSnapshot !== undefined) {
+      shift.hourlyRateSnapshot = payload.hourlyRateSnapshot;
     }
 
     shift.startTime = startTime;
@@ -1054,19 +979,16 @@ router.patch('/staff/shifts/:id', requireAdmin, async (req, res) => {
     shift.breakMinutes = breakMinutes;
     shift.hoursWorked = hoursWorked;
     shift.payAmount = Math.round(hoursWorked * shift.hourlyRateSnapshot * 100) / 100;
-    if (req.body.quoteId !== undefined) shift.quoteId = req.body.quoteId || undefined;
-    if (req.body.location !== undefined) shift.location = String(req.body.location || '').trim();
-    if (req.body.notes !== undefined) shift.notes = String(req.body.notes || '').trim();
+    if (payload.quoteId !== undefined) shift.quoteId = payload.quoteId || undefined;
+    if (payload.location !== undefined) shift.location = payload.location;
+    if (payload.notes !== undefined) shift.notes = payload.notes;
 
-    if (req.body.status !== undefined) {
-      if (!SHIFT_STATUSES.includes(req.body.status)) {
-        return res.status(400).json({ success: false, error: 'Invalid shift status' });
-      }
-      shift.status = req.body.status;
-      if (['approved', 'paid'].includes(req.body.status) && !shift.approvedAt) {
+    if (payload.status !== undefined) {
+      shift.status = payload.status;
+      if (['approved', 'paid'].includes(payload.status) && !shift.approvedAt) {
         shift.approvedAt = new Date();
       }
-      if (req.body.status === 'paid' && !shift.paidAt) {
+      if (payload.status === 'paid' && !shift.paidAt) {
         shift.paidAt = new Date();
       }
     }

@@ -14,20 +14,13 @@
 import crypto from "crypto";
 import Quote from "../models/Quote.js";
 import ChatLead from "../models/ChatLead.js";
-import Booking from "../../models/Booking.js";
 import QuotePayment from "../../models/QuotePayment.js";
-import { sendQuoteApprovedEmail } from "./emailService.js";
-import { emitEvent } from "./eventBus.js";
+import { quoteWorkflowService } from "../services/quoteWorkflowService.js";
+import { queueBackgroundWork } from "../services/backgroundWork.js";
+import { drainAutomationJobs as defaultDrainAutomationJobs } from "../services/automationCycle.js";
 
 const QUOTE_STATUSES = ["new", "contacted", "converted", "rejected"];
 const LEAD_STATUSES = ["new", "contacted", "qualified", "closed"];
-
-const SERVICE_NAMES = {
-  residential: "Residential Cleaning",
-  "end-of-tenancy": "End of Tenancy Cleaning",
-  airbnb: "Airbnb Turnover Cleaning",
-  commercial: "Commercial Cleaning",
-};
 
 function formatSlack(text) {
   return { response_type: "ephemeral", text: String(text).slice(0, 3000) };
@@ -37,56 +30,25 @@ function formatInChannel(text) {
   return { response_type: "in_channel", text: String(text).slice(0, 3000) };
 }
 
-async function findQuoteByRef(ref) {
+async function findQuoteByRef(ref, QuoteModel = Quote) {
   const trimmed = String(ref || "").trim().toUpperCase();
   if (/^AP\d{8}$/.test(trimmed)) {
-    return Quote.findOne({ reference: trimmed, isDeleted: { $ne: true } });
+    return QuoteModel.findOne({ reference: trimmed, isDeleted: { $ne: true } });
   }
   if (/^[a-f0-9]{24}$/i.test(trimmed)) {
-    return Quote.findOne({ _id: trimmed, isDeleted: { $ne: true } });
+    return QuoteModel.findOne({ _id: trimmed, isDeleted: { $ne: true } });
   }
   return null;
 }
 
-async function ensureDraftBookingForQuote(quote) {
-  if (!quote?._id) return null;
-  if (quote.linkedBookingId) {
-    return Booking.findById(quote.linkedBookingId);
-  }
-  const existing = await Booking.findOne({ quoteId: quote._id });
-  if (existing) {
-    await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: existing._id } });
-    return existing;
-  }
-
-  const amount = Number(quote.approvedAmount) > 0 ? Number(quote.approvedAmount) : 0;
-  const draft = await Booking.create({
-    quoteId: quote._id,
-    quoteReference: quote.reference,
-    customerEmail: quote.email,
-    customerFirstName: quote.firstName,
-    customerLastName: quote.lastName,
-    customerPhone: quote.phone,
-    serviceId: ["residential", "end-of-tenancy", "airbnb", "commercial"].includes(quote.serviceType)
-      ? quote.serviceType
-      : undefined,
-    serviceName: SERVICE_NAMES[quote.serviceType] || quote.serviceType,
-    address: {
-      street: quote.address,
-      postCode: quote.postcode,
-      country: "UK",
-    },
-    notes: quote.additionalNotes,
-    basePrice: amount,
-    totalPrice: amount,
-    status: "draft",
-    paymentStatus: "pending",
-  });
-  await Quote.updateOne({ _id: quote._id }, { $set: { linkedBookingId: draft._id } });
-  return draft;
-}
-
-async function handleQuoteCommand(args) {
+async function handleQuoteCommand(args, dependencies = {}) {
+  const {
+    QuoteModel = Quote,
+    workflow = quoteWorkflowService,
+    scheduleBackgroundWork = queueBackgroundWork,
+    drainAutomationJobs = defaultDrainAutomationJobs,
+    logger = console,
+  } = dependencies;
   const [ref, status, amountRaw] = args;
   if (!ref || !status) {
     return formatSlack("Usage: `quote AP12345678 contacted|converted|rejected|new [amount]`");
@@ -95,61 +57,26 @@ async function handleQuoteCommand(args) {
     return formatSlack(`Invalid quote status. Use: ${QUOTE_STATUSES.join(", ")}`);
   }
 
-  const quote = await findQuoteByRef(ref);
+  const quote = await findQuoteByRef(ref, QuoteModel);
   if (!quote) {
     return formatSlack(`Quote not found: ${ref}`);
   }
 
   const previousStatus = quote.status;
-  const update = { status };
+  const input = { status };
   if (status === "converted") {
-    const amount = Number(amountRaw);
-    if (Number.isFinite(amount) && amount > 0) {
-      update.approvedAmount = Math.round(amount * 100) / 100;
+    const amount = amountRaw === undefined ? Number(quote.approvedAmount) : Number(amountRaw);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) {
+      return formatSlack("Provide a valid amount from £0.01 to £1,000,000 to convert a quote.");
     }
-    if (previousStatus !== "converted") {
-      update.convertedAt = new Date();
-      update.paymentReminderSentAt = undefined;
-    }
+    input.approvedAmount = Math.round(amount * 100) / 100;
   }
 
-  const updated = await Quote.findOneAndUpdate(
-    { _id: quote._id, isDeleted: { $ne: true } },
-    update,
-    { new: true },
-  );
-
-  if (status === "converted" && previousStatus !== "converted") {
-    try {
-      await sendQuoteApprovedEmail(
-        updated.email,
-        updated.firstName,
-        updated.reference || String(updated._id),
-      );
-    } catch (err) {
-      console.warn("ChatOps quote approved email failed:", err.message);
-    }
-    try {
-      const draft = await ensureDraftBookingForQuote(updated);
-      if (draft) {
-        emitEvent("booking.draft_created", {
-          bookingId: String(draft._id),
-          quoteReference: updated.reference,
-          status: draft.status,
-          customerEmail: updated.email,
-          serviceType: updated.serviceType,
-        });
-      }
-    } catch (err) {
-      console.warn("ChatOps draft booking failed:", err.message);
-    }
-    emitEvent("quote.converted", {
-      quoteId: String(updated._id),
-      reference: updated.reference,
-      email: updated.email,
-      serviceType: updated.serviceType,
-      approvedAmount: updated.approvedAmount,
-      previousStatus,
+  const result = await workflow.updateQuote({ quoteId: quote._id, input });
+  const updated = result.quote;
+  if (result.responseJob) {
+    scheduleBackgroundWork(() => drainAutomationJobs({ limit: 8 }), {
+      onError: (error) => logger.error("ChatOps quote automation drain failed:", error),
     });
   }
 
@@ -208,7 +135,7 @@ function handleHelpCommand() {
     [
       "*Apex Five ChatOps*",
       "`quote AP12345678 contacted` — update quote status",
-      "`quote AP12345678 converted 150` — approve quote with amount",
+      "`quote AP12345678 converted <amount>` — approve quote with amount",
       "`lead <id> contacted` — update chat lead status",
       "`stats` — 24h snapshot",
       "`help` — this message",
@@ -220,7 +147,7 @@ function handleHelpCommand() {
  * @param {string} rawText
  * @returns {Promise<{ response_type: string, text: string }>}
  */
-export async function executeChatOpsCommand(rawText) {
+export async function executeChatOpsCommand(rawText, dependencies = {}) {
   const text = String(rawText || "").trim().replace(/^\//, "");
   if (!text) return handleHelpCommand();
 
@@ -230,7 +157,7 @@ export async function executeChatOpsCommand(rawText) {
   switch (command) {
     case "quote":
     case "admin-quote":
-      return handleQuoteCommand(parts.slice(1));
+      return handleQuoteCommand(parts.slice(1), dependencies);
     case "lead":
     case "chat-lead":
       return handleLeadCommand(parts.slice(1));

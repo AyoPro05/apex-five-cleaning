@@ -6,6 +6,9 @@ import { MemoryRouter } from "react-router-dom";
 
 import Quote from "./Quote";
 import { setQuotePrefill } from "../utils/quotePrefill";
+import { post } from "../utils/apiClient";
+
+vi.mock("../utils/apiClient", () => ({ post: vi.fn() }));
 
 beforeEach(() => {
   globalThis.IntersectionObserver = class {
@@ -38,6 +41,17 @@ function renderQuote() {
 }
 
 describe("Quote", () => {
+  it("confirms durable receipt while the confirmation email is still queued", async () => {
+    post.mockResolvedValueOnce({ success: true, reference: "AP12345678" });
+    setQuotePrefill({ propertyType: "house", bedrooms: 3, bathrooms: 2, serviceType: "residential", firstName: "Apex", lastName: "Five", email: "apex@example.com", phone: "07123456789", address: "1 High Street", postcode: "ME11 2BY" });
+    renderQuote();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText(/first name/i);
+    fireEvent.click(screen.getByRole("button", { name: /submit quote request/i }));
+    expect(await screen.findByText(/should arrive shortly/i)).toBeTruthy();
+    expect(screen.queryByText(/We've sent/i)).toBeNull();
+    expect(screen.getByText("AP12345678")).toBeTruthy();
+  });
   it("retains the postcode and service prefill during StrictMode mount checks", async () => {
     setQuotePrefill({ postcode: "SS1 2BB", serviceType: "end-of-tenancy" });
     render(

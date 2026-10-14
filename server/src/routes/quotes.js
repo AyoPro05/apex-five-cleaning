@@ -8,21 +8,17 @@ import {
   sanitizePhoneNumber,
 } from "../utils/validation.js";
 import {
-  sendClientConfirmationEmail,
-  sendAdminNotificationEmail,
-} from "../utils/emailService.js";
-import {
   quoteRateLimiter,
   emailRateLimiter,
 } from "../middleware/rateLimiter.js";
 import { quoteImageUpload } from "../middleware/uploadMiddleware.js";
 import { validateQuoteImageBuffer } from "../utils/imageValidation.js";
 import { verifyCaptcha } from "../middleware/captchaMiddleware.js";
-import { idempotency } from "../middleware/idempotency.js";
-import { notifyNewQuote } from "../utils/leadWebhook.js";
-import { emitEvent } from "../utils/eventBus.js";
 import { assessSubmissionRisk } from "../utils/suspiciousActivity.js";
-import { notifyAdminAlert } from "../utils/leadWebhook.js";
+import defaultQueue from "../services/automationQueue.js";
+import { drainAutomationJobs } from "../services/automationCycle.js";
+import { queueBackgroundWork } from "../services/backgroundWork.js";
+import { defaultIdempotencyService, fingerprintRequest } from "../services/idempotencyService.js";
 
 const router = express.Router();
 
@@ -82,7 +78,20 @@ const cleanAttribution = (attribution) => {
   return Object.keys(cleaned).length ? cleaned : undefined;
 };
 
-const submitQuoteHandler = async (req, res) => {
+const RETRY_MESSAGE = "Your request is still being recorded. Please retry shortly with the same request details and idempotency key.";
+
+export function createSubmitQuoteHandler({
+  QuoteModel = Quote,
+  idempotencyService = defaultIdempotencyService,
+  queue = defaultQueue,
+  assessSubmissionRisk: assessRisk = assessSubmissionRisk,
+  queueBackgroundWork: scheduleBackground = queueBackgroundWork,
+  drainAutomationJobs: drain = drainAutomationJobs,
+  logger = console,
+} = {}) {
+ return async (req, res) => {
+  let acquisition;
+  let persisted = false;
   try {
     const body = normalizeQuoteBody(req.body);
     const { isValid, errors, value } = validateQuoteData(body);
@@ -133,7 +142,7 @@ const submitQuoteHandler = async (req, res) => {
     else delete value.attribution;
 
     const ipAddress = req.ip || req.connection?.remoteAddress || "";
-    const risk = await assessSubmissionRisk({
+    const risk = await assessRisk({
       type: "quote",
       captchaScore: req.captcha?.score,
       captchaVerified: req.captcha?.verified ?? true,
@@ -143,87 +152,97 @@ const submitQuoteHandler = async (req, res) => {
       postcode: value.postcode,
     });
 
-    const quote = new Quote({
-      ...value,
-      captchaScore: req.captcha?.score || 1.0,
-      captchaVerified: req.captcha?.verified ?? true,
-      ipAddress,
-      suspectedSpam: risk.suspectedSpam,
-      suspicionReasons: risk.suspicionReasons,
+    // CAPTCHA tokens and generated storage paths change on retry; the fingerprint
+    // represents the normalized customer details and actual uploaded image bytes.
+    const { captchaToken, images: storedImages, ...fingerprintBody } = value;
+    acquisition = await idempotencyService.acquire({
+      scope: "POST:/api/quotes/submit",
+      key: req.get("X-Idempotency-Key"),
+      fingerprint: fingerprintRequest(fingerprintBody, req.files),
     });
-
-    let saved = false;
-    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
-      try {
-        await quote.save();
-        saved = true;
-      } catch (err) {
-        if (err.code === 11000 && err.keyPattern?.reference && attempt < 2) {
-          quote.reference = undefined;
-          continue;
+    if (acquisition.kind === "replay") {
+      res.setHeader("X-Idempotent-Replay", "true");
+      return res.status(acquisition.status).json(acquisition.body);
+    }
+    if (acquisition.kind === "conflict") {
+      return res.status(409).json({ success: false, error: "This request key was already used for different details. Please submit the changed request with a new key." });
+    }
+    if (acquisition.kind === "in-progress") {
+      return res.status(409).json({ success: false, error: RETRY_MESSAGE });
+    }
+    const owner = acquisition.kind === "acquired"
+      ? { recordId: acquisition.record._id, ownerToken: acquisition.ownerToken }
+      : null;
+    let quote = owner ? await QuoteModel.findOne({ idempotencyRecordId: owner.recordId }) : null;
+    persisted = Boolean(quote);
+    if (!quote) {
+      quote = new QuoteModel({
+        ...value,
+        ...(owner ? { idempotencyRecordId: owner.recordId } : {}),
+        captchaScore: req.captcha?.score || 1.0,
+        captchaVerified: req.captcha?.verified ?? true,
+        ipAddress,
+        suspectedSpam: risk.suspectedSpam,
+        suspicionReasons: risk.suspicionReasons,
+      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await quote.save();
+          persisted = true;
+          break;
+        } catch (error) {
+          if (error.code === 11000 && owner && error.keyPattern?.idempotencyRecordId) {
+            const winner = await QuoteModel.findOne({ idempotencyRecordId: owner.recordId });
+            if (winner) { quote = winner; persisted = true; break; }
+          }
+          if (error.code === 11000 && error.keyPattern?.reference && attempt < 2) {
+            quote.reference = undefined;
+            continue;
+          }
+          throw error;
         }
-        throw err;
       }
     }
 
-    // Respond immediately after persist — SMTP can be slow; awaiting it here caused
-    // client timeouts (axios 30s) and "quote not submitting" when mail providers stall.
+    const quoteId = String(quote._id);
+    const jobs = [
+      { type: "quote.client-confirmation", dedupeKey: `quote.client-confirmation:${quoteId}` },
+      { type: "quote.admin-notification", dedupeKey: `quote.admin-notification:${quoteId}` },
+      { type: "quote.lead-webhook", dedupeKey: `quote.lead-webhook:${quoteId}` },
+      { type: "domain.event", dedupeKey: `domain.event:quote.created:${quoteId}`, payload: { event: "quote.created", data: { quoteId, reference: quote.reference } } },
+      ...(quote.suspectedSpam ? [{ type: "quote.spam-alert", dedupeKey: `quote.spam-alert:${quoteId}` }] : []),
+    ];
+    const outcomes = await Promise.allSettled(jobs.map((job) => queue.enqueue({
+      ...job, entityType: "Quote", entityId: quoteId,
+    })));
+    const failure = outcomes.find((result) => result.status === "rejected");
+    if (failure) throw failure.reason;
+
     const payload = {
       success: true,
       message: "Quote request submitted successfully!",
-      quoteId: quote._id,
+      quoteId,
       reference: quote.reference,
     };
+    if (owner) {
+      const attached = await idempotencyService.attachResource({ ...owner, resourceType: "Quote", resourceId: quoteId });
+      if (!attached) return res.status(409).json({ success: false, error: RETRY_MESSAGE });
+      const completed = await idempotencyService.complete({ ...owner, status: 201, body: payload });
+      if (!completed) return res.status(409).json({ success: false, error: RETRY_MESSAGE });
+    }
     res.status(201).json(payload);
-
-    setImmediate(() => {
-      (async () => {
-        try {
-          await sendClientConfirmationEmail(
-            quote.email,
-            quote.firstName,
-            quote.reference,
-          );
-          await sendAdminNotificationEmail(quote);
-          await Quote.updateOne(
-            { _id: quote._id },
-            { confirmationEmailSent: true, adminEmailSent: true },
-          );
-        } catch (emailErr) {
-          console.warn("Quote saved but outbound email failed:", emailErr?.message || emailErr);
-        }
-        try {
-          await notifyNewQuote(quote);
-        } catch {}
-        emitEvent("quote.created", {
-          quoteId: String(quote._id),
-          reference: quote.reference,
-          email: quote.email,
-          phone: quote.phone,
-          serviceType: quote.serviceType,
-          postcode: quote.postcode,
-          propertyType: quote.propertyType,
-          bedrooms: quote.bedrooms,
-          bathrooms: quote.bathrooms,
-          status: quote.status,
-          suspectedSpam: quote.suspectedSpam,
-          suspicionReasons: quote.suspicionReasons,
-        });
-        if (quote.suspectedSpam) {
-          notifyAdminAlert(
-            `Suspected spam quote ${quote.reference || quote._id}`,
-            [
-              `Customer: ${quote.firstName} ${quote.lastName}`,
-              `Email: ${quote.email}`,
-              `Reasons: ${quote.suspicionReasons.join(", ")}`,
-              `CAPTCHA: ${Math.round((quote.captchaScore || 0) * 100)}%`,
-            ].join("\n"),
-          ).catch(() => {});
-        }
-      })();
+    scheduleBackground(() => drain({ limit: 8 }), {
+      onError: (error) => logger.error("Quote automation drain failed:", error),
     });
     return;
   } catch (error) {
+    if (!persisted && acquisition?.kind === "acquired") {
+      try {
+        await idempotencyService.release({ recordId: acquisition.record._id, ownerToken: acquisition.ownerToken });
+      } catch (releaseError) {
+        logger.error("Quote idempotency release failed:", releaseError);
+      }
+    }
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({ success: false, error: "Each image must be under 5MB" });
@@ -235,16 +254,18 @@ const submitQuoteHandler = async (req, res) => {
     if (error.message?.includes("Only image files")) {
       return res.status(400).json({ success: false, error: error.message });
     }
-    console.error("Error submitting quote:", error);
+    logger.error("Error submitting quote:", error);
     return res.status(500).json({ success: false, error: "Server error." });
   }
-};
+ };
+}
+
+const submitQuoteHandler = createSubmitQuoteHandler();
 
 router.post(
   "/submit",
   quoteRateLimiter,
   emailRateLimiter,
-  idempotency(),
   quoteImageUpload.array("images", 5),
   verifyCaptcha,
   submitQuoteHandler,
@@ -255,7 +276,6 @@ router.post(
   "/",
   quoteRateLimiter,
   emailRateLimiter,
-  idempotency(),
   quoteImageUpload.array("images", 5),
   verifyCaptcha,
   submitQuoteHandler,
