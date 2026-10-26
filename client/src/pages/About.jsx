@@ -10,7 +10,12 @@ import { Link } from "react-router-dom";
 export default function About() {
   return (
     <>
-      <SEO title="About Apex Five" description="Meet Apex Five Cleaning, a local team delivering reliable, eco-conscious cleaning across Kent, London, and Essex." path="/about" image="/images/services/Service_Residential_Cleaning.png" />
+      <SEO
+        title="About Apex Five"
+        description="Meet Apex Five Cleaning, a local team delivering reliable, eco-conscious cleaning across Kent, London, and Essex."
+        path="/about"
+        image="/images/services/Service_Residential_Cleaning.webp"
+      />
       <MarketingSection tone="soft" className="pt-12 sm:pt-16">
         <MarketingHeader eyebrow="About Apex Five" title="Meet the Person Behind Apex Five Cleaning" intro="A clean environment should be within reach for everyone." />
         <div className="mt-10 grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-start">

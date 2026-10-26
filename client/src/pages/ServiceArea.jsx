@@ -16,9 +16,9 @@ import { SERVICE_AREAS_BY_SLUG } from "../data/serviceAreasCatalog";
 
 // Service images - same as Services/ServiceDetail
 const SERVICE_IMAGES = {
-  "Residential Cleaning": "/images/services/Service_Residential_Cleaning.png",
-  "End of Tenancy": "/images/services/Service_EndOfTenancy_Cleaning.png",
-  "Airbnb Turnover": "/images/services/Service_Airbnb_Cleaning.png",
+  "Residential Cleaning": "/images/services/Service_Residential_Cleaning.webp",
+  "End of Tenancy": "/images/services/Service_EndOfTenancy_Cleaning.webp",
+  "Airbnb Turnover": "/images/services/Service_Airbnb_Cleaning.webp",
   "Commercial Cleaning": "/images/services/Service_Commercial_Cleaning.png",
 };
 
