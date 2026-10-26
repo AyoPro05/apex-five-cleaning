@@ -3,8 +3,6 @@ import {
   getCookie,
   setCookie,
   deleteCookie,
-  getJsonCookie,
-  setJsonCookie,
 } from './cookies';
 
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
@@ -122,31 +120,6 @@ export function getAttributionPayload() {
   };
   attribution.leadSource = computeLeadSource(attribution);
   return attribution;
-}
-
-const DRAFT_KEYS = [
-  'propertyType',
-  'bedrooms',
-  'bathrooms',
-  'serviceType',
-  'additionalServices',
-  'step',
-];
-
-export function saveQuoteDraft(formSlice) {
-  const draft = {};
-  DRAFT_KEYS.forEach((key) => {
-    if (formSlice[key] !== undefined && formSlice[key] !== '') {
-      draft[key] = formSlice[key];
-    }
-  });
-  if (Object.keys(draft).length === 0) return;
-  draft.savedAt = new Date().toISOString();
-  setJsonCookie(COOKIE_NAMES.QUOTE_DRAFT, draft, 7);
-}
-
-export function loadQuoteDraft() {
-  return getJsonCookie(COOKIE_NAMES.QUOTE_DRAFT);
 }
 
 export function clearQuoteDraft() {

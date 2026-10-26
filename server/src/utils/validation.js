@@ -262,27 +262,3 @@ export const sanitizePhoneNumber = (phone) => {
 export const sanitizeEmail = (email) => {
   return email.toLowerCase().trim();
 };
-
-export const getFieldErrorMessage = (field, error) => {
-  // Custom mapping for common validation errors
-  const messages = {
-    email: {
-      'invalid': 'Please enter a valid email address',
-      'required': 'Email address is required'
-    },
-    phone: {
-      'invalid': 'Please enter a valid UK phone number',
-      'required': 'Phone number is required'
-    },
-    firstName: {
-      'invalid': 'First name can only contain letters and basic punctuation',
-      'required': 'First name is required'
-    },
-    lastName: {
-      'invalid': 'Last name can only contain letters and basic punctuation',
-      'required': 'Last name is required'
-    }
-  };
-  
-  return messages[field]?.[error] || error;
-};

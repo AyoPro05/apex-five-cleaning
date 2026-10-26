@@ -109,7 +109,3 @@ export async function notifyAdminAlert(title, body) {
     meta: { event: "admin.alert", title },
   });
 }
-
-export function isLeadWebhookConfigured() {
-  return Boolean(getWebhookUrl());
-}

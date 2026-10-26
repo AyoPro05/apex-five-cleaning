@@ -1,16 +1,12 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import Quote from "../models/Quote.js";
 import { verifyUploadSignature } from "../utils/uploadSigning.js";
 import { quotesUploadDir } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const serverRoot = path.resolve(__dirname, "..", "..");
-const uploadRoot = path.join(serverRoot, "uploads");
 const quotesUploadRoot = quotesUploadDir;
 
 const serveQuoteImageFromDb = async (requested, res) => {

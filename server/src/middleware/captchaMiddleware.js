@@ -1,26 +1,6 @@
 import axios from "axios";
 import { getCaptchaBlockThreshold, getCaptchaFlagThreshold } from "../utils/suspiciousActivity.js";
 
-/** Map Google reCAPTCHA error codes to user-friendly messages */
-function captchaErrorMessage(errorCodes = []) {
-  if (!Array.isArray(errorCodes) || errorCodes.length === 0) {
-    return "CAPTCHA verification failed. Please try again.";
-  }
-  if (errorCodes.includes("timeout-or-duplicate")) {
-    return "CAPTCHA expired. Please submit the form again.";
-  }
-  if (errorCodes.includes("invalid-input-response")) {
-    return "CAPTCHA expired or invalid. Please refresh the page and try again.";
-  }
-  if (errorCodes.includes("invalid-input-secret") || errorCodes.includes("missing-input-secret")) {
-    return "CAPTCHA verification is misconfigured. Please contact support.";
-  }
-  if (errorCodes.includes("bad-request")) {
-    return "CAPTCHA request was invalid. Please try again.";
-  }
-  return "CAPTCHA verification failed. Please try again.";
-}
-
 export const verifyCaptcha = async (req, res, next) => {
   try {
     const secret = process.env.RECAPTCHA_SECRET_KEY;

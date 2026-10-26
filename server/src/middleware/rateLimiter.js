@@ -271,22 +271,3 @@ export const chatOpsRateLimiter = rateLimit({
     });
   },
 });
-
-export default {
-  quoteRateLimiter,
-  emailRateLimiter,
-  contactRateLimiter,
-  contactEmailRateLimiter,
-  chatMessageRateLimiter,
-  chatLeadRateLimiter,
-  resendVerificationRateLimiter,
-  refreshTokenRateLimiter,
-  apiRateLimiter,
-  strictRateLimiter,
-  authLoginRateLimiter,
-  authRegisterRateLimiter,
-  guestPaymentLookupRateLimiter,
-  guestPaymentIntentRateLimiter,
-  guestPaymentConfirmRateLimiter,
-  paidApiRateLimiter,
-};

@@ -17,30 +17,7 @@ const isLocalHost =
 const fallbackProdApiUrl = String(import.meta.env.VITE_API_URL_FALLBACK || '').trim()
 export const API_URL = envApiUrl || (isBrowser && !isLocalHost ? fallbackProdApiUrl : '')
 
-/**
- * Resolve upload/image URL - use /api/uploads so Vite proxy forwards correctly
- */
-export function getImageUrl(imgPath) {
-  if (!imgPath || typeof imgPath !== 'string') return imgPath
-  if (imgPath.startsWith('http')) return imgPath
-
-  const normalized = imgPath.startsWith('/') ? imgPath : `/${imgPath}`
-  const base = API_URL.replace(/\/$/, '')
-
-  // Signed admin URLs already point at the protected uploads API route
-  if (normalized.startsWith('/api/uploads/')) {
-    return base ? `${base}${normalized}` : normalized
-  }
-
-  if (normalized.startsWith('/uploads/')) {
-    const apiPath = normalized.replace(/^\/uploads/, '/api/uploads')
-    return base ? `${base}${apiPath}` : apiPath
-  }
-
-  return base ? `${base}${normalized}` : normalized
-}
-
-const getAuthToken = (url = '') => {
+const getAuthToken = () => {
   if (typeof window === 'undefined') return null
   return (
     localStorage.getItem('jwtToken') ||
@@ -60,9 +37,7 @@ const apiClient = axios.create({
 
 // Request: add auth token when present
 apiClient.interceptors.request.use((config) => {
-  const url = config.url || ''
-  const fullUrl = config.baseURL ? `${config.baseURL}${url}` : url
-  const token = getAuthToken(fullUrl)
+  const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -127,5 +102,3 @@ export const del = (endpoint, config = {}) =>
  */
 export const getBlob = (endpoint, config = {}) =>
   apiClient.get(endpoint, { ...config, responseType: 'blob' }).then((res) => res.data)
-
-export default apiClient

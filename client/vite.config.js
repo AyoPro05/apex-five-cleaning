@@ -19,10 +19,4 @@ export default defineConfig({
       },
     },
   },
-  define: {
-    // Make environment variables available at build time
-    __API_URL__: JSON.stringify(
-      process.env.VITE_API_URL || "http://localhost:5001",
-    ),
-  },
 });

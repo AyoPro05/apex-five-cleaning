@@ -63,12 +63,6 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function parseMoney(value, fallback = 0) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return fallback;
-  return Math.round(amount * 100) / 100;
-}
-
 function parseDateOnly(value) {
   if (!value) return null;
   const date = new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`);

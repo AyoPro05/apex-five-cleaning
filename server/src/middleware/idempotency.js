@@ -18,8 +18,8 @@
  *
  * Notes:
  *   - In-memory cache (single-process). For multi-instance deployments,
- *     replace cache with Redis. Render currently runs single-instance per
- *     service tier so this is sufficient.
+ *     replace cache with a shared store such as Redis. Serverless instances
+ *     do not share this cache.
  *   - Cache key is scoped by method + path so the same UUID can be reused
  *     across different forms without collision.
  *   - Periodic cleanup keeps memory bounded.
@@ -98,11 +98,4 @@ export function idempotency(options = {}) {
 
     next();
   };
-}
-
-/**
- * Test helper to clear the cache (used in tests if added later).
- */
-export function _clearIdempotencyCache() {
-  cache.clear();
 }

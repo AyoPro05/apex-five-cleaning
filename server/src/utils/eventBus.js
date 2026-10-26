@@ -139,10 +139,6 @@ export function emitEvent(event, data = {}) {
   return { queued: true, targets: urls.length };
 }
 
-export function isEventBusConfigured() {
-  return getWebhookUrls().length > 0;
-}
-
 export function verifyEventSignature(rawBody, signatureHeader, maxSkewSec = 300) {
   const secret = getSigningSecret();
   if (!secret || !signatureHeader) return false;

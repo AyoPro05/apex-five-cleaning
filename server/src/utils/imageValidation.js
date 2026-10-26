@@ -1,5 +1,5 @@
 /**
- * Safe image validation for quote uploads — extension + magic-byte sniffing.
+ * Safe image validation for quote uploads — MIME and magic-byte checks.
  */
 
 const SAFE_MIME_TYPES = new Set([
@@ -10,13 +10,6 @@ const SAFE_MIME_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
-
-const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif']);
-
-export function isAllowedImageExtension(filename) {
-  const ext = (filename || '').toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '';
-  return ALLOWED_EXTENSIONS.has(ext);
-}
 
 export function sniffImageMimeType(buffer) {
   if (!buffer || buffer.length < 12) return null;

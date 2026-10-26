@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Clock, Phone, Star } from "lucide-react";
+import { MapPin, Clock, Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";

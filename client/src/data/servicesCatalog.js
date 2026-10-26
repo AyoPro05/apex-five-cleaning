@@ -358,7 +358,7 @@ export const SERVICES = [
     },
     beforeAfter: {
       beforeImage: "/images/services/Niche_Buggy_Before.svg",
-      afterImage: "/images/services/Niche_Buggy_After.svg",
+      afterImage: "/images/services/Niche_Buggy_Cleaning.svg",
       beforeLabel: "Before: muddy wheels, stained fabric, sticky handles",
       afterLabel: "After: fresh frame, clean fabric, sanitised and ready",
     },

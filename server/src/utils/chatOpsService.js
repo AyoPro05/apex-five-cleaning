@@ -170,14 +170,6 @@ export async function executeChatOpsCommand(rawText, dependencies = {}) {
   }
 }
 
-export function isChatOpsConfigured() {
-  return Boolean(
-    (process.env.CHATOPS_SECRET && process.env.CHATOPS_SECRET.trim()) ||
-      (process.env.SLACK_SIGNING_SECRET && process.env.SLACK_SIGNING_SECRET.trim()) ||
-      (process.env.DISCORD_PUBLIC_KEY && process.env.DISCORD_PUBLIC_KEY.trim()),
-  );
-}
-
 export function verifyChatOpsSecret(headerValue) {
   const secret = process.env.CHATOPS_SECRET?.trim();
   if (!secret || !headerValue) return false;

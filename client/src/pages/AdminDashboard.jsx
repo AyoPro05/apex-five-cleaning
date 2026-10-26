@@ -10,10 +10,7 @@ import {
 } from "../hooks/useAdminInactivityLogout";
 import {
   Download,
-  Eye,
-  EyeOff,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -23,14 +20,11 @@ import {
   LogOut,
     Trash2,
 	  BarChart3,
-	  Users,
-  MessageCircle,
 	} from "lucide-react";
 
   const AdminAnalyticsCharts = lazy(() => import("./admin/AdminAnalyticsCharts"));
   const AdminAnalyticsTables = lazy(() => import("./admin/AdminAnalyticsTables"));
 
-const RETENTION_MONTHS = 6;
 const SUSPICION_REASON_LABELS = {
   low_captcha_score: "Low CAPTCHA score",
   captcha_unverified: "CAPTCHA not verified",
