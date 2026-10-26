@@ -7,6 +7,7 @@ import Quote from "../models/Quote.js";
 import { captureServerException } from "../utils/sentry.js";
 import defaultHandlers from "./automationHandlers.js";
 import defaultQueue from "./automationQueue.js";
+import { findReviewFollowUpCandidates } from "./reviewFollowUp.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -111,15 +112,7 @@ export async function enqueueDueAutomationJobs({
         },
         "_id convertedAt",
       ),
-      findCandidates(
-        BookingModel,
-        {
-          status: "completed",
-          completedAt: { $lte: twoDaysAgo },
-          satisfactionEmailSentAt: { $exists: false },
-        },
-        "_id completedAt",
-      ),
+      findReviewFollowUpCandidates(BookingModel, timestamp, CANDIDATE_LIMIT),
     ]);
 
   const jobs = [];
@@ -173,14 +166,15 @@ export async function enqueueDueAutomationJobs({
   }
   for (const booking of satisfactionFollowUps) {
     const completedAt = stableDate(booking.completedAt);
-    if (!completedAt) continue;
+    const paidAt = stableDate(booking.reviewPaidAt);
+    if (!completedAt || !paidAt) continue;
     const entityId = String(booking._id);
     jobs.push({
       type: "booking.satisfaction-follow-up",
-      dedupeKey: `booking.satisfaction-follow-up:${entityId}:${completedAt}`,
+      dedupeKey: `booking.satisfaction-follow-up:${entityId}:${completedAt}:${paidAt}`,
       entityType: "Booking",
       entityId,
-      payload: { completedAt },
+      payload: { completedAt, paidAt },
     });
   }
 

@@ -1,4 +1,6 @@
 import Booking from "../../models/Booking.js";
+import Payment from "../../models/Payment.js";
+import { getReviewFollowUpPaidAt } from "./reviewFollowUp.js";
 import QuotePayment from "../../models/QuotePayment.js";
 import ChatLead from "../models/ChatLead.js";
 import Quote from "../models/Quote.js";
@@ -26,6 +28,7 @@ const defaultDependencies = {
   QuoteModel: Quote,
   ChatLeadModel: ChatLead,
   BookingModel: Booking,
+  PaymentModel: Payment,
   QuotePaymentModel: QuotePayment,
   sendClientConfirmationEmail,
   sendAdminNotificationEmail,
@@ -402,12 +405,17 @@ export function createAutomationHandlers(overrides = {}) {
       if (
         !booking ||
         booking.status !== "completed" ||
+        booking.paymentStatus === "refunded" ||
         booking.satisfactionEmailSentAt ||
         !isDue(booking.completedAt, 48, timestamp) ||
         (expectedCompletedAt && !sameInstant(expectedCompletedAt, booking.completedAt))
       ) {
         return NO_OP;
       }
+      const paidAt = await getReviewFollowUpPaidAt(booking, dependencies);
+      // Retire legacy completion-only jobs and stale payment cycles. Discovery
+      // creates a payment-aware job, so only the current cycle can deliver.
+      if (!isDue(paidAt, 48, timestamp) || !sameInstant(job.payload?.paidAt, paidAt)) return NO_OP;
       const email = booking.customerEmail || booking.userId?.email;
       if (!email) return NO_OP;
 

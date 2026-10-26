@@ -135,7 +135,7 @@ const bookingSchema = new mongoose.Schema({
   },
   completedAt: Date,
 
-  // Automation: satisfaction follow-up email sent 48h after completion (one-shot)
+  // Automation: review email sent 48h after both payment and completion (one-shot)
   satisfactionEmailSentAt: Date,
 
   // Cancellation

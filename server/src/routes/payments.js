@@ -102,6 +102,13 @@ export const validateStoredPaymentIntent = (payment, paymentIntent) => {
 
 export const canRefundPayment = (requester) => requester?.role === 'admin';
 
+export async function applyBookingPaymentSuccess(booking, payment) {
+  booking.paymentStatus = 'completed';
+  booking.paymentId = payment._id;
+  if (['draft', 'pending'].includes(booking.status)) booking.status = 'confirmed';
+  await booking.save();
+}
+
 /**
  * Format amount for display (pence to pounds)
  */
@@ -565,7 +572,7 @@ router.post('/confirm', authMiddleware, paidApiRateLimiter, async (req, res) => 
       const wasAlreadySucceeded = payment.status === 'succeeded';
       // Payment succeeded
       payment.status = 'succeeded';
-      payment.processedAt = new Date();
+      payment.processedAt ||= new Date();
       payment.webhookReceived = true;
       payment.webhookReceivedAt = new Date();
 
@@ -575,10 +582,7 @@ router.post('/confirm', authMiddleware, paidApiRateLimiter, async (req, res) => 
 
       // Update booking payment status
       const booking = await Booking.findById(payment.bookingId);
-      booking.paymentStatus = 'completed';
-      booking.paymentId = payment._id;
-      booking.status = 'confirmed';
-      await booking.save();
+      await applyBookingPaymentSuccess(booking, payment);
 
       if (!wasAlreadySucceeded) {
         await deliverBookingPaymentConfirmationEmail(payment, booking);
@@ -847,7 +851,7 @@ async function applyQuotePaymentSuccess(quotePayment, paymentIntent) {
   const wasAlreadySucceeded = quotePayment.status === 'succeeded';
 
   quotePayment.status = 'succeeded';
-  quotePayment.processedAt = new Date();
+  quotePayment.processedAt ||= new Date();
 
   applyCardDetailsFromIntent(quotePayment, paymentIntent);
 
@@ -1048,7 +1052,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 
     const wasAlreadySucceeded = payment.status === 'succeeded';
     payment.status = 'succeeded';
-    payment.processedAt = new Date();
+    payment.processedAt ||= new Date();
     payment.webhookReceived = true;
     payment.webhookReceivedAt = new Date();
 
@@ -1058,9 +1062,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 
     // Update booking
     const booking = await Booking.findById(payment.bookingId);
-    booking.paymentStatus = 'completed';
-    booking.status = 'confirmed';
-    await booking.save();
+    await applyBookingPaymentSuccess(booking, payment);
 
     if (!wasAlreadySucceeded) {
       await deliverBookingPaymentConfirmationEmail(payment, booking);

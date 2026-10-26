@@ -64,10 +64,9 @@ function createDiscoveryModels({
   };
 
   const BookingModel = {
-    find(filter) {
-      const call = { filter, select: null, limit: null };
-      bookingFinds.push(call);
-      return queryResult(bookings, call);
+    async aggregate(pipeline) {
+      bookingFinds.push({ pipeline, limit: pipeline.find((stage) => stage.$limit)?.$limit });
+      return bookings;
     },
   };
 
@@ -103,11 +102,12 @@ function createDiscoveryModels({
 test("enqueueDueAutomationJobs creates deterministic due keys and caps every query", async () => {
   const convertedAt = new Date("2026-10-10T08:00:00.000Z");
   const completedAt = new Date("2026-10-10T07:00:00.000Z");
+  const paidAt = new Date("2026-10-11T07:00:00.000Z");
   const models = createDiscoveryModels({
     stuck: [{ _id: "quote-1" }],
     followUps: [{ _id: "quote-1" }],
     payments: [{ _id: "quote-2", convertedAt }],
-    bookings: [{ _id: "booking-1", completedAt }],
+    bookings: [{ _id: "booking-1", completedAt, reviewPaidAt: paidAt }],
     deletedCount: 2,
   });
   const jobs = [];
@@ -131,7 +131,7 @@ test("enqueueDueAutomationJobs creates deterministic due keys and caps every que
       "quote.stuck-reminder:quote-1",
       "quote.client-follow-up:quote-1",
       `quote.payment-reminder:quote-2:${convertedAt.toISOString()}`,
-      `booking.satisfaction-follow-up:booking-1:${completedAt.toISOString()}`,
+      `booking.satisfaction-follow-up:booking-1:${completedAt.toISOString()}:${paidAt.toISOString()}`,
       "ops.daily-digest:2026-10-14",
     ],
   );
@@ -154,7 +154,27 @@ test("enqueueDueAutomationJobs creates deterministic due keys and caps every que
   );
   assert.deepEqual(bookingJob.payload, {
     completedAt: completedAt.toISOString(),
+    paidAt: paidAt.toISOString(),
   });
+  const pipeline = models.bookingFinds[0].pipeline;
+  const paymentMatchIndex = pipeline.findIndex((stage) => stage.$match?.reviewPaidAt);
+  assert.ok(paymentMatchIndex > 0);
+  assert.ok(paymentMatchIndex < pipeline.findIndex((stage) => stage.$limit));
+  assert.deepEqual(pipeline[paymentMatchIndex], { $match: { reviewPaidAt: { $ne: null, $lte: new Date("2026-10-12T08:00:00.000Z") } } });
+  assert.equal(pipeline.filter((stage) => stage.$lookup).length, 2);
+  assert.ok(pipeline.filter((stage) => stage.$lookup).every((stage) => stage.$lookup.pipeline[0].$match.status === "succeeded"));
+});
+
+test("discovery requires a paid time and creates a fresh job when a later payment becomes eligible", async () => {
+  const completedAt = new Date("2026-10-10T07:00:00.000Z");
+  const jobs = [];
+  const queue = { async enqueue(job) { jobs.push(job); } };
+  for (const reviewPaidAt of [undefined, new Date("2026-10-10T08:00:00.000Z"), new Date("2026-10-11T08:00:00.000Z")]) {
+    await enqueueDueAutomationJobs({ now: NOW, queue, ...createDiscoveryModels({ bookings: [{ _id: "booking-1", completedAt, reviewPaidAt }] }) });
+  }
+  const reviewJobs = jobs.filter((job) => job.type === "booking.satisfaction-follow-up");
+  assert.equal(reviewJobs.length, 2);
+  assert.notEqual(reviewJobs[0].dedupeKey, reviewJobs[1].dedupeKey);
 });
 
 test("due discovery excludes paid quotes and stamps them to stop later checks", async () => {

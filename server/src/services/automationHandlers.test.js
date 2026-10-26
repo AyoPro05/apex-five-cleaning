@@ -343,11 +343,12 @@ test("every mail handler propagates failure without stamping delivery", async (t
           async updateOne(...args) { updates.push(args); },
         },
         ChatLeadModel: { async countDocuments() { return 2; } },
+        PaymentModel: { findOne() { return { sort() { return this; }, async lean() { return { processedAt: new Date("2026-10-10T08:00:00.000Z") }; } }; } },
         QuotePaymentModel: { async exists() { return null; }, async aggregate() { return []; } },
         now: () => NOW,
         [adapter]: async () => { calls += 1; return { success: false, error: "provider unavailable" }; },
       });
-      await assert.rejects(handlers[type]({ entityId: "quote-1", payload: { responseVersion: 4 } }), /provider unavailable/);
+      await assert.rejects(handlers[type]({ entityId: "quote-1", payload: { responseVersion: 4, paidAt: "2026-10-10T08:00:00.000Z" } }), /provider unavailable/);
       assert.equal(calls, 1);
       assert.equal(updates.length, 0);
     });
@@ -381,6 +382,7 @@ test("satisfaction follow-up reloads the linked user and stamps only after deliv
   const updates = [];
   const completedAt = new Date("2026-10-10T08:00:00.000Z");
   const handlers = createAutomationHandlers({
+    PaymentModel: { findOne() { return { sort() { return this; }, async lean() { return { processedAt: completedAt }; } }; } },
     BookingModel: {
       findById(id) {
         assert.equal(id, "booking-1");
@@ -398,11 +400,57 @@ test("satisfaction follow-up reloads the linked user and stamps only after deliv
       return { success: true };
     },
   });
-  await handlers["booking.satisfaction-follow-up"]({ entityId: "booking-1", payload: { completedAt: completedAt.toISOString() } });
+  await handlers["booking.satisfaction-follow-up"]({ entityId: "booking-1", payload: { completedAt: completedAt.toISOString(), paidAt: completedAt.toISOString() } });
   assert.deepEqual(updates, [[
     { _id: "booking-1", status: "completed", completedAt, satisfactionEmailSentAt: { $exists: false } },
     { $set: { satisfactionEmailSentAt: NOW } },
   ]]);
+});
+
+test("review follow-up waits 48 hours after both payment and completion and skips ineligible jobs", async (t) => {
+  const old = new Date(NOW.getTime() - 72 * 60 * 60 * 1000);
+  const boundary = new Date(NOW.getTime() - 48 * 60 * 60 * 1000);
+  const recent = new Date(boundary.getTime() + 1);
+  for (const scenario of [
+    { name: "unpaid", payment: null, sends: 0 },
+    { name: "payment date missing", payment: {}, sends: 0 },
+    { name: "payment 1ms too recent", payment: { processedAt: recent }, sends: 0 },
+    { name: "payment exactly 48h ago", payment: { processedAt: boundary }, sends: 1 },
+    { name: "completion 1ms too recent", payment: { processedAt: old }, booking: { completedAt: recent }, sends: 0 },
+    { name: "completion exactly 48h ago", payment: { processedAt: old }, booking: { completedAt: boundary }, sends: 1 },
+    { name: "refunded", payment: { processedAt: old }, booking: { paymentStatus: "refunded" }, sends: 0 },
+    { name: "cancelled", payment: { processedAt: old }, booking: { status: "cancelled" }, sends: 0 },
+    { name: "already sent", payment: { processedAt: old }, booking: { satisfactionEmailSentAt: old }, sends: 0 },
+    { name: "guest quote payment", payment: null, quotePayment: { processedAt: boundary }, booking: { quoteId: "quote-1" }, sends: 1 },
+    { name: "guest paid too recently", payment: null, quotePayment: { processedAt: recent }, booking: { quoteId: "quote-1" }, sends: 0 },
+    { name: "legacy completion-only job", payment: { processedAt: old }, payload: {}, sends: 0 },
+    { name: "superseded payment job", payment: { processedAt: boundary }, payload: { paidAt: old.toISOString() }, sends: 0 },
+    { name: "job completed again", payment: { processedAt: old }, payload: { paidAt: old.toISOString(), completedAt: boundary.toISOString() }, sends: 0 },
+  ]) {
+    await t.test(scenario.name, async () => {
+      let sends = 0;
+      let stamps = 0;
+      const paymentModel = (payment, key) => ({
+        findOne(filter) {
+          assert.equal(filter.status, "succeeded");
+          assert.equal(filter[key], key === "bookingId" ? "booking-1" : "quote-1");
+          return { sort() { return this; }, async lean() { return payment; } };
+        },
+      });
+      const booking = { _id: "booking-1", status: "completed", completedAt: old, customerEmail: "ada@example.com", ...scenario.booking };
+      const handlers = createAutomationHandlers({
+        BookingModel: { async findById() { return booking; }, async updateOne() { stamps += 1; } },
+        PaymentModel: paymentModel(scenario.payment, "bookingId"),
+        QuotePaymentModel: paymentModel(scenario.quotePayment, "quoteId"),
+        now: () => NOW,
+        async sendSatisfactionFollowUpEmail() { sends += 1; return { success: true }; },
+      });
+      const paidAt = scenario.quotePayment?.processedAt || scenario.payment?.processedAt || old;
+      await handlers["booking.satisfaction-follow-up"]({ entityId: "booking-1", payload: scenario.payload || { paidAt: paidAt.toISOString() } });
+      assert.equal(sends, scenario.sends);
+      assert.equal(stamps, scenario.sends);
+    });
+  }
 });
 
 test("deleted quotes and reviewed spam produce no outbound work", async () => {
@@ -459,6 +507,7 @@ test("approval initializes SMTP lazily and retries a transient transport failure
   assert.equal(transport.mock.callCount(), 1);
   assert.equal(sent.length, 2);
   assert.ok(sent.every((message) => message.to === "ada@example.com" && message.text.includes("AP12345678")));
+  assert.ok(sent.every((message) => message.attachments[0].cid === "apex-five-logo@apexfivecleaning.co.uk"));
 });
 
 test("approval initializes SendGrid and returns failure after bounded retries", async (t) => {
@@ -472,6 +521,7 @@ test("approval initializes SendGrid and returns failure after bounded retries", 
   assert.deepEqual(await sendQuoteApprovedEmail("ada@example.com", "Ada", "AP12345678"), { success: false, error: "provider unavailable" });
   assert.equal(initialize.mock.callCount(), 1);
   assert.equal(send.mock.callCount(), 3);
+  assert.equal(send.mock.calls[0].arguments[0].attachments[0].content_id, "apex-five-logo@apexfivecleaning.co.uk");
 });
 
 test("dispatchEvent returns skipped when no event targets are configured", async () => {

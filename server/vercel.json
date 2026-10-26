@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "src/index.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["assets/apex-five-logo.png"]
+      }
     }
   ],
   "crons": [{ "path": "/api/automation/run", "schedule": "0 8 * * *" }],

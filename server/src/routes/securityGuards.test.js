@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as payments from "./payments.js";
 
 import bookingsRouter, { resolveBookingDiscount } from "./bookings.js";
 import { adminCookieCsrfMiddleware } from "../../middleware/auth.js";
@@ -7,6 +8,20 @@ import {
   canRefundPayment,
   validateStoredPaymentIntent,
 } from "./payments.js";
+
+test("successful payments preserve completed jobs and link the payment", async () => {
+  for (const status of ["completed", "in-progress", "cancelled", "confirmed", "pending", "draft"]) {
+    let saves = 0;
+    const completedAt = new Date("2026-10-20T10:00:00Z");
+    const booking = { status, completedAt, async save() { saves += 1; } };
+    await payments.applyBookingPaymentSuccess(booking, { _id: "payment-1" });
+    assert.equal(booking.status, ["draft", "pending"].includes(status) ? "confirmed" : status);
+    assert.equal(booking.completedAt, completedAt);
+    assert.equal(booking.paymentStatus, "completed");
+    assert.equal(booking.paymentId, "payment-1");
+    assert.equal(saves, 1);
+  }
+});
 
 test("booking discounts are server-owned and ignore client-supplied discounts", () => {
   assert.equal(

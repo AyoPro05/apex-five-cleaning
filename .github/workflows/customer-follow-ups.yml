@@ -1,0 +1,52 @@
+name: Customer follow-ups
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: customer-follow-ups
+  cancel-in-progress: false
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run protected automation worker
+        env:
+          APEX_API_URL: ${{ vars.APEX_API_URL }}
+          APEX_CRON_SECRET: ${{ secrets.APEX_CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$APEX_API_URL" || -z "$APEX_CRON_SECRET" ]]; then
+            echo '::error::Configure the APEX_API_URL repository variable and APEX_CRON_SECRET Actions secret before enabling customer follow-ups.'
+            exit 1
+          fi
+          case "$APEX_API_URL" in
+            https://*) ;;
+            *) echo '::error::APEX_API_URL must be an HTTPS backend URL.'; exit 1 ;;
+          esac
+
+          response_file="$RUNNER_TEMP/apex-automation.json"
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --retry-delay 10 --retry-max-time 150 --max-time 55 \
+            --proto '=https' --output "$response_file" \
+            --config - "${APEX_API_URL%/}/api/automation/run" <<EOF
+          header = "Authorization: Bearer ${APEX_CRON_SECRET}"
+          EOF
+
+          python3 - "$response_file" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1]) as response:
+              result = json.load(response)
+          if result.get("success") is not True or result.get("failed", 0) > 0:
+              raise SystemExit("Automation reported a failure. Check the API automation jobs.")
+          print(f"Completed: {result.get('completed', 0)}; retrying: {result.get('retried', 0)}")
+          PY

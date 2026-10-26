@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import sgMail from "@sendgrid/mail";
 import nodemailer from "nodemailer";
 import User from "../../models/User.js";
@@ -6,6 +7,8 @@ import {
   COMPANY_ADDRESS_LINE1,
   COMPANY_ADDRESS_LINE2,
   CONTACT_EMAIL,
+  PHONE_MAIN_DISPLAY,
+  PHONE_MAIN_TEL,
   WHATSAPP_DISPLAY,
   WHATSAPP_URL,
 } from "../config/contact.js";
@@ -19,20 +22,31 @@ import {
 
 /** Only active mailbox — all defaults and fallbacks use this address */
 const DEFAULT_MAILBOX = CONTACT_EMAIL;
+const EMAIL_LOGO_CID = "apex-five-logo@apexfivecleaning.co.uk";
+const emailLogo = readFileSync(new URL("../../assets/apex-five-logo.png", import.meta.url));
+
+// Attach the same packaged image referenced by the HTML; no remote fetch is needed.
+export function withEmailLogo(message, provider) {
+  if (!message.html?.includes(`cid:${EMAIL_LOGO_CID}`)) return message;
+  const attachment = provider === "sendgrid"
+    ? { filename: "apex-five-logo.png", content: emailLogo.toString("base64"), type: "image/png", disposition: "inline", content_id: EMAIL_LOGO_CID }
+    : { filename: "apex-five-logo.png", content: emailLogo, contentType: "image/png", contentDisposition: "inline", cid: EMAIL_LOGO_CID };
+  return { ...message, attachments: [...(message.attachments || []), attachment] };
+}
+
+const sendGridEmail = (message) => sgMail.send(withEmailLogo(message, "sendgrid"));
+const sendSmtpEmail = (message) => smtpTransport.sendMail(withEmailLogo(message, "smtp"));
 
 const SOCIAL_LINKS = [
   {
-    key: "facebook",
     label: "Facebook",
     url: "https://www.facebook.com/people/Apex-Five-Cleaning-Services/61590339615849/",
   },
   {
-    key: "instagram",
     label: "Instagram",
     url: "https://www.instagram.com/apex.fivecleaning/",
   },
   {
-    key: "tiktok",
     label: "TikTok",
     url: "https://www.tiktok.com/@apex_fivecleaningservice",
   },
@@ -112,26 +126,6 @@ export function isEmailConfigured() {
  * Safe status for health checks and ops. No secrets.
  * @returns {{ configured: boolean, provider: string|null, hint?: string }}
  */
-/** Verify SMTP connection at startup (logs IONOS/auth issues early). */
-export async function verifyEmailTransport() {
-  initializeEmailProvider();
-  const provider = process.env.EMAIL_PROVIDER || "smtp";
-  if (provider === "smtp" && smtpTransport) {
-    try {
-      await smtpTransport.verify();
-      console.log("✓ SMTP connection verified");
-      return { ok: true };
-    } catch (error) {
-      console.error("❌ SMTP verify failed:", error.message);
-      return { ok: false, error: error.message };
-    }
-  }
-  if (provider === "sendgrid" && sendGridReady) {
-    return { ok: true };
-  }
-  return { ok: false, error: "Email not configured" };
-}
-
 export function getEmailConfigStatus() {
   initializeEmailProvider();
   const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || "smtp";
@@ -295,9 +289,7 @@ async function sendWithRetry(label, action, options = {}) {
 // ─── BRAND CONFIG (used across all email templates) ─────────────────────────
 const getBrandConfig = () => {
   return {
-    logoUrl:
-      process.env.COMPANY_LOGO_URL ||
-      `https://www.apexfivecleaning.co.uk/apex-five-logo.png`,
+    logoUrl: `cid:${EMAIL_LOGO_CID}`,
     companyName: process.env.COMPANY_NAME || "Apex Five Cleaning",
     legalName: process.env.COMPANY_LEGAL_NAME || "Apex Five Capital Ltd",
     tagline:
@@ -307,13 +299,10 @@ const getBrandConfig = () => {
     websiteDisplay:
       process.env.COMPANY_WEBSITE_DISPLAY || "apexfivecleaning.co.uk",
     email: process.env.COMPANY_EMAIL || DEFAULT_MAILBOX,
-    phone: process.env.COMPANY_PHONE || "020 3535 6331",
-    phoneTel: process.env.COMPANY_PHONE_TEL || "+442035356331",
+    phone: process.env.COMPANY_PHONE || PHONE_MAIN_DISPLAY,
+    phoneTel: process.env.COMPANY_PHONE_TEL || PHONE_MAIN_TEL,
     addressLine1: COMPANY_ADDRESS_LINE1,
     addressLine2: COMPANY_ADDRESS_LINE2,
-    address:
-      process.env.COMPANY_ADDRESS ||
-      `${COMPANY_ADDRESS_LINE1}<br>${COMPANY_ADDRESS_LINE2}`,
     socialLinks: SOCIAL_LINKS,
     brandColor: "#14b8a6",
     brandColorDark: "#0d9488",
@@ -332,36 +321,23 @@ const getEmailHeader = (brand, title, subtitle = "") => {
   `;
 };
 
-const getSupportContactBlock = (brand, options = {}) => {
-  const { includeHours = true } = options;
-  return `
-    <div class="email-contact-stack" style="margin: 10px 0;">
-      <div class="email-contact-line">📞 <a href="tel:${brand.phoneTel}">${brand.phone}</a></div>
-      <div class="email-contact-line">📧 <a href="mailto:${brand.email}">${brand.email}</a></div>
-      <div class="email-contact-line">💬 <a href="${WHATSAPP_URL}" target="_blank" rel="noopener noreferrer">WhatsApp ${WHATSAPP_DISPLAY}</a></div>
-      ${includeHours ? '<div class="email-contact-line">🕒 Monday–Friday, 8am–6pm</div>' : ""}
-    </div>
-  `;
-};
-
 const getEmailFooter = (brand, extraNote = "") => {
   const socialLinks = (brand.socialLinks || [])
-    .map(({ key, label, url }) => {
-      const icon = key === "facebook" ? "📘" : key === "instagram" ? "📸" : "🎵";
-      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${icon} ${escapeHtml(label)}</a>`;
-    })
+    .map(({ label, url }) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`)
     .join(" · ");
 
   return `
     <div class="email-footer">
-      <div class="email-footer-brand">${brand.companyName}</div>
-      <p class="email-footer-tagline">${brand.tagline}</p>
-      ${getSupportContactBlock(brand)}
+      <div class="email-footer-brand">${escapeHtml(brand.companyName)}</div>
+      <p class="email-footer-contact">
+        <a href="mailto:${escapeHtml(brand.email)}">${escapeHtml(brand.email)}</a> · <a href="tel:${escapeHtml(brand.phoneTel)}" style="white-space:nowrap;">${escapeHtml(brand.phone)}</a><br>
+        <a href="${WHATSAPP_URL}" target="_blank" rel="noopener noreferrer">WhatsApp ${WHATSAPP_DISPLAY}</a> · Monday–Friday, 8am–6pm
+      </p>
+      <p class="email-footer-address">${escapeHtml(brand.addressLine1)}<br>${escapeHtml(brand.addressLine2)}</p>
+      <p class="email-footer-website"><a href="${escapeHtml(brand.website)}">${escapeHtml(brand.websiteDisplay)}</a></p>
       ${socialLinks ? `<p class="email-footer-social">${socialLinks}</p>` : ""}
-      <p class="email-footer-contact email-footer-website"><a href="${brand.website}">${brand.websiteDisplay}</a></p>
-      <p class="email-footer-address">${brand.addressLine1 || brand.address}<br>${brand.addressLine2 || ""}</p>
-      ${extraNote ? `<p class="email-footer-note">${extraNote}</p>` : ""}
-      <p class="email-footer-copy">© ${new Date().getFullYear()} ${brand.legalName}. All rights reserved.</p>
+      ${extraNote ? `<p class="email-footer-note">${escapeHtml(extraNote)}</p>` : ""}
+      <p class="email-footer-copy">© ${new Date().getFullYear()} ${escapeHtml(brand.legalName)}. All rights reserved.</p>
     </div>
   `;
 };
@@ -374,20 +350,14 @@ const getEmailBaseStyles = () => `
   .email-header-title { margin: 16px 0 0 0; font-size: 22px; font-weight: 600; }
   .email-header-subtitle { margin: 6px 0 0 0; font-size: 14px; opacity: 0.95; }
   .email-content { background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
-  .email-footer { background: #f3f4f6; padding: 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
-  .email-footer-brand { font-weight: 700; font-size: 14px; color: #14b8a6; margin-bottom: 4px; }
-  .email-footer-tagline { margin: 4px 0; font-size: 12px; color: #6b7280; }
-  .email-footer-contact { margin: 12px 0 4px 0; }
-  .email-contact-stack { margin: 12px 0 6px 0; }
-  .email-contact-line { display: block; margin: 4px 0; font-size: 13px; color: #14b8a6; }
-  .email-contact-line a { color: #14b8a6; text-decoration: none; }
-  .email-footer-contact a { color: #14b8a6; text-decoration: none; }
-  .email-footer-social { margin: 10px 0 4px 0; color: #14b8a6; }
-  .email-footer-social a { color: #14b8a6; text-decoration: none; }
-  .email-footer-website { margin-top: 8px; }
-  .email-footer-address { margin: 4px 0; color: #9ca3af; font-size: 11px; }
-  .email-footer-note { margin: 12px 0 0 0; color: #9ca3af; font-size: 11px; }
-  .email-footer-copy { margin: 16px 0 0 0; color: #9ca3af; font-size: 11px; }
+  .email-footer { background: #f9fafb; padding: 24px; text-align: center; font-size: 12px; line-height: 1.8; color: #475569; border-top: 1px solid #e5e7eb; }
+  .email-footer a { color: #006047; text-decoration: none; }
+  .email-footer-brand { font-weight: 700; font-size: 14px; color: #006047; }
+  .email-footer-contact { margin: 10px 0; }
+  .email-footer-social, .email-footer-website { margin: 8px 0; }
+  .email-footer-address { margin: 10px 0; color: #64748b; }
+  .email-footer-note { margin: 12px 0 0; color: #64748b; font-size: 11px; }
+  .email-footer-copy { margin: 14px 0 0; color: #64748b; font-size: 11px; }
   .cta-button { display: inline-block; background: #14b8a6; color: white !important; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; margin: 16px 0; }
   .cta-button:hover { background: #0d9488; }
 `;
@@ -546,7 +516,7 @@ export const sendClientConfirmationEmail = async (
 
   if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
     return sendWithRetry(`Client confirmation -> ${toEmail}`, () =>
-      sgMail.send({
+      sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject: template.subject,
@@ -556,7 +526,7 @@ export const sendClientConfirmationEmail = async (
   }
   if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
     return sendWithRetry(`Client confirmation -> ${toEmail}`, () =>
-      smtpTransport.sendMail({
+      sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
@@ -639,7 +609,7 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId, option
 
   if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
     return sendWithRetry(`Quote approved -> ${toEmail}`, () =>
-      sgMail.send({
+      sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject: template.subject,
@@ -650,7 +620,7 @@ export const sendQuoteApprovedEmail = async (toEmail, firstName, quoteId, option
   }
   if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
     return sendWithRetry(`Quote approved -> ${toEmail}`, () =>
-      smtpTransport.sendMail({
+      sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
@@ -729,7 +699,7 @@ export const sendContactEnquiryEmail = async (enquiry) => {
 
   try {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      await sgMail.send({
+      await sendGridEmail({
         to: notifyEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         replyTo: customerEmail,
@@ -743,7 +713,7 @@ export const sendContactEnquiryEmail = async (enquiry) => {
       return { success: true };
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      await sendSmtpEmail({
         to: notifyEmail,
         from: `"${senderName}" <${senderEmail}>`,
         replyTo: customerEmail,
@@ -778,13 +748,13 @@ export const sendAdminNotificationEmail = async (quoteData) => {
         html: template.html,
       };
 
-      await sgMail.send(msg);
+      await sendGridEmail(msg);
       console.log(
         `✓ Admin notification email sent to ${notifyEmail} via SendGrid`,
       );
       return { success: true };
     } else if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      await sendSmtpEmail({
         to: notifyEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
@@ -852,7 +822,7 @@ export const getVerificationEmailTemplate = (
               </div>
               <p style="font-size: 13px; color: #6b7280;">Need help? Contact details are in the footer below.</p>
             </div>
-            ${getEmailFooter(brand, `Sent because you registered at ${brand.websiteDisplay}`)}
+            ${getEmailFooter(brand, "Sent because you registered with us")}
           </div>
         </body>
       </html>
@@ -942,7 +912,7 @@ export const getResendVerificationTemplate = (
                 <ul style="margin: 0; padding-left: 20px;">
                   <li>Check your spam/junk folder</li>
                   <li>Copy the link into your browser manually</li>
-                  <li>Contact us at <a href="mailto:${brand.email}">${brand.email}</a></li>
+                  <li>Reply to this email if you need help</li>
                 </ul>
               </div>
             </div>
@@ -977,7 +947,7 @@ export const sendVerificationEmail = async (
     return sendWithRetry(
       `Verification email -> ${toEmail}`,
       () =>
-        sgMail.send({
+        sendGridEmail({
           to: toEmail,
           from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
           subject: template.subject,
@@ -991,7 +961,7 @@ export const sendVerificationEmail = async (
     return sendWithRetry(
       `Verification email -> ${toEmail}`,
       () =>
-        smtpTransport.sendMail({
+        sendSmtpEmail({
           to: toEmail,
           from: `"${senderName}" <${senderEmail}>`,
           subject: template.subject,
@@ -1025,13 +995,13 @@ export const sendVerificationSuccessEmail = async (toEmail, firstName) => {
         text: template.text,
       };
 
-      await sgMail.send(msg);
+      await sendGridEmail(msg);
       console.log(
         `✓ Verification success email sent to ${toEmail} via SendGrid`,
       );
       return { success: true };
     } else if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      await sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
@@ -1077,13 +1047,13 @@ export const sendResendVerificationEmail = async (
         text: template.text,
       };
 
-      await sgMail.send(msg);
+      await sendGridEmail(msg);
       console.log(
         `✓ Resend verification email sent to ${toEmail} via SendGrid`,
       );
       return { success: true };
     } else if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      await sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: template.subject,
@@ -1156,7 +1126,7 @@ export const sendTestEmail = async (toEmail) => {
 
   try {
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      await smtpTransport.sendMail({
+      await sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject: "Apex Five Cleaning — SMTP test",
@@ -1174,7 +1144,7 @@ export const sendTestEmail = async (toEmail) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// OPERATIONAL EMAILS (scheduler-driven)
+// OPERATIONAL EMAILS (durable automation worker)
 // ─────────────────────────────────────────────────────────────────
 
 const buildAdminBaseUrl = () => {
@@ -1239,13 +1209,13 @@ export const sendStuckQuoteReminderEmail = async (quotes = []) => {
             <a href="${adminBase}/admin/quotes" class="cta-button">Open admin dashboard</a>
           </div>
         </div>
-        ${getEmailFooter(brand, "Automated reminder · sent once per stuck quote")}
+        ${getEmailFooter(brand)}
       </div>
     </body></html>`;
 
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: notifyEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject,
@@ -1253,7 +1223,7 @@ export const sendStuckQuoteReminderEmail = async (quotes = []) => {
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: notifyEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject,
@@ -1323,13 +1293,13 @@ export const sendDailyDigestEmail = async (stats = {}) => {
             <a href="${adminBase}/admin" class="cta-button">Open admin dashboard</a>
           </div>
         </div>
-        ${getEmailFooter(brand, "Automated daily digest · sent once per day")}
+        ${getEmailFooter(brand)}
       </div>
     </body></html>`;
 
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: notifyEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         subject,
@@ -1337,7 +1307,7 @@ export const sendDailyDigestEmail = async (stats = {}) => {
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: notifyEmail,
         from: `"${senderName}" <${senderEmail}>`,
         subject,
@@ -1349,80 +1319,121 @@ export const sendDailyDigestEmail = async (stats = {}) => {
   return sendWithRetry(`Daily digest -> ${notifyEmail}`, action);
 };
 
-const DEFAULT_GOOGLE_REVIEW_URL = "https://share.google/ByNUvIHRlpT95uh09";
+const DEFAULT_GOOGLE_REVIEW_URL = "https://share.google/VHCntVtmEIBIasSi4";
 
+// An explicitly blank override disables review requests.
 const getGoogleReviewUrl = () =>
-  (process.env.GOOGLE_REVIEW_URL && process.env.GOOGLE_REVIEW_URL.trim()) ||
-  DEFAULT_GOOGLE_REVIEW_URL;
+  (process.env.GOOGLE_REVIEW_URL ?? DEFAULT_GOOGLE_REVIEW_URL).trim();
 
 /**
- * SATISFACTION FOLLOW-UP — sent 48h after a booking is marked "completed".
- * Asks for a Google review when happy; offers a private feedback path otherwise.
+ * REVIEW FOLLOW-UP — sent 48h after both successful payment and completion.
+ * Invites every eligible customer to share an honest Google review.
  */
-export const sendSatisfactionFollowUpEmail = async (
-  toEmail,
+export const getSatisfactionFollowUpTemplate = (
   firstName,
   reference,
 ) => {
-  initializeEmailProvider();
   const brand = getBrandConfig();
-  const senderEmail = getSenderEmail();
-  const senderName = getSenderName();
   const reviewUrl = getGoogleReviewUrl();
-  const issueUrl = `mailto:${brand.email}?subject=${encodeURIComponent(
-    `Feedback on my recent cleaning (${reference || "booking"})`,
-  )}`;
   const safeName = escapeHtml(firstName || "there");
   const safeRef = reference ? escapeHtml(reference) : "";
-  const subject = `How did we do? · ${brand.companyName}`;
+  const subject = `Thank you for choosing us · ${brand.companyName}`;
   const html = `
     <!DOCTYPE html>
-    <html><head><meta charset="UTF-8"><style>${getEmailBaseStyles()}
-      .review-card { background:#ecfdf5; border-left:4px solid #14b8a6; padding:20px; margin:18px 0; border-radius:4px; }
-      .ghost-link { display:inline-block; margin-top:14px; font-size:13px; color:#475569; }
-      .stars { font-size:22px; letter-spacing:4px; margin: 8px 0; }
-      .ref-pill { display:inline-block; background:white; padding:6px 12px; border-radius:4px; font-family:monospace; font-size:12px; border:1px solid #e5e7eb; margin-bottom:8px; }
-    </style></head>
-    <body>
-      <div class="email-container">
-        ${getEmailHeader(brand, "How did we do?", "Your feedback helps us keep raising the bar")}
-        <div class="email-content">
-          <p>Hi ${safeName},</p>
-          <p>Thank you for choosing <strong>${brand.companyName}</strong>. We hope your recent clean met the standard we promised.</p>
-          ${safeRef ? `<div class="ref-pill">Ref: ${safeRef}</div>` : ""}
-          <div class="review-card">
-            <div class="stars">★★★★★</div>
-            <p style="margin: 4px 0 12px 0;">If you were happy with our service, a short Google review would mean the world to our team and helps other local clients find us.</p>
-            <a href="${reviewUrl}" class="cta-button" target="_blank" rel="noopener">Leave a Google review</a>
-          </div>
-          <p style="font-size:13px; color:#6b7280;">
-            Was anything not quite right? Please reply directly — or
-            <a href="${issueUrl}" style="color:${brand.brandColorDark};">let us know</a> and we will make it right.
-          </p>
-          <p style="margin-top:18px;">Thanks again for trusting us with your space.</p>
-          <p style="margin-top:8px; font-size:13px; color:#6b7280;">— The ${brand.companyName} team</p>
-        </div>
-        ${getEmailFooter(brand, "Automated follow-up · sent once after each completed clean")}
-      </div>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="color-scheme" content="light">
+      <title>Thank you · ${escapeHtml(brand.companyName)}</title>
+      <style>${getEmailBaseStyles()}
+        table { border-collapse: collapse; }
+        .review-footer .email-footer { background: #ffffff; border-top: 1px solid #d4f7e5; padding: 30px 24px; }
+        @media only screen and (max-width: 480px) {
+          .review-outer { padding: 0 !important; }
+          .review-logo-cell { padding: 32px 24px 26px !important; }
+          .review-logo { width: 260px !important; }
+          .review-message { padding: 38px 24px 36px !important; }
+          .review-title { font-size: 56px !important; line-height: 1.1 !important; }
+          .review-copy { font-size: 17px !important; line-height: 1.75 !important; }
+        }
+      </style>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f2f8f5; font-family:'Trebuchet MS', Helvetica, Arial, sans-serif;">
+      <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">Thank you for choosing ${escapeHtml(brand.companyName)}. We would love to hear about your recent clean.</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f2f8f5">
+        <tr>
+          <td class="review-outer" align="center" style="padding:32px 16px;">
+            <!--[if mso]><table role="presentation" width="600" align="center"><tr><td><![endif]-->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; max-width:600px; background-color:#ffffff;">
+              <tr>
+                <td class="review-logo-cell" align="center" bgcolor="#ffffff" style="padding:40px 44px 32px;">
+                  <a href="${escapeHtml(brand.website)}" target="_blank" rel="noopener" style="text-decoration:none;">
+                    <img src="${brand.logoUrl}" alt="${escapeHtml(brand.companyName)} Logo" class="email-logo review-logo" width="320" height="34" style="display:block; width:320px; max-width:100%; height:auto; margin:0 auto; border:0;">
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td bgcolor="${brand.brandColorDark}" height="2" style="height:2px; font-size:0; line-height:0;">&nbsp;</td>
+              </tr>
+              <tr>
+                <td class="review-message" align="center" bgcolor="#edfdf5" style="padding:48px 44px 42px; color:#1f2937; text-align:center;">
+                  <h1 class="review-title" style="margin:0 0 30px; color:#006047; font-size:76px; line-height:1.1; font-weight:500; letter-spacing:-2px;">Thank You</h1>
+                  <p style="margin:0 0 18px; color:#064b39; font-size:16px; line-height:1.6;">Hi ${safeName},</p>
+                  <p class="review-copy" style="margin:0 0 24px; font-size:19px; line-height:1.75;">Thank you for choosing<br><strong style="color:#064b39;">${escapeHtml(brand.companyName)}.</strong><br>We hope you’re enjoying your freshly cleaned space.</p>
+                  <p class="review-copy" style="margin:0 0 32px; font-size:19px; line-height:1.75;">We’d love to hear about your experience. Please take a minute to leave us an honest review on Google. Your feedback means a lot to our team and helps other local customers find us.</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" bgcolor="${brand.brandColorDark}" style="border-radius:999px; mso-padding-alt:18px 24px;">
+                        <a href="${escapeHtml(reviewUrl)}" target="_blank" rel="noopener" aria-label="Leave a Google review for ${escapeHtml(brand.companyName)}" style="display:block; padding:18px 24px; border:1px solid ${brand.brandColorDark}; border-radius:999px; color:#ffffff; font-size:19px; font-weight:700; line-height:1.5; text-align:center; text-decoration:none;">Review Us on Google</a>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:26px 0 0; color:#475569; font-size:13px; line-height:1.8;">Questions or feedback? Simply reply to this email.</p>
+                  ${safeRef ? `<p style="margin:22px 0 0; color:#64748b; font-size:11px; line-height:1.8; letter-spacing:0.5px;">YOUR CLEANING REFERENCE<br><span style="color:#475569; font-size:13px; letter-spacing:1px;">${safeRef}</span></p>` : ""}
+                </td>
+              </tr>
+              <tr>
+                <td class="review-footer">${getEmailFooter(brand)}</td>
+              </tr>
+            </table>
+            <!--[if mso]></td></tr></table><![endif]-->
+          </td>
+        </tr>
+      </table>
     </body></html>`;
 
+  const text = `Thank You\n\nHi ${firstName || "there"},\n\nThank you for choosing ${brand.companyName}. We hope you’re enjoying your freshly cleaned space.\n\nWe’d love to hear about your experience. Please take a minute to leave us an honest review on Google. Your feedback means a lot to our team and helps other local customers find us.\n\nReview Us on Google: ${reviewUrl}\n${reference ? `\nYour cleaning reference: ${reference}\n` : ""}\nQuestions or feedback? Simply reply to this email or contact ${brand.email}.\n\nThe ${brand.companyName} team`;
+  return { subject, html, text };
+};
+
+export const sendSatisfactionFollowUpEmail = async (toEmail, firstName, reference) => {
+  if (!getGoogleReviewUrl()) {
+    return { success: false, error: "Set GOOGLE_REVIEW_URL to the business's direct Google review link" };
+  }
+  initializeEmailProvider();
+  const senderEmail = getSenderEmail();
+  const senderName = getSenderName();
+  const { subject, html, text } = getSatisfactionFollowUpTemplate(firstName, reference);
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
         subject,
         html,
+        text,
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
         subject,
         html,
+        text,
       });
     }
     return Promise.reject(new Error("No email provider configured"));
@@ -1462,13 +1473,13 @@ export const sendClientFollowUpEmail = async (
           <p>Need to chat? Contact details are in the footer below.</p>
           <p style="margin-top:20px;">We aim to respond to every request within a working day.</p>
         </div>
-        ${getEmailFooter(brand, "Sent because you requested a quote on " + brand.websiteDisplay)}
+        ${getEmailFooter(brand, "Sent because you requested a quote")}
       </div>
     </body></html>`;
 
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1477,7 +1488,7 @@ export const sendClientFollowUpEmail = async (
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1535,13 +1546,13 @@ export const sendPaymentReminderEmail = async (
           </div>
           <p style="font-size:13px; color:#6b7280;">If you have already paid, please ignore this reminder. Need help? Check the footer below.</p>
         </div>
-        ${getEmailFooter(brand, "Automated payment reminder · sent once per approved quote")}
+        ${getEmailFooter(brand)}
       </div>
     </body></html>`;
 
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1550,7 +1561,7 @@ export const sendPaymentReminderEmail = async (
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1561,13 +1572,6 @@ export const sendPaymentReminderEmail = async (
     return Promise.reject(new Error("No email provider configured"));
   };
   return sendWithRetry(`Payment reminder -> ${toEmail}`, action);
-};
-
-const SERVICE_LABELS = {
-  residential: "Residential cleaning",
-  "end-of-tenancy": "End of tenancy cleaning",
-  airbnb: "Airbnb cleaning",
-  commercial: "Commercial cleaning",
 };
 
 const formatMoney = (amount, currency = "GBP") => {
@@ -1690,7 +1694,7 @@ export const sendPaymentConfirmationEmail = async ({
 
   const action = () => {
     if (EMAIL_PROVIDER === "sendgrid" && process.env.SENDGRID_API_KEY) {
-      return sgMail.send({
+      return sendGridEmail({
         to: toEmail,
         from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1700,7 +1704,7 @@ export const sendPaymentConfirmationEmail = async ({
       });
     }
     if (EMAIL_PROVIDER === "smtp" && smtpTransport) {
-      return smtpTransport.sendMail({
+      return sendSmtpEmail({
         to: toEmail,
         from: `"${senderName}" <${senderEmail}>`,
         replyTo: process.env.NOTIFY_EMAIL || senderEmail,
@@ -1714,8 +1718,6 @@ export const sendPaymentConfirmationEmail = async ({
 
   return sendWithRetry(`Payment confirmation -> ${toEmail}`, action);
 };
-
-export { SERVICE_LABELS as PAYMENT_SERVICE_LABELS };
 
 export const sendPasswordResetEmail = async (
   toEmail,
@@ -1732,7 +1734,7 @@ export const sendPasswordResetEmail = async (
     return sendWithRetry(
       `Password reset -> ${toEmail}`,
       () =>
-        sgMail.send({
+        sendGridEmail({
           to: toEmail,
           from: process.env.SENDGRID_FROM_EMAIL || senderEmail,
           subject: template.subject,
@@ -1746,7 +1748,7 @@ export const sendPasswordResetEmail = async (
     return sendWithRetry(
       `Password reset -> ${toEmail}`,
       () =>
-        smtpTransport.sendMail({
+        sendSmtpEmail({
           to: toEmail,
           from: `"${senderName}" <${senderEmail}>`,
           subject: template.subject,
