@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { MapPin, Clock, Star } from "lucide-react";
+import { MapPin, Clock } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ServiceAreaMap from "../components/ServiceAreaMap";
+import CustomerReviews from "../components/CustomerReviews";
 import SEO from "../components/SEO";
 import NotFound from "./NotFound";
 import { buildLocalBusinessSchema, buildServiceAreaMetaDescription, buildServiceAreaPageSchemas, primaryRegionLabel } from "../config/seoSchemas";
@@ -201,25 +202,7 @@ const ServiceArea = () => {
           </div>
         </motion.div>
 
-        {/* Testimonials Snippet */}
-        <motion.div className="bg-white rounded-2xl p-8 border border-gray-200 mb-16" {...scrollReveal}>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            What {area.name} Customers Say
-          </h2>
-          <div className="flex gap-4 mb-4">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-          <p className="text-gray-600 italic mb-4">
-            "Exceptional service and attention to detail. Apex Five has been our
-            go-to for regular cleaning and end-of-tenancy work. Highly
-            recommended!"
-          </p>
-          <p className="font-semibold text-gray-900">
-            — Local {area.name} Customer
-          </p>
-        </motion.div>
+        <CustomerReviews />
 
         {/* CTA Section */}
         <motion.div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 text-center mb-16" {...scrollReveal}>
