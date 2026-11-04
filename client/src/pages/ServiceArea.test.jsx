@@ -42,6 +42,44 @@ describe("ServiceArea", () => {
       .toBe("https://www.apexfivecleaning.co.uk#localbusiness");
   });
 
+  it("shows Southend's confirmed service range and local cleaning details", () => {
+    renderArea("southend-on-sea");
+
+    expect(screen.getByText("Home, rental-property and workplace cleaning across Southend-on-Sea, Westcliff-on-Sea and Leigh-on-Sea.")).toBeTruthy();
+    expect(screen.getByText("Southend-on-Sea, Westcliff-on-Sea and Leigh-on-Sea", { exact: true })).toBeTruthy();
+
+    const services = [
+      "Residential Cleaning",
+      "End of Tenancy",
+      "Airbnb Turnover",
+      "Deep Cleaning",
+      "Office Cleaning",
+      "Commercial Cleaning",
+      "After Builders Cleaning",
+      "Carpet and Upholstery Cleaning",
+    ];
+    for (const service of services) {
+      expect(screen.getByRole("heading", { level: 3, name: service })).toBeTruthy();
+    }
+
+    expect(screen.getByText(/interior windows, skirting boards, oven, microwave and fridge cleaning/)).toBeTruthy();
+    expect(screen.getByText(/cupboard cleaning and organisation/)).toBeTruthy();
+
+    const descriptions = services.map((service) => {
+      const heading = screen.getByRole("heading", { level: 3, name: service });
+      return heading.parentElement.querySelector("p").textContent;
+    });
+    expect(new Set(descriptions).size).toBe(services.length);
+
+    for (const service of ["Deep Cleaning", "Office Cleaning", "After Builders Cleaning", "Carpet and Upholstery Cleaning"]) {
+      const heading = screen.getByRole("heading", { level: 3, name: service });
+      const card = heading.closest("div.bg-white");
+      expect(card.querySelector("img")).toBeNull();
+      expect(card.querySelector("p").textContent.trim()).not.toBe("");
+      expect(card.querySelector("button").textContent).toContain("Learn More");
+    }
+  });
+
   it("does not index a display-only town as an existing area detail page", async () => {
     renderArea("leigh-on-sea");
     await waitFor(() => expect(document.querySelector('meta[name="robots"]')?.content)

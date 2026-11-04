@@ -150,6 +150,9 @@ const ServiceArea = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Services Available in {area.name}
           </h2>
+          {area.serviceOverview && (
+            <p className="text-gray-600 mb-6 max-w-4xl">{area.serviceOverview}</p>
+          )}
           <div className="grid md:grid-cols-3 gap-6">
             {area.servicesCovered.map((service, idx) => (
               <div
@@ -166,8 +169,8 @@ const ServiceArea = () => {
                 <div className="p-6">
                   <h3 className="font-bold text-gray-900 mb-2">{service}</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Professional {service.toLowerCase()} services tailored for{" "}
-                    {area.name} properties.
+                    {area.serviceDescriptions?.[service] ||
+                      `Professional ${service.toLowerCase()} services tailored for ${area.name} properties.`}
                   </p>
                   <button
                     onClick={() => navigate("/request-a-quote")}

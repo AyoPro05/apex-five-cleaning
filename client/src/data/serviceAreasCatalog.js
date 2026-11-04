@@ -307,18 +307,48 @@ export const SERVICE_AREAS_BY_SLUG = {
   "southend-on-sea": {
     name: "Southend-on-Sea",
     region: "Essex",
-    coverage: "Southend axis incl. Westcliff-on-Sea and Leigh-on-Sea",
+    coverage: "Southend-on-Sea, Westcliff-on-Sea and Leigh-on-Sea",
     responseTime: "24-48 hours",
-    servicesCovered: ["Residential Cleaning", "End of Tenancy", "Airbnb Turnover"],
-    localInfo: "Professional cleaning support across the Southend-on-Sea coastal axis.",
+    servicesCovered: [
+      "Residential Cleaning",
+      "End of Tenancy",
+      "Airbnb Turnover",
+      "Deep Cleaning",
+      "Office Cleaning",
+      "Commercial Cleaning",
+      "After Builders Cleaning",
+      "Carpet and Upholstery Cleaning",
+    ],
+    localInfo:
+      "Home, rental-property and workplace cleaning across Southend-on-Sea, Westcliff-on-Sea and Leigh-on-Sea.",
+    serviceOverview:
+      "The service range includes regular house cleaning, end-of-tenancy and Airbnb or holiday-let turnovers, deep cleaning, office and commercial cleaning, after-builders cleaning, and carpet and upholstery cleaning. Depending on the job, tasks can include interior windows, skirting boards, oven, microwave and fridge cleaning, plus cupboard cleaning and organisation.",
+    serviceDescriptions: {
+      "Residential Cleaning":
+        "Regular house cleaning across Southend-on-Sea, Westcliff-on-Sea and Leigh-on-Sea.",
+      "End of Tenancy":
+        "Cleaning for homes at the end of a tenancy.",
+      "Airbnb Turnover":
+        "Turnover cleaning for Airbnb and holiday-let properties.",
+      "Deep Cleaning":
+        "A more thorough clean for areas that need extra attention.",
+      "Office Cleaning":
+        "Cleaning for office spaces across the local coverage area.",
+      "Commercial Cleaning":
+        "Cleaning for commercial premises across the local coverage area.",
+      "After Builders Cleaning":
+        "Cleaning after building work, with tasks suited to the property and job.",
+      "Carpet and Upholstery Cleaning":
+        "Cleaning for carpets and upholstered furnishings.",
+    },
     highlights: [
-      "Coastal property cleaning experience",
-      "Holiday let and Airbnb turnaround support",
-      "Fast response across key Southend districts",
-      "Trusted and insured cleaning operatives",
+      "Residential and workplace cleaning",
+      "End-of-tenancy and holiday-let turnover cleaning",
+      "Deep, after-builders, carpet and upholstery cleaning",
+      "Additional interior, kitchen and cupboard cleaning tasks",
     ],
     image:
-      "https://images.unsplash.com/photo-1472224371017-08207f84aaae?w=1200&h=600&fit=crop",
+      "/images/services/Southend_Hero.webp",
     coordinates: { lat: 51.5459, lng: 0.7077 },
   },
   croydon: {

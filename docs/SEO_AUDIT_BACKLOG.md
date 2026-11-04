@@ -35,20 +35,6 @@ Keep the backlog focused on open findings. The user will identify when a finding
 - **Status:** Monitoring
 - **Verification:** Monitor Search Console indexing status and review internal links and local content quality.
 
-### SEO-017 — 4 November 2026
-
-- **Finding:** The Southend-on-Sea location card uses a button rather than an anchor with `href`.
-- **Priority:** High
-- **Evidence:** Confirmed finding for the `/service-areas` page.
-- **Affected file or URL:** `/service-areas` (implementation in `client/src/pages/ServiceAreas.jsx`).
-- **Impact:** Google may not reliably discover navigation destinations through button click handlers.
-- **Recommended action:** Replace navigation buttons with React Router `Link` or normal anchor elements, preserving styling and functionality.
-- **Status:** Local validation passed; deployment pending.
-- **Implementation files:** `client/src/pages/ServiceAreas.jsx` and `client/src/pages/ServiceAreas.test.jsx`.
-- **Validation:** 3 tests passed, 0 failed. Production build successful.
-- **Browser verification:** Southend-on-Sea card renders as `<a href="/service-areas/southend-on-sea">` and is keyboard focusable.
-- **Next:** Review final Git status before committing and deployment.
-
 ### SEO-018 — 4 November 2026
 
 - **Finding:** Service card navigation is handled with JavaScript; the "Learn More" button calls `navigate('/request-a-quote')`.
@@ -58,3 +44,45 @@ Keep the backlog focused on open findings. The user will identify when a finding
 - **Potential improvement:** Replace navigation-only buttons with semantic links, preserving styling, accessibility, and behavior.
 - **Status:** Planned
 - **Verification:** Confirm rendered anchor has an `href`, check keyboard navigation, and verify quote-page functionality.
+
+### SEO-019 — Location Page Content Uniqueness
+
+- **Priority:** High
+- **Status:** Implemented locally; code review and deployment pending.
+- **Affected files:** `client/src/pages/ServiceArea.jsx`; `client/src/data/serviceAreasCatalog.js`.
+- **Finding:** Southend-on-Sea location page currently lists 3 services, while the business confirms 8 main cleaning categories plus specialist tasks.
+- **Confirmed categories:** Residential/regular house cleaning; end of tenancy cleaning; Airbnb/holiday let turnover; deep cleaning; office cleaning; commercial cleaning; after builders cleaning; carpet/upholstery cleaning.
+- **Additional tasks:** Interior window cleaning, skirting boards, oven, microwave, cupboard cleaning and organisation, and fridge cleaning.
+- **Implementation:** Expanded Southend-on-Sea to eight confirmed services, improved local content and specialist task descriptions, and added targeted tests.
+- **Validation reported:** 4 tests passed; production build successful; `git diff --check` passed.
+- **Remaining:** Review actual diff, verify rendered content locally, commit, deploy, and verify the live page.
+- **Related issue:** SEO-020 testimonial attribution remains open.
+
+### SEO-020 — Location Testimonial Attribution
+
+- **Priority:** High
+- **Status:** Investigate
+- **Affected file:** `client/src/pages/ServiceArea.jsx`.
+- **Finding:** A shared testimonial is dynamically attributed to a customer in each location.
+- **Recommended action:** Verify the testimonial and location attribution. Use genuine feedback or remove unsupported attribution.
+- **Verification:** Confirm the customer review source and attribution.
+
+### SEO-021 — Southend-on-Sea Local Hero Image
+
+- **Priority:** Medium
+- **Status:** Local browser verification passed; deployment pending.
+- **Image:** `client/public/images/services/Southend_Hero.webp` (48 KB).
+- **Implementation:** Replaced Southend-on-Sea's remote Unsplash hero image reference with a locally hosted photograph of Southend Pier.
+- **Verification:** Browser screenshot confirmed the image renders; Network tab showed HTTP 304 Not Modified; hero heading and CTA buttons remain readable.
+- **Next:** Include the image and catalogue update in a reviewed Git commit, deploy, and verify in production.
+
+## Completed findings
+
+### SEO-017 — Crawlable Service Area Links
+
+- **Status:** Completed
+- **Completed:** 4 November 2026
+- **Commit:** `db9ca83`
+- **Implementation:** Replaced JavaScript navigation buttons with React Router `Link` elements for areas with detail pages.
+- **Verification:** 3 automated tests passed, Vite production build successful, and production HTML confirmed `<a href="/service-areas/southend-on-sea">` with keyboard focus support.
+- **Outcome:** Improved semantic internal linking and crawlable navigation. Indexing impact remains to be measured.
