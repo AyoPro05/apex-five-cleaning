@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MapPin, Phone, Clock } from 'lucide-react'
 import ServiceAreaMap from '../components/ServiceAreaMap'
@@ -65,12 +65,18 @@ const ServiceAreas = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {region.areas.map((area, areaIdx) => {
-                const Card = area.hasDetailPage ? 'button' : 'div'
+                const Card = area.hasDetailPage ? Link : 'div'
+                const cardProps = area.hasDetailPage
+                  ? { to: `/service-areas/${area.slug}` }
+                  : {}
                 return <Card
                   key={areaIdx}
-                  type={area.hasDetailPage ? 'button' : undefined}
-                  onClick={area.hasDetailPage ? () => navigate(`/service-areas/${area.slug}`) : undefined}
-                  className="text-left bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group"
+                  {...cardProps}
+                  className={`text-left bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-300 transition group ${
+                    area.hasDetailPage
+                      ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2'
+                      : ''
+                  }`}
                 >
                   <div className="flex items-start gap-4 mb-4">
                     <MapPin className="w-5 h-5 text-teal-600 flex-shrink-0 mt-1" />
