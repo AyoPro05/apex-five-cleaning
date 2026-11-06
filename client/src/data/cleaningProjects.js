@@ -21,11 +21,26 @@
  */
 
 /** @type {CleaningProject[]} */
-export const CLEANING_PROJECTS = [];
+export const CLEANING_PROJECTS = [
+  {
+    id: "airbnb-bedroom-basildon-001",
+    title: "Airbnb Bedroom Cleaning",
+    serviceType: "Airbnb / Holiday Let Cleaning",
+    location: "Basildon",
+    mediaType: "image",
+    description: "Bedroom cleaning and guest-ready preparation at an Airbnb property in Basildon, Essex.",
+    beforeImageSrc: "/images/projects/airbnb-bedroom/Airbnb_Bedroom_Before.webp",
+    afterImageSrc: "/images/projects/airbnb-bedroom/Airbnb_Bedroom_After.webp",
+    imageAlt: "Bedroom at an Airbnb property in Basildon",
+    approvalStatus: "approved",
+    permissionConfirmed: true,
+  },
+];
 
 const BROAD_AREA_LABELS = new Set([
   "Southend-on-Sea",
   "Leigh-on-Sea",
+  "Basildon",
   "London",
   "Kent",
   "Essex",
