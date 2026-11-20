@@ -123,9 +123,13 @@ const quoteValidationSchema = Joi.object({
     .optional()
     .allow(''),
 
+  // TECH-012: notes are optional. The quote form always sends this field, so an empty
+  // or whitespace-only value is treated as "not provided" (removed after trimming)
+  // instead of being rejected. Type and maximum length checks are unchanged.
   additionalNotes: Joi.string()
     .trim()
     .max(500)
+    .empty('')
     .optional()
     .messages({
       'string.max': 'Additional notes must not exceed 500 characters'
